@@ -86,33 +86,23 @@ src/
 
 ## 运行方式
 
-项目实际前端目录是：
-
-```text
-C:\Users\骆巍\Desktop\pc\pc
-```
-
-在该目录执行：
-
 ```bash
 npm install
 npm run dev
 ```
 
-开发服务器默认端口为 `3000`。
+开发服务器默认端口为 `3000`（被占用时 Vite 会自动换端口，看终端提示）。
 
-真实后端模式默认开启。仅在本地演示时复制 `.env.example` 为 `.env`，设置：
-
-```env
-VITE_USE_MOCK=true
-```
-
-演示账号：
+**默认走 Mock 模式**，不需要后端就能登录：
 
 ```text
 admin
 123456
 ```
+
+后端就绪后，复制 `.env.example` 为 `.env.local`，改成 `VITE_USE_MOCK=false`，登录和业务页面就会走真实接口。
+
+> `.env.local` 已被 `.gitignore` 忽略，不会提交。
 
 ## 接口约定
 
