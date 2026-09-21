@@ -1,84 +1,43 @@
 import request from '@/utils/request'
 
-/**
- * 版权与印章模块 API
- * 接口前缀: /api/v1/admin/copyright
- */
+const PRODUCT_PREFIX = '/api/v1/admin'
 
-// 获取版权申请列表
-export function getCopyrightList(params) {
+/** 版权审核产品业务 API */
+
+export function getReviewList(params) {
   return request({
-    url: '/copyright/list',
+    url: `${PRODUCT_PREFIX}/copyright/review/list`,
     method: 'get',
     params
   })
 }
 
-// 获取版权申请详情
-export function getCopyrightDetail(id) {
+export function getReviewDetail(id) {
   return request({
-    url: `/copyright/detail/${id}`,
+    url: `${PRODUCT_PREFIX}/copyright/review/${id}`,
     method: 'get'
   })
 }
 
-// 审核版权申请
-export function approveCopyright(id, data) {
+export function submitReviewResult(id, data) {
   return request({
-    url: `/copyright/approve/${id}`,
+    url: `${PRODUCT_PREFIX}/copyright/review/${id}/result`,
     method: 'post',
     data
   })
 }
 
-// 颁发版权证书
-export function issueCertificate(id, data) {
+export function getCopyrightAssets(params) {
   return request({
-    url: `/copyright/certificate/${id}`,
-    method: 'post',
-    data
-  })
-}
-
-// 获取印章列表
-export function getSealList(params) {
-  return request({
-    url: '/copyright/seal/list',
+    url: `${PRODUCT_PREFIX}/copyright/assets`,
     method: 'get',
     params
   })
 }
 
-// 创建印章
-export function createSeal(data) {
+export function getAiReviewRules(params) {
   return request({
-    url: '/copyright/seal/create',
-    method: 'post',
-    data
-  })
-}
-
-// 更新印章
-export function updateSeal(id, data) {
-  return request({
-    url: `/copyright/seal/update/${id}`,
-    method: 'put',
-    data
-  })
-}
-
-// 删除印章
-export function deleteSeal(id) {
-  return request({
-    url: `/copyright/seal/delete/${id}`,
-    method: 'delete'
-  })
-}
-
-// 获取版权统计
-export function getCopyrightStatistics(params) {
-  return request({
-    url: '/copyright/statistics',
+    url: `${PRODUCT_PREFIX}/copyright/review-rules`,
     method: 'get',
     params
   })
