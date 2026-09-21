@@ -1,65 +1,88 @@
 import { defineStore } from 'pinia'
-import { login, logout, getUserInfo } from '@/api/user'
+import { login as loginApi, logout as logoutApi, getInfo } from '@/api/login'
+import { getToken, setToken, removeToken } from '@/utils/auth'
+import { usePermissionStore } from '@/stores/permission'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    token: localStorage.getItem('admin_token') || '',
-    userInfo: null,
-    permissions: []
+    token: getToken(),
+    user: null,
+    roles: [],
+    permissions: [],
+    infoLoaded: false
   }),
 
   getters: {
-    // 是否已登录
     isLoggedIn: (state) => !!state.token,
-    
-    // 用户名
-    username: (state) => state.userInfo?.username || '',
-    
-    // 用户角色
-    roles: (state) => state.userInfo?.roles || []
+    username: (state) => state.user?.nickName || state.user?.userName || '',
+    userId: (state) => state.user?.userId || null
   },
 
   actions: {
-    // 登录
     async login(loginForm) {
-      const data = await login(loginForm)
-      const token = data?.token || data?.access_token || data?.accessToken
+      const payload = {
+        username: loginForm.username,
+        password: loginForm.password
+      }
+      if (loginForm.code !== undefined && loginForm.code !== null && loginForm.code !== '') {
+        payload.code = loginForm.code
+      }
+      if (loginForm.uuid) {
+        payload.uuid = loginForm.uuid
+      }
+      const data = await loginApi(payload)
+      const token = data?.token
       if (!token) {
         throw new Error('登录接口未返回 Token')
       }
       this.token = token
-      localStorage.setItem('admin_token', token)
+      setToken(token)
       return data
     },
 
-    // 获取用户信息
     async fetchUserInfo() {
+      const data = await getInfo()
+      const user = data?.user || null
+      this.user = user
+      this.roles = Array.isArray(data?.roles) ? [...data.roles] : []
+      const perms = data?.permissions
+      this.permissions = Array.isArray(perms)
+        ? [...perms]
+        : perms && typeof perms === 'object'
+          ? [...perms]
+          : []
+      this.infoLoaded = true
+      return data
+    },
+
+    async logout({ callServer = true } = {}) {
+      if (callServer && this.token) {
+        try {
+          await logoutApi()
+        } catch (error) {
+          console.error('退出接口失败，仍清理本地会话:', error?.message || error)
+        }
+      }
+      this.resetSession()
+    },
+
+    resetSession() {
+      this.token = ''
+      this.user = null
+      this.roles = []
+      this.permissions = []
+      this.infoLoaded = false
+      removeToken()
       try {
-        const data = await getUserInfo()
-        this.userInfo = data
-        this.permissions = data.permissions || []
-        return data
-      } catch (error) {
-        throw error
+        usePermissionStore().resetRoutes()
+      } catch (e) {
+        // store may not be active during early failures
       }
     },
 
-    // 登出
-    async logout() {
-      try {
-        await logout()
-      } catch (error) {
-        console.error('登出失败:', error)
-      } finally {
-        this.token = ''
-        this.userInfo = null
-        this.permissions = []
-        localStorage.removeItem('admin_token')
-      }
-    },
-
-    // 检查权限
     hasPermission(permission) {
+      if (!permission) return true
+      if (this.permissions.includes('*:*:*')) return true
       return this.permissions.includes(permission)
     }
   }

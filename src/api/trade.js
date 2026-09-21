@@ -1,112 +1,43 @@
 import request from '@/utils/request'
 
-/**
- * 交易与财务模块 API
- * 接口前缀: /api/v1/admin/trade
- */
+const PRODUCT_PREFIX = '/api/v1/admin'
 
-// 获取交易订单列表
+/** 交易商务产品业务 API */
+
 export function getOrderList(params) {
   return request({
-    url: '/trade/order/list',
+    url: `${PRODUCT_PREFIX}/trade/order/list`,
     method: 'get',
     params
   })
 }
 
-// 获取订单详情
 export function getOrderDetail(id) {
   return request({
-    url: `/trade/order/detail/${id}`,
+    url: `${PRODUCT_PREFIX}/trade/order/detail/${id}`,
     method: 'get'
   })
 }
 
-// 获取询盘列表
 export function getInquiryList(params) {
   return request({
-    url: '/trade/inquiry/list',
+    url: `${PRODUCT_PREFIX}/trade/inquiry/list`,
     method: 'get',
     params
   })
 }
 
-// 获取询盘详情
-export function getInquiryDetail(id) {
+export function getPartnerList(params) {
   return request({
-    url: `/trade/inquiry/detail/${id}`,
-    method: 'get'
-  })
-}
-
-// 记录商务跟进或线下谈判结果
-export function recordInquiryFollowUp(id, data) {
-  return request({
-    url: `/trade/inquiry/follow-up/${id}`,
-    method: 'post',
-    data
-  })
-}
-
-// 将已达成询盘转为授权订单
-export function convertInquiryToOrder(id, data) {
-  return request({
-    url: `/trade/inquiry/convert-order/${id}`,
-    method: 'post',
-    data
-  })
-}
-
-// 退款
-export function refundOrder(id, data) {
-  return request({
-    url: `/trade/order/refund/${id}`,
-    method: 'post',
-    data
-  })
-}
-
-// 获取提现申请列表
-export function getWithdrawList(params) {
-  return request({
-    url: '/trade/withdraw/list',
+    url: `${PRODUCT_PREFIX}/trade/partner/list`,
     method: 'get',
     params
   })
 }
 
-// 审核提现申请
-export function approveWithdraw(id, data) {
+export function getTradeWorks(params) {
   return request({
-    url: `/trade/withdraw/approve/${id}`,
-    method: 'post',
-    data
-  })
-}
-
-// 获取财务统计
-export function getFinanceStatistics(params) {
-  return request({
-    url: '/trade/statistics',
-    method: 'get',
-    params
-  })
-}
-
-// 导出财务报表
-export function exportFinanceReport(params) {
-  return request({
-    url: '/trade/export',
-    method: 'get',
-    params,
-    responseType: 'blob'
-  })
-}
-
-// 获取收益明细
-export function getIncomeDetail(params) {
-  return request({
-    url: '/trade/income/detail',
+    url: `${PRODUCT_PREFIX}/trade/works`,
     method: 'get',
     params
   })

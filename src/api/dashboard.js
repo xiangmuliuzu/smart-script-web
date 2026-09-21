@@ -1,57 +1,35 @@
 import request from '@/utils/request'
 
-/**
- * 数据看板 API
- * 接口前缀: /api/v1/admin/dashboard
- */
+const PRODUCT_PREFIX = '/api/v1/admin'
 
-// 获取总览数据
+/** 数据看板产品业务 API */
+
 export function getDashboardOverview() {
   return request({
-    url: '/dashboard/overview',
+    url: `${PRODUCT_PREFIX}/dashboard/overview`,
     method: 'get'
   })
 }
 
-// 获取用户增长趋势
 export function getUserTrend(params) {
   return request({
-    url: '/dashboard/user-trend',
+    url: `${PRODUCT_PREFIX}/dashboard/user-trend`,
     method: 'get',
     params
   })
 }
 
-// 获取内容统计
 export function getContentStatistics() {
   return request({
-    url: '/dashboard/content-statistics',
+    url: `${PRODUCT_PREFIX}/dashboard/content-statistics`,
     method: 'get'
   })
 }
 
-// 获取交易统计
-export function getTradeStatistics(params) {
+export function getOperationOverview(params) {
   return request({
-    url: '/dashboard/trade-statistics',
+    url: `${PRODUCT_PREFIX}/dashboard/operation-overview`,
     method: 'get',
     params
-  })
-}
-
-// 获取热门内容排行
-export function getHotContentRank(params) {
-  return request({
-    url: '/dashboard/hot-content',
-    method: 'get',
-    params
-  })
-}
-
-// 获取实时数据
-export function getRealtimeData() {
-  return request({
-    url: '/dashboard/realtime',
-    method: 'get'
   })
 }

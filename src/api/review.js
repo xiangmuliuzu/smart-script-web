@@ -1,85 +1,29 @@
 import request from '@/utils/request'
 
-/**
- * 审核与风控模块 API
- * 接口前缀: /api/v1/admin/review
- */
+const PRODUCT_PREFIX = '/api/v1/admin'
 
-// 获取待审核列表
-export function getReviewList(params) {
+/** 审核工作台产品业务 API（业务审核，非若依系统权限） */
+
+export function getWorkbenchQueue(params) {
   return request({
-    url: '/review/list',
+    url: `${PRODUCT_PREFIX}/review/workbench`,
     method: 'get',
     params
   })
 }
 
-// 获取审核详情
-export function getReviewDetail(id) {
+export function approveReviewItem(id, data) {
   return request({
-    url: `/review/detail/${id}`,
-    method: 'get'
-  })
-}
-
-// 提交审核结果
-export function submitReview(id, data) {
-  return request({
-    url: `/review/submit/${id}`,
+    url: `${PRODUCT_PREFIX}/review/${id}/approve`,
     method: 'post',
     data
   })
 }
 
-// 批量审核
-export function batchReview(data) {
+export function rejectReviewItem(id, data) {
   return request({
-    url: '/review/batch',
+    url: `${PRODUCT_PREFIX}/review/${id}/reject`,
     method: 'post',
     data
-  })
-}
-
-// 获取风控规则列表
-export function getRiskRuleList(params) {
-  return request({
-    url: '/review/risk-rule/list',
-    method: 'get',
-    params
-  })
-}
-
-// 创建风控规则
-export function createRiskRule(data) {
-  return request({
-    url: '/review/risk-rule/create',
-    method: 'post',
-    data
-  })
-}
-
-// 更新风控规则
-export function updateRiskRule(id, data) {
-  return request({
-    url: `/review/risk-rule/update/${id}`,
-    method: 'put',
-    data
-  })
-}
-
-// 删除风控规则
-export function deleteRiskRule(id) {
-  return request({
-    url: `/review/risk-rule/delete/${id}`,
-    method: 'delete'
-  })
-}
-
-// 获取审核统计
-export function getReviewStatistics(params) {
-  return request({
-    url: '/review/statistics',
-    method: 'get',
-    params
   })
 }
