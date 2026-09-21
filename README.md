@@ -12,6 +12,18 @@ PC 管理后台面向平台管理员，按业务域组织版权审核、内容�
 - ECharts
 - 若依后端接口兼容：AjaxResult、TableDataInfo、Bearer Token、RBAC 权限
 
+## A1 基线与共享文档
+
+| 字段 | 值 |
+| --- | --- |
+| 本分支 | `a1/pc-ruoyi-integrate`（自 `origin/main` 检出） |
+| main 基线 | `b3597a125473132882286a002a8052ffb15d0f7f` |
+| 后端 main（A0-R1 已合入） | `741265247b50ba8c69b24b2cd1f7e5c5cbbb8538` |
+| 规格/标准 | `D:\build\shared\A用户与认证开发规格.md`、`A用户与认证评审验收标准.md` |
+| A0-R1 状态 | 见 `D:\build\shared\A0-R1执行与测试报告.md` 与 `A1启动记录.md` |
+
+**整合约束：** 本分支必须以 `main@b3597a1` 产品页面为第一优先资产，接入若依登录、`/getInfo`、`/getRouters`、动态菜单与权限；禁止用若依示例页整树覆盖 `main`。`a1/ruoyi-skeleton` 仅作参考，禁止整体合并。
+
 ## 已补齐的业务入口
 
 ### 内容与作品
@@ -93,14 +105,7 @@ npm run dev
 
 开发服务器默认端口为 `3000`（被占用时 Vite 会自动换端口，看终端提示）。
 
-**默认走 Mock 模式**，不需要后端就能登录：
-
-```text
-admin
-123456
-```
-
-后端就绪后，复制 `.env.example` 为 `.env.local`，改成 `VITE_USE_MOCK=false`，登录和业务页面就会走真实接口。
+开发阶段可使用 Mock；A1 整合验收必须 `VITE_USE_MOCK=false` 并对接后端（详见 shared 安全与验收要求）。演示口令不得写入生产配置或作为验收默认口令。
 
 > `.env.local` 已被 `.gitignore` 忽略，不会提交。
 
