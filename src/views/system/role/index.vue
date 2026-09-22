@@ -9,6 +9,13 @@
         <el-table-column prop="roleName" label="角色名称" min-width="120" />
         <el-table-column prop="roleKey" label="权限字符" min-width="120" />
         <el-table-column prop="roleSort" label="排序" width="80" />
+        <el-table-column label="可授予App用户" width="130">
+          <template #default="{ row }">
+            <el-tag :type="row.appGrantable ? 'success' : 'info'">
+              {{ row.appGrantable ? '可授予' : '不可授予' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === '0' ? 'success' : 'danger'">{{ row.status === '0' ? '正常' : '停用' }}</el-tag>
@@ -28,6 +35,12 @@
         <el-form-item label="权限字符" required><el-input v-model="form.roleKey" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.roleSort" :min="0" /></el-form-item>
         <el-form-item label="状态"><el-switch v-model="form.status" active-value="0" inactive-value="1" /></el-form-item>
+        <el-form-item label="可授予App用户">
+          <el-switch v-model="form.appGrantable" :disabled="isProtectedRole" />
+          <div class="form-hint">
+            开启后该角色可被授予 App 用户；超级管理员角色不可授予。
+          </div>
+        </el-form-item>
         <el-form-item label="菜单权限">
           <el-tree
             ref="menuTreeRef"
@@ -48,7 +61,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, nextTick } from 'vue'
+import { computed, reactive, ref, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listRole, getRole, addRole, updateRole, delRole } from '@/api/system/role'
 import { menuTreeselect, roleMenuTreeselect } from '@/api/system/menu'
@@ -64,11 +77,22 @@ const rows = ref([])
 const dialog = ref(false)
 const menuOptions = ref([])
 const menuTreeRef = ref(null)
+/**
+ * 受保护角色（超级管理员）：仅用于禁用前端开关的体验层提示。
+ *
+ * 真正的授权硬约束在服务端：AppUserAdminMapper 对 role_id=1 / role_key='admin'
+ * 无条件拒绝，SysRoleServiceImpl 也会把该角色的标记强制回 false。
+ * 此处不是权限判定，不得作为任何授权依据。
+ */
+const isProtectedRole = computed(() =>
+  form.roleId === 1 || form.roleKey === 'admin'
+)
 const form = reactive({
   roleId: null,
   roleName: '',
   roleKey: '',
   roleSort: 0,
+  appGrantable: false,
   status: '0',
   menuIds: []
 })
@@ -90,6 +114,9 @@ async function openForm(row) {
     roleKey: '',
     roleSort: 0,
     status: '0',
+    // 新增角色必须显式复位可授予标记：遗漏会把上一次编辑的可授权状态
+    // 带进新角色，破坏「默认拒绝」原则。
+    appGrantable: false,
     menuIds: []
   })
   menuOptions.value = []
@@ -103,6 +130,7 @@ async function openForm(row) {
       roleName: role.roleName ?? row.roleName,
       roleKey: role.roleKey ?? row.roleKey,
       roleSort: role.roleSort ?? row.roleSort,
+      appGrantable: (role.appGrantable ?? row.appGrantable) === true,
       status: role.status ?? row.status ?? '0',
       menuIds: []
     })
@@ -157,6 +185,12 @@ onMounted(load)
 </script>
 
 <style scoped>
+.form-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
 .page { padding: 16px; }
 .toolbar { margin-bottom: 12px; }
 </style>
