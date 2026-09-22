@@ -14,6 +14,9 @@ import Partners from '@/views/trade/Partners.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
 import UserProfileRec from '@/views/operation/UserProfileRec.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
+import UserRealName from '@/views/user/realname/index.vue'
+import UserMessage from '@/views/user/message/index.vue'
+import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import SystemUser from '@/views/system/user/index.vue'
 import SystemRole from '@/views/system/role/index.vue'
@@ -47,6 +50,9 @@ export const componentMap = {
   'operation/AdConfig': AdConfig,
   'operation/UserProfileRec': UserProfileRec,
   'user/UserManage': UserManageProduct,
+  'user/realname/index': UserRealName,
+  'user/message/index': UserMessage,
+  'user/feedback/index': UserFeedback,
   'risk/RiskManage': RiskManage,
 
   'system/user/index': SystemUser,

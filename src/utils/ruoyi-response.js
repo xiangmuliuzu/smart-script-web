@@ -89,6 +89,9 @@ export function collectRolePayload(form, menuIds) {
     roleKey: form.roleKey,
     roleSort: form.roleSort ?? 0,
     status: form.status ?? '0',
+    // A4：可授予 App 用户标记。必须显式列入白名单，
+    // 否则角色管理页的开关不会随保存提交，标记无法维护。
+    appGrantable: form.appGrantable === true,
     menuIds: Array.isArray(menuIds) ? [...menuIds] : []
   }
 }

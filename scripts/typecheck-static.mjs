@@ -115,6 +115,66 @@ check('unwrap prefers top-level non-null over data null', () => {
   }
 })
 
+check('role payload carries appGrantable (A4 grantable marker maintenance path)', () => {
+  const src = readFileSync(join(webRoot, 'src/utils/ruoyi-response.js'), 'utf8')
+  if (!src.includes('appGrantable')) {
+    throw new Error('collectRolePayload must include appGrantable, otherwise the role page switch never persists')
+  }
+})
+
+check('role page exposes appGrantable switch', () => {
+  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
+  if (!src.includes('form.appGrantable')) {
+    throw new Error('role page must bind form.appGrantable so admins can maintain the marker')
+  }
+})
+
+check('role add form resets appGrantable to false (default deny)', () => {
+  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
+  const openFormIdx = src.indexOf('async function openForm')
+  if (openFormIdx < 0) throw new Error('openForm not found')
+  // 取新增路径的重置块（openForm 到 row?.roleId 分支之前）
+  const addBranch = src.slice(openFormIdx, src.indexOf('if (row?.roleId)', openFormIdx))
+  if (!/appGrantable:\s*false/.test(addBranch)) {
+    throw new Error('openForm add-branch must reset appGrantable to false')
+  }
+})
+
+check('material download avoids same-origin script execution', () => {
+  // 材料是用户上传内容，可能是 HTML/SVG。若在页面源内打开（createObjectURL +
+  // window.open），脚本会在同源下执行并读取管理后台凭证。
+  // 必须走下载路径（download 属性），且不得出现 window.open 打开材料。
+  for (const f of ['src/api/user/realName.js', 'src/api/user/feedback.js']) {
+    const src = readFileSync(join(webRoot, f), 'utf8')
+    if (src.includes('window.open(url')) {
+      throw new Error(f + ': material must not be opened in-page (same-origin script execution risk)')
+    }
+    if (!src.includes('a.download =')) {
+      throw new Error(f + ': material must be delivered as a download')
+    }
+    if (!src.includes("type: 'application/octet-stream'")) {
+      throw new Error(f + ': material blob must be forced to octet-stream')
+    }
+  }
+})
+
+check('A4 detail buttons gated by query permission', () => {
+  const files = [
+    'src/views/user/UserManage.vue',
+    'src/views/user/realname/index.vue',
+    'src/views/user/message/index.vue',
+    'src/views/user/feedback/index.vue'
+  ]
+  const missing = []
+  for (const f of files) {
+    const src = readFileSync(join(webRoot, f), 'utf8')
+    if (!/v-permission=\"\['user:[a-z]+:query'\]\"/.test(src)) missing.push(f)
+  }
+  if (missing.length) {
+    throw new Error('detail buttons must be hidden by query permission: ' + missing.join(', '))
+  }
+})
+
 const failed = checks.filter((c) => !c.ok)
 for (const c of checks) {
   if (c.ok) console.log(`[typecheck-static] PASS ${c.name}`)
