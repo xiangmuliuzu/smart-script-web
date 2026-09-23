@@ -49,7 +49,9 @@ export function adaptRuoYiRoutes(routers) {
 
       if (isDir) {
         const childSidebar = walk(childrenVo, path)
-        if (childSidebar.length || (!item.hidden && path && path !== '/')) {
+        // 目录自身没有路由：子项全被白名单拒绝时它只会渲染成一个点不动的空壳，
+        // 因此只在有可见子项时才进侧边栏（与 utils/ruoyi-response.js 的 empty-directory 判定一致）。
+        if (childSidebar.length) {
           localSidebar.push({
             path,
             name: item.name || `Dir_${path.replace(/\W+/g, '_')}`,
