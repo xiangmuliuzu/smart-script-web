@@ -68,9 +68,11 @@
         </template>
       </el-table-column>
       <el-table-column prop="expireAt" label="报价截止" width="150" />
-      <el-table-column label="操作" width="80" fixed="right">
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="handleDetail(row)">详情</el-button>
+          <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleAccept(row)">接受</el-button>
+          <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">拒绝</el-button>
         </template>
       </el-table-column>
     </TableCard>
@@ -97,6 +99,8 @@
         <el-descriptions-item label="报价说明" :span="2">{{ detail.description || '-' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
+        <el-button v-if="detail.status === 'pending'" type="success" @click="handleAccept(detail)">接受报价</el-button>
+        <el-button v-if="detail.status === 'pending'" type="danger" @click="handleReject(detail)">拒绝报价</el-button>
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
@@ -105,14 +109,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions } from '@/constants/tradeEnum'
-import { getQuoteList } from '@/api/trade'
+import { getQuoteList, acceptQuote, rejectQuote } from '@/api/trade'
 
 defineOptions({ name: 'Quote' })
 
@@ -156,6 +160,30 @@ function handleReset() {
 function handleDetail(row) {
   detail.value = { ...row }
   detailVisible.value = true
+}
+
+async function handleAccept(row) {
+  try {
+    await ElMessageBox.confirm(`确认接受报价 ¥${row.price || ''}？`, '接受报价', {
+      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+    })
+    await acceptQuote(row.quoteId)
+    ElMessage.success('已接受报价')
+    detailVisible.value = false
+    loadList()
+  } catch { /* 用户取消 */ }
+}
+
+async function handleReject(row) {
+  try {
+    await ElMessageBox.confirm('确认拒绝该报价吗？', '拒绝报价', {
+      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+    })
+    await rejectQuote(row.quoteId)
+    ElMessage.success('已拒绝报价')
+    detailVisible.value = false
+    loadList()
+  } catch { /* 用户取消 */ }
 }
 
 function handleExport() {

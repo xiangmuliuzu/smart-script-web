@@ -60,6 +60,41 @@
       </el-table-column>
     </TableCard>
 
+    <!-- 发布征集令弹窗 -->
+    <el-dialog v-model="publishVisible" title="发布征集令" width="600px">
+      <el-form ref="publishFormRef" :model="publishForm" :rules="publishRules" label-width="100px">
+        <el-form-item label="征集标题" prop="title">
+          <el-input v-model="publishForm.title" placeholder="请输入征集标题" maxlength="100" show-word-limit />
+        </el-form-item>
+        <el-form-item label="题材" prop="genreId">
+          <el-select v-model="publishForm.genreId" placeholder="请选择题材" style="width: 100%">
+            <el-option label="都市情感" :value="1" />
+            <el-option label="古装武侠" :value="2" />
+            <el-option label="悬疑推理" :value="3" />
+            <el-option label="科幻奇幻" :value="4" />
+            <el-option label="家庭伦理" :value="5" />
+            <el-option label="其他" :value="99" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="预算(元)" prop="budget">
+          <el-input-number v-model="publishForm.budget" :min="0" :precision="2" :step="10000" style="width: 100%" placeholder="设置征集预算" />
+        </el-form-item>
+        <el-form-item label="截止日期" prop="deadline">
+          <el-date-picker v-model="publishForm.deadline" type="date" placeholder="选择截止日期" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="联系方式" prop="contactInfo">
+          <el-input v-model="publishForm.contactInfo" placeholder="请输入联系方式" />
+        </el-form-item>
+        <el-form-item label="征集要求">
+          <el-input v-model="publishForm.requirement" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="请输入征集要求（选填）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="publishVisible = false">取消</el-button>
+        <el-button type="primary" :loading="publishing" @click="handlePublishSubmit">发布</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 征集项目详情 + 投稿作品明细 -->
     <el-dialog v-model="detailVisible" title="征集项目详情" width="820px">
       <div v-loading="detailLoading">
@@ -115,7 +150,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions } from '@/constants/tradeEnum'
-import { getDemandList, getDemandSubmissions } from '@/api/trade'
+import { getDemandList, getDemandSubmissions, createDemand } from '@/api/trade'
 
 defineOptions({ name: 'Demand' })
 
@@ -131,6 +166,18 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref({})
 const submissions = ref([])
+
+const publishVisible = ref(false)
+const publishing = ref(false)
+const publishFormRef = ref()
+const publishForm = ref({ title: '', genreId: null, budget: null, deadline: '', contactInfo: '', requirement: '' })
+const publishRules = {
+  title: [{ required: true, message: '请输入征集标题', trigger: 'blur' }],
+  genreId: [{ required: true, message: '请选择题材', trigger: 'change' }],
+  budget: [{ required: true, message: '请输入预算', trigger: 'blur' }],
+  deadline: [{ required: true, message: '请选择截止日期', trigger: 'change' }],
+  contactInfo: [{ required: true, message: '请输入联系方式', trigger: 'blur' }]
+}
 
 async function loadList() {
   loading.value = true
@@ -173,7 +220,26 @@ async function handleViewSubmissions(row) {
 }
 
 function handlePublish() {
-  ElMessage.info('发布征集令')
+  publishForm.value = { title: '', genreId: null, budget: null, deadline: '', contactInfo: '', requirement: '' }
+  publishVisible.value = true
+}
+
+async function handlePublishSubmit() {
+  if (!publishFormRef.value) return
+  await publishFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    publishing.value = true
+    try {
+      await createDemand(publishForm.value)
+      ElMessage.success('征集令已发布')
+      publishVisible.value = false
+      loadList()
+    } catch (e) {
+      ElMessage.error(e?.response?.data?.msg || '发布失败')
+    } finally {
+      publishing.value = false
+    }
+  })
 }
 
 onMounted(loadList)

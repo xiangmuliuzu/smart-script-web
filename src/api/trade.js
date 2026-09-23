@@ -148,6 +148,18 @@ export function getQuoteList(params) {
   return request({ url: `${PREFIX}/trade/quote/list`, method: 'get', params })
 }
 
+/** 接受报价 PUT /trade/quote/{quoteId}/accept */
+export function acceptQuote(quoteId) {
+  if (isTradeMock()) return Promise.resolve({ code: 200, msg: 'success' })
+  return request({ url: `${PREFIX}/trade/quote/${quoteId}/accept`, method: 'put' })
+}
+
+/** 拒绝报价 PUT /trade/quote/{quoteId}/reject */
+export function rejectQuote(quoteId) {
+  if (isTradeMock()) return Promise.resolve({ code: 200, msg: 'success' })
+  return request({ url: `${PREFIX}/trade/quote/${quoteId}/reject`, method: 'put' })
+}
+
 /* ==================== ⚠️ 征集项目（文档缺口，对应 sys_demand / sys_demand_submission）==================== */
 
 /** 征集项目列表 GET /trade/demand/list */
@@ -160,4 +172,10 @@ export function getDemandList(params) {
 export function getDemandSubmissions(demandId) {
   if (isTradeMock()) return Promise.resolve(mockDemandSubmissions(demandId))
   return request({ url: `${PREFIX}/trade/demand/${demandId}/submissions`, method: 'get' })
+}
+
+/** 发布征集令 POST /trade/demand */
+export function createDemand(data) {
+  if (isTradeMock()) return Promise.resolve({ code: 200, msg: 'success' })
+  return request({ url: `${PREFIX}/trade/demand`, method: 'post', data })
 }

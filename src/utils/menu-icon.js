@@ -51,6 +51,7 @@ import {
   PieChart,
   Postcard,
   Present,
+  PriceTag,
   QuestionFilled,
   Right,
   Search,
@@ -121,6 +122,7 @@ export const MENU_ICONS = {
   PieChart,
   Postcard,
   Present,
+  PriceTag,
   QuestionFilled,
   Right,
   Search,
@@ -211,7 +213,9 @@ export const MENU_ICON_ALIASES = {
   chart: 'TrendCharts',
   magic: 'MagicStick',
   chat: 'ChatLineSquare',
-  video: 'VideoPlay'
+  video: 'VideoPlay',
+  tag: 'PriceTag',
+  tags: 'PriceTag'
 }
 
 /** 小写索引：Element Plus 原名 + 别名，一次查表。 */

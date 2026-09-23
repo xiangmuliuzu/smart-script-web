@@ -12,7 +12,7 @@
           <el-option
             v-for="p in partnerOptions"
             :key="p.partnerId"
-            :label="p.companyName"
+            :label="p.partnerName"
             :value="p.partnerId"
           />
         </el-select>
@@ -63,7 +63,7 @@
             <el-option
               v-for="p in partnerOptions"
               :key="p.partnerId"
-              :label="p.companyName"
+              :label="p.partnerName"
               :value="p.partnerId"
             />
           </el-select>

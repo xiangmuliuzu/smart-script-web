@@ -31,6 +31,13 @@ export const PARTNER_TYPE = [
   { value: 'platform', label: '发行平台' }
 ]
 
+/** 合作方状态 */
+export const PARTNER_STATUS = [
+  { value: 'active', label: '正常', tagType: 'success' },
+  { value: 'inactive', label: '停用', tagType: 'info' },
+  { value: 'pending', label: '待审核', tagType: 'warning' }
+]
+
 /** 授权类型（接口 2.25）。注意文档为下划线 non_exclusive，非连字符 */
 export const LICENSE_TYPE = [
   { value: 'exclusive', label: '独家' },
@@ -106,6 +113,7 @@ export const ENUM_REGISTRY = {
   quoterRole: QUOTER_ROLE,
   follow: FOLLOW_STATUS,
   partnerType: PARTNER_TYPE,
+  partnerStatus: PARTNER_STATUS,
   license: LICENSE_TYPE,
   tradeWork: TRADE_WORK_STATUS,
   followMethod: FOLLOW_METHOD,
