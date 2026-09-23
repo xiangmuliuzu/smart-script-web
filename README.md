@@ -109,6 +109,25 @@ npm run dev
 
 > `.env.local` 已被 `.gitignore` 忽略，不会提交。
 
+## 后端与数据库初始化
+
+PC 管理端依赖的后端、数据库结构与侧边栏菜单数据全部来自 `smart-script-backend`：
+
+| 内容 | 位置 |
+| --- | --- |
+| 环境准备、环境变量、**数据库初始化命令**、启动命令 | [smart-script-backend/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/README.md) |
+| 初始化步骤清单（A2 → A1 → A4 → PC，每步校验 `SUMMARY=PASS`） | [scripts/db/init-steps.txt](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/scripts/db/init-steps.txt) |
+| 已有数据库的升级与回滚说明 | [sql/migrations/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/sql/migrations/README.md) |
+| 侧边栏层级、顺序与改名的最终校验项 | [sql/migrations/pc/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/sql/migrations/pc/README.md) |
+
+要点：初始化**只允许**写入不存在或完全为空的库，检测到已有表会安全拒绝；
+已有数据的库走迁移路径，不要导入 `ry_20260320.sql`。数据库就绪后按后端 README
+设置 `DB_URL` / `REDIS_*` / `TOKEN_SECRET` / `APP_*` 等环境变量再启动后端，然后在
+`.env.local` 里把 `VITE_API_TARGET` 指向该后端（默认 `http://localhost:8080`）。
+
+本仓侧边栏是后端 `/getRouters` 下发的动态菜单，页面层级由后端 `sys_menu` 决定，
+前端不维护静态菜单树；`src/layout` 只负责渲染。
+
 ## 接口约定
 
 - 统一前缀：`/api/v1/admin/`
