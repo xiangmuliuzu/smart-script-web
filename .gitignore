@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 本地开发绕过脚手架（仅本地使用，勿提交；配套 login.js/menu.js 已 skip-worktree）
+src/utils/dev-bypass.js
