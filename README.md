@@ -12,17 +12,23 @@ PC 管理后台面向平台管理员，按业务域组织版权审核、内容�
 - ECharts
 - 若依后端接口兼容：AjaxResult、TableDataInfo、Bearer Token、RBAC 权限
 
-## A1 基线与共享文档
+## 当前主线与共享文档
 
 | 字段 | 值 |
 | --- | --- |
-| 本分支 | `a1/pc-ruoyi-integrate`（自 `origin/main` 检出） |
-| main 基线 | `b3597a125473132882286a002a8052ffb15d0f7f` |
-| 后端 main（A0-R1 已合入） | `741265247b50ba8c69b24b2cd1f7e5c5cbbb8538` |
-| 规格/标准 | `D:\build\shared\A用户与认证开发规格.md`、`A用户与认证评审验收标准.md` |
-| A0-R1 状态 | 见 `D:\build\shared\A0-R1执行与测试报告.md` 与 `A1启动记录.md` |
+| 当前分支（2026-09-23） | `main@01e2aec`，与 `origin/main` 同步；A7 分支 `a7/release-prep` 从此 SHA 切出 |
+| 后端主线 | `smart-script-backend main@ae3ebc0` |
+| App 主线 | `smart-script-app main@541e05b` |
+| 开发规格 / 评审标准 | [`../shared/A用户与认证开发规格.md`](../shared/A用户与认证开发规格.md) v1.7 / [`../shared/A用户与认证评审验收标准.md`](../shared/A用户与认证评审验收标准.md) v1.6 |
+| 阶段状态 | A1 整合、A3/G3、A4/G4 已完成；A5/A6 快速阶段交付已进入后端与 App `main`；A7 已完成本仓生产构建与产物服务验证 |
+| A7 记录 | [`../shared/A7-G8-交付与发布准备记录.md`](../shared/A7-G8-交付与发布准备记录.md)、[`../shared/A7-PR-PC.md`](../shared/A7-PR-PC.md) |
+| 后续工作 | A5–A7 安全、测试和发布加固见 [`../shared/A5-A7-后续加固清单.md`](../shared/A5-A7-后续加固清单.md) |
 
-**整合约束：** 本分支必须以 `main@b3597a1` 产品页面为第一优先资产，接入若依登录、`/getInfo`、`/getRouters`、动态菜单与权限；禁止用若依示例页整树覆盖 `main`。`a1/ruoyi-skeleton` 仅作参考，禁止整体合并。
+> `main` 当前另含 C 模块前端页面（交易作品、询盘、报价、合作方等）由其他负责人合入的提交。
+> 这部分不在 A7 的 A 模块验证范围内，且其依赖的 C 后端表在全新建库中不存在
+> （见 A7 记录 A7-Q1/A7-Q5），发布前需由 C 负责人与项目经理明确处置。
+
+本地工作区从 `D:\build` 仓库根目录通过 `../shared/…` 引用共享文档。PC 管理端以产品页面和业务结构为基础，使用若依登录、`/getInfo`、`/getRouters`、动态菜单与权限；不整体覆盖若依示例页。
 
 ## 已补齐的业务入口
 
@@ -105,7 +111,7 @@ npm run dev
 
 开发服务器默认端口为 `3000`（被占用时 Vite 会自动换端口，看终端提示）。
 
-开发阶段可使用 Mock；A1 整合验收必须 `VITE_USE_MOCK=false` 并对接后端（详见 shared 安全与验收要求）。演示口令不得写入生产配置或作为验收默认口令。
+验收和生产构建必须 `VITE_USE_MOCK=false` 并对接后端；演示口令不得写入生产配置或作为验收默认口令。
 
 > `.env.local` 已被 `.gitignore` 忽略，不会提交。
 
