@@ -1,462 +1,216 @@
 <template>
-  <div class="auth-orders-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2 class="page-title">授权订单管理</h2>
-      <div class="header-actions">
+  <PageContainer>
+    <PageHeader title="授权订单管理">
+      <template #actions>
+        <el-button @click="handleExport">导出订单</el-button>
+      </template>
+    </PageHeader>
+
+    <FilterBar @query="handleQuery" @reset="handleReset">
+      <el-form-item>
+        <el-select v-model="query.status" placeholder="全部状态" style="width: 150px" clearable>
+          <el-option
+            v-for="opt in orderStatusOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
         <el-input
-          v-model="searchKeyword"
-          placeholder="订单编号/作品/买家"
-          style="width: 240px"
+          v-model="query.orderNo"
+          placeholder="订单编号"
+          style="width: 160px"
           clearable
+          @keyup.enter="handleQuery"
         />
-        <el-button size="default">导出订单</el-button>
-      </div>
-    </div>
+      </el-form-item>
+      <el-form-item>
+        <el-input
+          v-model="query.workTitle"
+          placeholder="作品名称"
+          style="width: 180px"
+          clearable
+          @keyup.enter="handleQuery"
+        />
+      </el-form-item>
+    </FilterBar>
 
-    <!-- 订单状态标签栏 -->
-    <el-card class="tabs-card">
-      <el-tabs v-model="activeTab" class="status-tabs">
-        <el-tab-pane label="全部" name="all" />
-        <el-tab-pane label="待付款" name="pending" />
-        <el-tab-pane label="已付款" name="paid" />
-        <el-tab-pane label="已完成" name="completed" />
-      </el-tabs>
-    </el-card>
+    <TableCard
+      v-model:page="query.pageNo"
+      v-model:pageSize="query.pageSize"
+      :data="list"
+      :loading="loading"
+      :total="total"
+      @page-change="loadList"
+      @size-change="loadList"
+    >
+      <el-table-column prop="orderNo" label="订单编号" width="120" />
+      <el-table-column prop="workTitle" label="作品" min-width="130" />
+      <el-table-column prop="buyer" label="买家" width="120" />
+      <el-table-column prop="creator" label="作者" width="110" />
+      <el-table-column prop="authorizationTypeLabel" label="授权类型" width="110" />
+      <el-table-column label="金额" width="120">
+        <template #default="{ row }">
+          <span class="price-text">{{ row.amountText }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createdAt" label="下单时间" width="160" />
+      <el-table-column label="状态" width="110">
+        <template #default="{ row }">
+          <StatusTag type="order" :status="row.status" />
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="90" fixed="right">
+        <template #default="{ row }">
+          <el-button size="small" @click="handleDetail(row)">详情</el-button>
+        </template>
+      </el-table-column>
+    </TableCard>
 
-    <!-- 授权订单列表 -->
-    <el-card class="table-card">
-      <el-table :data="ordersList" style="width: 100%">
-        <el-table-column prop="orderNo" label="订单编号" width="120" />
-        <el-table-column prop="work" label="作品" min-width="130" />
-        <el-table-column prop="buyer" label="买家" width="120" />
-        <el-table-column prop="type" label="类型" width="100" />
-        <el-table-column label="金额" width="120">
-          <template #default="{ row }">
-            <span class="price-text">{{ row.amount }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="orderTime" label="下单时间" width="160" />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getOrderStatusType(row.status)" size="small">
-              {{ getOrderStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="handleDetail(row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <!-- 订单详情：C 只负责订单主体 + 状态流转记录；合同/托管/结算属 D，不在此展示 -->
+    <el-dialog v-model="detailVisible" title="订单详情" width="640px">
+      <div v-loading="detailLoading">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="订单编号">{{ detail.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">
+            <StatusTag type="order" :status="detail.status" />
+          </el-descriptions-item>
+          <el-descriptions-item label="作品名称">{{ detail.workTitle }}</el-descriptions-item>
+          <el-descriptions-item label="授权类型">{{ detail.authorizationTypeLabel }}</el-descriptions-item>
+          <el-descriptions-item label="买家">{{ detail.buyer?.companyName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="作者">{{ detail.creator?.nickname || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="订单金额">
+            <span class="price-text">{{ detail.amountText }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="下单时间">{{ detail.createdAt }}</el-descriptions-item>
+        </el-descriptions>
 
-    <!-- 合同生成与归档 -->
-    <el-card class="table-card">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">合同生成与归档</span>
-          <el-button size="default">批量生成</el-button>
-        </div>
-      </template>
-      <el-table :data="contractsList" style="width: 100%">
-        <el-table-column prop="contractNo" label="合同编号" width="140" />
-        <el-table-column prop="relatedOrder" label="关联订单" width="140" />
-        <el-table-column prop="contractType" label="合同类型" min-width="160" />
-        <el-table-column prop="generateTime" label="生成时间" width="160" />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getContractStatusType(row.status)" size="small">
-              {{ getContractStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <el-button size="small" @click="handlePreview(row)">预览</el-button>
-              <el-button size="small" @click="handleDownload(row)">下载</el-button>
+        <div class="history-title">状态流转记录</div>
+        <el-timeline v-if="detail.statusHistory && detail.statusHistory.length">
+          <el-timeline-item
+            v-for="(item, idx) in detail.statusHistory"
+            :key="idx"
+            :timestamp="item.createdAt"
+            placement="top"
+          >
+            <div class="history-line">
+              <StatusTag type="order" :status="item.fromStatus" />
+              <span class="arrow">→</span>
+              <StatusTag type="order" :status="item.toStatus" />
+              <span class="operator">{{ item.operator }}</span>
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <!-- 分成核算与结算 -->
-    <el-card class="table-card">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">分成核算与结算</span>
-          <el-button size="default">导出报表</el-button>
-        </div>
-      </template>
-      <el-table :data="settlementList" style="width: 100%">
-        <el-table-column prop="period" label="结算周期" width="120" />
-        <el-table-column prop="orderCount" label="订单数" width="100" />
-        <el-table-column label="总交易额" width="120">
-          <template #default="{ row }">
-            <span class="price-text">{{ row.totalAmount }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="platformShare" label="平台分成" min-width="160" />
-        <el-table-column prop="creatorShare" label="创作者分成" min-width="180" />
-        <el-table-column label="结算状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getSettlementStatusType(row.status)" size="small">
-              {{ getSettlementStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="handleSettlementDetail(row)">明细</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-  </div>
+            <div v-if="item.remark" class="remark">{{ item.remark }}</div>
+          </el-timeline-item>
+        </el-timeline>
+        <el-empty v-else description="暂无状态流转记录" :image-size="60" />
+      </div>
+    </el-dialog>
+  </PageContainer>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import PageContainer from '@/components/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import FilterBar from '@/components/FilterBar.vue'
+import TableCard from '@/components/TableCard.vue'
+import StatusTag from '@/components/StatusTag.vue'
+import { enumOptions } from '@/constants/tradeEnum'
+import { getOrderList, getOrderDetail } from '@/api/trade'
 
-// 搜索关键词
-const searchKeyword = ref('')
+defineOptions({ name: 'AuthOrders' })
 
-// 当前激活的标签
-const activeTab = ref('all')
+// 订单状态枚举取自 constants/tradeEnum.js（PRD 9.3）
+const orderStatusOptions = enumOptions('order')
 
-// 授权订单列表数据
-const ordersList = ref([
-  {
-    orderNo: '#ORD-001',
-    work: '《都市迷途》',
-    buyer: '影视公司A',
-    type: '独家授权',
-    amount: '¥50,000',
-    orderTime: '2026-09-07 10:00',
-    status: 'pending'
-  },
-  {
-    orderNo: '#ORD-002',
-    work: '《暗夜追踪》',
-    buyer: '制作公司B',
-    type: '非独家',
-    amount: '¥25,000',
-    orderTime: '2026-09-06 15:30',
-    status: 'paid'
-  },
-  {
-    orderNo: '#ORD-003',
-    work: '《长安旧事》',
-    buyer: '平台C',
-    type: '独家授权',
-    amount: '¥80,000',
-    orderTime: '2026-09-05 09:20',
-    status: 'completed'
-  },
-  {
-    orderNo: '#ORD-004',
-    work: '《孤岛来信》',
-    buyer: '影视公司A',
-    type: '非独家',
-    amount: '¥18,000',
-    orderTime: '2026-09-04 14:10',
-    status: 'pending'
+const loading = ref(false)
+const list = ref([])
+const total = ref(0)
+const query = ref({ pageNo: 1, pageSize: 10, status: '', orderNo: '', workTitle: '' })
+
+const detailVisible = ref(false)
+const detailLoading = ref(false)
+const detail = ref({})
+
+async function loadList() {
+  loading.value = true
+  try {
+    const res = await getOrderList(query.value)
+    list.value = res.rows || []
+    total.value = res.total || 0
+  } catch {
+    list.value = []
+    total.value = 0
+    ElMessage.error('加载订单列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
 
-// 合同列表数据
-const contractsList = ref([
-  {
-    contractNo: '#CON-001',
-    relatedOrder: '#ORD-001',
-    contractType: '独家授权合同',
-    generateTime: '2026-09-07 10:05',
-    status: 'pending_sign'
-  },
-  {
-    contractNo: '#CON-002',
-    relatedOrder: '#ORD-002',
-    contractType: '非独家授权合同',
-    generateTime: '2026-09-06 15:35',
-    status: 'archived'
+function handleQuery() {
+  query.value.pageNo = 1
+  loadList()
+}
+
+function handleReset() {
+  query.value = { pageNo: 1, pageSize: 10, status: '', orderNo: '', workTitle: '' }
+  loadList()
+}
+
+async function handleDetail(row) {
+  detailVisible.value = true
+  detailLoading.value = true
+  detail.value = {}
+  try {
+    detail.value = await getOrderDetail(row.orderId)
+  } catch {
+    ElMessage.error('加载订单详情失败')
+  } finally {
+    detailLoading.value = false
   }
-])
-
-// 结算列表数据
-const settlementList = ref([
-  {
-    period: '2026年8月',
-    orderCount: '45单',
-    totalAmount: '¥450,000',
-    platformShare: '平台¥45,000(10%)',
-    creatorShare: '创作者¥405,000(90%)',
-    status: 'settled'
-  },
-  {
-    period: '2026年9月',
-    orderCount: '12单',
-    totalAmount: '¥125,000',
-    platformShare: '平台¥12,500(10%)',
-    creatorShare: '创作者¥112,500(90%)',
-    status: 'pending_settle'
-  }
-])
-
-// 获取订单状态类型
-const getOrderStatusType = (status) => {
-  const typeMap = {
-    pending: 'warning',
-    paid: 'success',
-    completed: 'info'
-  }
-  return typeMap[status] || ''
 }
 
-// 获取订单状态文本
-const getOrderStatusText = (status) => {
-  const textMap = {
-    pending: '待付款',
-    paid: '已付款',
-    completed: '已完成'
-  }
-  return textMap[status] || status
+function handleExport() {
+  ElMessage.info('导出订单')
 }
 
-// 获取合同状态类型
-const getContractStatusType = (status) => {
-  const typeMap = {
-    pending_sign: 'warning',
-    archived: 'success'
-  }
-  return typeMap[status] || ''
-}
-
-// 获取合同状态文本
-const getContractStatusText = (status) => {
-  const textMap = {
-    pending_sign: '待签署',
-    archived: '已归档'
-  }
-  return textMap[status] || status
-}
-
-// 获取结算状态类型
-const getSettlementStatusType = (status) => {
-  const typeMap = {
-    settled: 'success',
-    pending_settle: 'warning'
-  }
-  return typeMap[status] || ''
-}
-
-// 获取结算状态文本
-const getSettlementStatusText = (status) => {
-  const textMap = {
-    settled: '已结算',
-    pending_settle: '待结算'
-  }
-  return textMap[status] || status
-}
-
-// 处理详情
-const handleDetail = (row) => {
-  ElMessage.info(`查看订单详情：${row.orderNo}`)
-}
-
-// 处理预览
-const handlePreview = (row) => {
-  ElMessage.info(`预览合同：${row.contractNo}`)
-}
-
-// 处理下载
-const handleDownload = (row) => {
-  ElMessage.success(`正在下载合同：${row.contractNo}`)
-}
-
-// 处理结算明细
-const handleSettlementDetail = (row) => {
-  ElMessage.info(`查看${row.period}结算明细`)
-}
+onMounted(loadList)
 </script>
 
 <style scoped>
-.auth-orders-container {
-  padding: 20px;
-  background-color: #f7f8fa;
-}
-
-/* 页面标题 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f2329;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-/* 标签页卡片 */
-.tabs-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-}
-
-.tabs-card :deep(.el-card__body) {
-  padding: 0;
-}
-
-.status-tabs {
-  padding: 0 20px;
-}
-
-.status-tabs :deep(.el-tabs__header) {
-  margin: 0;
-}
-
-.status-tabs :deep(.el-tabs__nav-wrap::after) {
-  display: none;
-}
-
-.status-tabs :deep(.el-tabs__item) {
-  font-size: 13px;
-  padding: 0 20px;
-  height: 48px;
-  line-height: 48px;
-}
-
-/* 表格卡片 */
-.table-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-}
-
-.table-card :deep(.el-card__header) {
-  padding: 18px 24px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
-}
-
-.table-card :deep(.el-card__body) {
-  padding: 0;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-title {
-  font-size: 14px;
-  color: #1f2329;
-  font-weight: 600;
-}
-
-/* 操作按钮容器 */
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-/* 价格文本 */
 .price-text {
   color: #1f2329;
   font-weight: 600;
-  font-size: 13px;
 }
 
-/* 表格样式统一 */
-:deep(.el-table) {
-  font-size: 13px;
-  color: #262626;
-}
-
-:deep(.el-table th) {
-  background-color: #fafafa;
-  color: #595959;
-  font-weight: 500;
-  font-size: 12px;
-}
-
-:deep(.el-table td) {
-  padding: 14px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-:deep(.el-table tr:hover > td) {
-  background-color: #fafafa !important;
-}
-
-/* 按钮样式统一 */
-:deep(.el-button) {
-  font-size: 12px;
-  border-radius: 4px;
-  padding: 5px 12px;
-}
-
-:deep(.el-button--default) {
-  color: #595959;
-  border-color: #d9d9d9;
-  background: #ffffff;
-}
-
-:deep(.el-button--default:hover) {
+.history-title {
+  margin: 18px 0 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #1f2329;
-  border-color: #1f2329;
 }
 
-/* 标签样式 */
-:deep(.el-tag) {
-  border: none;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 10px;
+.history-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-:deep(.el-tag.el-tag--warning) {
-  background-color: #fff7e6;
-  color: #d48806;
+.arrow {
+  color: #8a8f99;
 }
 
-:deep(.el-tag.el-tag--success) {
-  background-color: #f6ffed;
-  color: #389e0d;
-}
-
-:deep(.el-tag.el-tag--info) {
-  background-color: #fafafa;
-  color: #8c8c8c;
-}
-
-/* 表单控件样式 */
-:deep(.el-input__wrapper) {
-  border-radius: 4px;
-  border-color: #d9d9d9;
-}
-
-:deep(.el-input__inner) {
+.operator {
+  color: #595959;
   font-size: 12px;
-  color: #262626;
 }
 
-:deep(.el-input__inner::placeholder) {
-  color: #bfbfbf;
+.remark {
+  margin-top: 4px;
+  color: #8a8f99;
+  font-size: 12px;
 }
 </style>
