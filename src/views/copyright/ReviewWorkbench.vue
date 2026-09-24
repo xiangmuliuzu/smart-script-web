@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="review-workbench-container">
     <!-- 页面标题 -->
     <div class="page-header">
@@ -8,6 +8,34 @@
         <el-button type="primary" size="default" class="black-button">批量分配</el-button>
       </div>
     </div>
+
+    <!-- 统计卡片 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-value warning">{{ statistics.pending }}</div>
+          <div class="stat-label">待审核</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-value primary">{{ statistics.aiReviewing }}</div>
+          <div class="stat-label">AI审核中</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-value success">{{ statistics.approved }}</div>
+          <div class="stat-label">本月通过</div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-value danger">{{ statistics.rejected }}</div>
+          <div class="stat-label">本月驳回</div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 筛选栏 -->
     <el-card class="filter-card">
@@ -62,7 +90,7 @@
     </el-card>
 
     <!-- 作品审核列表 -->
-    <el-card class="table-card">
+    <el-card class="table-card" v-loading="loading">
       <el-table
         :data="worksList"
         style="width: 100%"
@@ -128,6 +156,65 @@
         <el-table-column prop="remark" label="备注" min-width="280" />
       </el-table>
     </el-card>
+    <!-- 审核详情弹窗 -->
+    <el-dialog
+      v-model="reviewDialogVisible"
+      title="作品审核"
+      width="600px"
+    >
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="作品名称">{{ currentReview.name }}</el-descriptions-item>
+        <el-descriptions-item label="作者">{{ currentReview.author }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ currentReview.type }}</el-descriptions-item>
+        <el-descriptions-item label="题材">{{ currentReview.genre }}</el-descriptions-item>
+        <el-descriptions-item label="AI评分">{{ currentReview.aiScore }}分</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ currentReview.submitTime }}</el-descriptions-item>
+      </el-descriptions>
+      <el-form :model="reviewForm" label-width="80px" style="margin-top: 20px">
+        <el-form-item label="审核结果">
+          <el-radio-group v-model="reviewForm.action">
+            <el-radio value="approve">通过</el-radio>
+            <el-radio value="reject">驳回</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="审核备注">
+          <el-input
+            v-model="reviewForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入审核备注"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reviewDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitReview">提交</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 详情弹窗 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="作品详情"
+      width="700px"
+    >
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="作品名称">{{ currentDetail.name }}</el-descriptions-item>
+        <el-descriptions-item label="作者">{{ currentDetail.author }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ currentDetail.type }}</el-descriptions-item>
+        <el-descriptions-item label="题材">{{ currentDetail.genre }}</el-descriptions-item>
+        <el-descriptions-item label="AI评分">{{ currentDetail.aiScore }}分</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ currentDetail.submitTime }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getStatusType(currentDetail.status)" size="small">
+            {{ getStatusText(currentDetail.status) }}
+          </el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -144,112 +231,61 @@ const filterForm = ref({
   endDate: ''
 })
 
+// 加载状态
+const loading = ref(false)
+
 // 选中的作品
 const selectedWorks = ref([])
 
+// 统计数据
+const statistics = ref({
+  pending: 12,
+  aiReviewing: 8,
+  approved: 156,
+  rejected: 23
+})
+
+// 审核详情弹窗
+const reviewDialogVisible = ref(false)
+const currentReview = ref({})
+const reviewForm = ref({
+  action: 'approve',
+  remark: ''
+})
+
 // 作品审核列表数据
-const worksList = ref([
-  {
-    id: '#W001',
-    name: '《都市迷途》',
-    type: '电影剧本',
-    genre: '都市',
-    author: '张编剧',
-    submitTime: '2026-09-07 10:30',
-    aiScore: 87,
-    status: 'pending'
-  },
-  {
-    id: '#W002',
-    name: '《山河故人》',
-    type: '电视剧剧本',
-    genre: '古装',
-    author: '李创作',
-    submitTime: '2026-09-07 09:15',
-    aiScore: 72,
-    status: 'ai_reviewing'
-  },
-  {
-    id: '#W003',
-    name: '《末日黎明》',
-    type: '短剧剧本',
-    genre: '科幻',
-    author: '王大锤',
-    submitTime: '2026-09-06 18:42',
-    aiScore: 93,
-    status: 'approved'
-  },
-  {
-    id: '#W004',
-    name: '《暗夜追踪》',
-    type: '电影剧本',
-    genre: '悬疑',
-    author: '陈导演',
-    submitTime: '2026-09-06 14:10',
-    aiScore: 81,
-    status: 'manual_review'
-  }
-])
+const worksList = ref([])
 
 // 审核日志数据
-const reviewLogs = ref([
-  {
-    time: '2026-09-07 10:30',
-    operator: 'admin',
-    work: '《都市迷途》',
-    action: '通过',
-    remark: '内容完整优质，AI评分87，符合审核标准'
-  },
-  {
-    time: '2026-09-07 09:15',
-    operator: 'system',
-    work: '《山河故人》',
-    action: 'AI初筛',
-    remark: '自动检测通过，AI评分72，转入人工复核队列'
-  },
-  {
-    time: '2026-09-06 18:42',
-    operator: 'reviewer1',
-    work: '《末日黎明》',
-    action: '通过',
-    remark: '剧情创新突出，人物塑造优秀，评分93'
-  },
-  {
-    time: '2026-09-06 16:20',
-    operator: 'reviewer1',
-    work: '《暗夜追踪》',
-    action: '通过',
-    remark: '悬疑设定合理，AI评分81，剧本结构完整'
-  },
-  {
-    time: '2026-09-06 15:30',
-    operator: 'admin',
-    work: '《长安十二时》',
-    action: 'AI初筛',
-    remark: '历史剧题材检测，进入人工核查'
-  },
-  {
-    time: '2026-09-06 14:20',
-    operator: 'system',
-    work: '《乱世情缘》',
-    action: 'AI初筛',
-    remark: '检测结果：剧情连贯性90，人物饱满度85'
-  },
-  {
-    time: '2026-09-06 11:45',
-    operator: 'reviewer2',
-    work: '《AI觉醒》',
-    action: '通过',
-    remark: '科幻设定新颖，评分88'
-  },
-  {
-    time: '2026-09-06 10:30',
-    operator: 'system',
-    work: '《江湖往事》',
-    action: '驳回',
-    remark: '版权风险提示，需补充授权证明'
+const reviewLogs = ref([])
+
+// 页面加载时获取数据
+import { onMounted } from 'vue'
+
+onMounted(async () => {
+  try {
+    // 获取审核统计
+    const statsRes = await fetch('/api/v1/admin/review/statistics')
+    const statsData = await statsRes.json()
+    if (statsData.code === 200) {
+      statistics.value = {
+        pending: statsData.pending,
+        aiReviewing: statsData.aiReviewing,
+        approved: statsData.approved,
+        rejected: statsData.rejected
+      }
+    }
+
+    // 获取审核列表
+    const listRes = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
+    const listData = await listRes.json()
+    if (listData.code === 200) {
+      worksList.value = listData.rows || []
+    }
+  } catch (e) {
+    console.error('获取数据失败:', e)
   }
-])
+})
 
 // 获取AI评分样式
 const getScoreClass = (score) => {
@@ -301,13 +337,47 @@ const handleSelectionChange = (selection) => {
 
 // 处理审核
 const handleReview = (row) => {
-  ElMessage.success(`开始审核《${row.name}》`)
+  currentReview.value = row
+  reviewForm.value.action = 'approve'
+  reviewForm.value.remark = ''
+  reviewDialogVisible.value = true
 }
+
+// 提交审核结果
+const handleSubmitReview = async () => {
+  try {
+    await fetch(`/api/admin/reviews/${currentReview.value.review_id}/audit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        result: reviewForm.value.action,
+        opinion: reviewForm.value.remark
+      })
+    })
+    ElMessage.success('审核提交成功')
+    reviewDialogVisible.value = false
+    // 刷新列表
+    const res = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      worksList.value = data.rows || []
+    }
+  } catch (e) {
+    ElMessage.error('提交失败，请重试')
+  }
+}
+
+// 详情弹窗
+const detailDialogVisible = ref(false)
+const currentDetail = ref({})
 
 // 处理详情
 const handleDetail = (row) => {
-  ElMessage.info(`查看《${row.name}》详情`)
+  currentDetail.value = row
+  detailDialogVisible.value = true
 }
+
+
 </script>
 
 <style scoped>
@@ -536,3 +606,9 @@ const handleDetail = (row) => {
   color: #bfbfbf;
 }
 </style>
+
+
+
+
+
+

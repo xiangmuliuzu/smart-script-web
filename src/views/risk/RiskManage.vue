@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="risk-manage-container">
     <!-- 页面标题 -->
     <div class="page-header">
@@ -58,7 +58,7 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">风控规则配置</span>
-              <el-button type="primary" size="default" class="black-button">新增规则</el-button>
+              <el-button type="primary" size="default" class="black-button" @click="handleAddRule">新增规则</el-button>
             </div>
           </template>
           <el-table :data="ruleList" style="width: 100%">
@@ -82,7 +82,7 @@
       <template #header>
         <div class="card-header">
           <span class="card-title">黑名单维护</span>
-          <el-button type="primary" size="default" class="black-button">添加黑名单</el-button>
+          <el-button type="primary" size="default" class="black-button" @click="handleAddBlacklist">添加黑名单</el-button>
         </div>
       </template>
       <el-table :data="blacklistData" style="width: 100%">
@@ -104,6 +104,62 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 新增规则弹窗 -->
+    <el-dialog v-model="ruleDialogVisible" title="新增风控规则" width="500px">
+      <el-form :model="ruleForm" label-width="100px">
+        <el-form-item label="规则名称">
+          <el-input v-model="ruleForm.rule_name" placeholder="请输入规则名称" />
+        </el-form-item>
+        <el-form-item label="规则类型">
+          <el-select v-model="ruleForm.rule_type" placeholder="请选择规则类型" style="width: 100%">
+            <el-option label="敏感词检测" value="sensitive" />
+            <el-option label="风险评分" value="risk" />
+            <el-option label="行为检测" value="behavior" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="触发条件">
+          <el-input v-model="ruleForm.trigger_condition" placeholder="请输入触发条件" />
+        </el-form-item>
+        <el-form-item label="处理方式">
+          <el-select v-model="ruleForm.action" placeholder="请选择处理方式" style="width: 100%">
+            <el-option label="自动驳回" value="reject" />
+            <el-option label="人工复核" value="review" />
+            <el-option label="警告" value="warning" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="阈值">
+          <el-input v-model="ruleForm.threshold" placeholder="请输入阈值" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="ruleDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitRule">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 添加黑名单弹窗 -->
+    <el-dialog v-model="blacklistDialogVisible" title="添加黑名单" width="500px">
+      <el-form :model="blacklistForm" label-width="100px">
+        <el-form-item label="类型">
+          <el-select v-model="blacklistForm.target_type" placeholder="请选择类型" style="width: 100%">
+            <el-option label="用户" value="user" />
+            <el-option label="IP地址" value="ip" />
+            <el-option label="设备" value="device" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="目标值">
+          <el-input v-model="blacklistForm.target_value" placeholder="请输入目标值" />
+        </el-form-item>
+        <el-form-item label="加入原因">
+          <el-input v-model="blacklistForm.reason" type="textarea" placeholder="请输入加入黑名单的原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="blacklistDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitBlacklist">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -111,77 +167,42 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+// 加载状态
+const loading = ref(false)
+
 // 顶部统计数据
-const statsData = ref([
-  { label: '违规内容', value: 23 },
-  { label: '异常账号', value: 8 },
-  { label: '黑名单', value: 156 },
-  { label: '风控规则', value: 12 }
-])
+const statsData = ref([])
 
 // 违规内容列表数据
-const violationList = ref([
-  {
-    id: 1,
-    content: '《XX剧本》第3章',
-    type: '暴力内容',
-    severity: '高',
-    status: 'pending'
-  },
-  {
-    id: 2,
-    content: '用户评论#8821',
-    type: '低俗言论',
-    severity: '中',
-    status: 'processed'
-  }
-])
+const violationList = ref([])
 
 // 风控规则列表数据
-const ruleList = ref([
-  {
-    id: 1,
-    rule: '频繁登录检测',
-    condition: '1小时≥5次',
-    action: '触发验证码',
-    status: '启用'
-  },
-  {
-    id: 2,
-    rule: '批量操作检测',
-    condition: '1分钟≥20次',
-    action: '临时封禁',
-    status: '启用'
-  }
-])
+const ruleList = ref([])
 
 // 黑名单数据
-const blacklistData = ref([
-  {
-    id: 1,
-    object: 'IP: 10.0.0.55',
-    type: 'IP',
-    reason: '频繁异常登录',
-    addTime: '2026-09-07',
-    validity: '永久'
-  },
-  {
-    id: 2,
-    object: '用户Y',
-    type: '账号',
-    reason: '多次发布违规内容',
-    addTime: '2026-09-05',
-    validity: '30天'
-  },
-  {
-    id: 3,
-    object: '设备Z',
-    type: '设备',
-    reason: '批量注册小号',
-    addTime: '2026-09-03',
-    validity: '90天'
+const blacklistData = ref([])
+
+// 页面加载时获取数据
+import { onMounted } from 'vue'
+
+onMounted(async () => {
+  try {
+    // 获取风控规则列表
+    const ruleRes = await fetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
+    const ruleData = await ruleRes.json()
+    if (ruleData.code === 200) {
+      ruleList.value = ruleData.rows || []
+    }
+
+    // 获取违规内容列表（暂时用风控规则数据代替）
+    violationList.value = []
+    
+    // 获取黑名单数据（暂时空）
+    blacklistData.value = []
+  } catch (e) {
+    console.error('获取风控数据失败:', e)
   }
-])
+})
 
 // 获取严重度标签类型
 const getSeverityType = (severity) => {
@@ -211,6 +232,74 @@ const handleRemove = async (row) => {
     ElMessage.success(`已移除：${row.object}`)
   } catch {
     // 用户取消操作
+  }
+}
+
+// 新增规则弹窗
+const ruleDialogVisible = ref(false)
+const ruleForm = ref({
+  rule_name: '',
+  rule_type: '',
+  trigger_condition: '',
+  action: '',
+  threshold: 80
+})
+
+const handleAddRule = () => {
+  ruleForm.value = { rule: '', condition: '', action: '' }
+  ruleDialogVisible.value = true
+}
+
+const handleSubmitRule = async () => {
+  try {
+    await fetch('/api/v1/admin/review/risk-rule/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ruleForm.value)
+    })
+    ElMessage.success('新增规则成功')
+    ruleDialogVisible.value = false
+    // 刷新列表
+    const res = await fetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      ruleList.value = data.rows || []
+    }
+  } catch (e) {
+    ElMessage.error('提交失败，请重试')
+  }
+}
+
+// 添加黑名单弹窗
+const blacklistDialogVisible = ref(false)
+const blacklistForm = ref({
+  target_type: 'user',
+  target_value: '',
+  reason: ''
+})
+
+const handleAddBlacklist = () => {
+  blacklistForm.value = { username: '', reason: '' }
+  blacklistDialogVisible.value = true
+}
+
+const handleSubmitBlacklist = async () => {
+  try {
+    await fetch('/api/v1/admin/review/blacklist/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(blacklistForm.value)
+    })
+    ElMessage.success('添加黑名单成功')
+    blacklistDialogVisible.value = false
+    // 刷新列表
+    const res = await fetch('/api/v1/admin/review/blacklist/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      blacklistData.value = data.rows || []
+    }
+  } catch (e) {
+    ElMessage.error('提交失败，请重试')
   }
 }
 </script>
@@ -408,3 +497,12 @@ const handleRemove = async (row) => {
   color: #d48806;
 }
 </style>
+
+
+
+
+
+
+
+
+
