@@ -23,6 +23,7 @@ import UserRealName from '@/views/user/realname/index.vue'
 import UserMessage from '@/views/user/message/index.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
+import AiOperations from '@/views/system/AiOperations.vue'
 import SystemUser from '@/views/system/user/index.vue'
 import SystemRole from '@/views/system/role/index.vue'
 import SystemMenu from '@/views/system/menu/index.vue'
@@ -64,6 +65,7 @@ export const componentMap = {
   'user/message/index': UserMessage,
   'user/feedback/index': UserFeedback,
   'risk/RiskManage': RiskManage,
+  'system/AiOperations': AiOperations,
 
   'system/user/index': SystemUser,
   'system/role/index': SystemRole,
