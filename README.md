@@ -30,6 +30,10 @@ PC 管理后台面向平台管理员，按业务域组织版权审核、内容�
 
 本地工作区从 `D:\build` 仓库根目录通过 `../shared/…` 引用共享文档。PC 管理端以产品页面和业务结构为基础，使用若依登录、`/getInfo`、`/getRouters`、动态菜单与权限；不整体覆盖若依示例页。
 
+> **默认测试账号**：`admin` / `admin123`（备用的 `ry` 同为 `admin123`）。
+> 前提：按 [`smart-script-backend/README.md`](../smart-script-backend/README.md) 完成
+> 后端数据库初始化（空库跑 `scripts/db/init-database.sh|ps1`），账号由种子 SQL 内置，无需手工插入。
+
 ## 已补齐的业务入口
 
 ### 内容与作品
