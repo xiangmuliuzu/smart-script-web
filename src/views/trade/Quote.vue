@@ -68,11 +68,13 @@
         </template>
       </el-table-column>
       <el-table-column prop="expireAt" label="报价截止" width="150" />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="240" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="handleDetail(row)">详情</el-button>
-          <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleAccept(row)">接受</el-button>
-          <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">拒绝</el-button>
+          <div class="op-actions">
+            <el-button size="small" @click="handleDetail(row)">详情</el-button>
+            <el-button v-if="row.status === 'pending'" size="small" type="success" @click="handleAccept(row)">接受</el-button>
+            <el-button v-if="row.status === 'pending'" size="small" type="danger" @click="handleReject(row)">拒绝</el-button>
+          </div>
         </template>
       </el-table-column>
     </TableCard>
@@ -233,5 +235,10 @@ onMounted(loadList)
 .price-text {
   color: #1f2329;
   font-weight: 600;
+}
+.op-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>

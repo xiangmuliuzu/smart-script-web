@@ -61,10 +61,19 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="置顶/推荐" width="110">
         <template #default="{ row }">
-          <el-button size="small" @click="handleEdit(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="handleUnlist(row)">下架</el-button>
+          <el-tag v-if="row.isTop === 1" type="danger" size="small" effect="light" style="margin-right: 4px">置顶</el-tag>
+          <el-tag v-if="row.isRecommend === 1" type="warning" size="small" effect="light">推荐</el-tag>
+          <span v-if="row.isTop !== 1 && row.isRecommend !== 1">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="160" fixed="right">
+        <template #default="{ row }">
+          <div class="op-actions">
+            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleUnlist(row)">下架</el-button>
+          </div>
         </template>
       </el-table-column>
     </TableCard>
@@ -94,6 +103,15 @@
         </el-form-item>
         <el-form-item label="报价有效天数">
           <el-input-number v-model="form.quoteValidDays" :min="1" :max="365" style="width: 100%" placeholder="可选" />
+        </el-form-item>
+        <el-form-item label="是否置顶">
+          <el-switch v-model="form.isTop" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="是否推荐">
+          <el-switch v-model="form.isRecommend" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="排序权重">
+          <el-input-number v-model="form.sortOrder" :min="0" :max="9999" style="width: 100%" placeholder="数字越小越靠前" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -127,7 +145,7 @@ const dialogVisible = ref(false)
 const dialogMode = ref('create')
 const submitting = ref(false)
 const formRef = ref()
-const form = ref({ workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null })
+const form = ref({ workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null, isTop: 0, isRecommend: 0, sortOrder: 0 })
 const rules = {
   workId: [{ required: true, message: '请输入作品ID', trigger: 'blur' }],
   tradeType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
@@ -142,7 +160,15 @@ function formatPrice(val) {
 async function loadList() {
   loading.value = true
   try {
-    const res = await getTradeWorks(query.value)
+    // 前端筛选项与后端 SysWorkMapper 域字段对齐：authorizationType→tradeType，listingStatus→tradeEnabled
+    const params = {
+      pageNo: query.value.pageNo,
+      pageSize: query.value.pageSize,
+      keyword: query.value.keyword || undefined,
+      tradeType: query.value.authorizationType || undefined,
+      tradeEnabled: query.value.listingStatus === '' || query.value.listingStatus == null ? undefined : query.value.listingStatus
+    }
+    const res = await getTradeWorks(params)
     list.value = res.rows || []
     total.value = res.total || 0
   } catch {
@@ -166,7 +192,7 @@ function handleReset() {
 
 function handleCreate() {
   dialogMode.value = 'create'
-  form.value = { workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null }
+  form.value = { workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null, isTop: 0, isRecommend: 0, sortOrder: 0 }
   dialogVisible.value = true
 }
 
@@ -179,7 +205,10 @@ function handleEdit(row) {
     price: row.price,
     negotiableMin: row.negotiableMin,
     negotiableMax: row.negotiableMax,
-    quoteValidDays: row.quoteValidDays
+    quoteValidDays: row.quoteValidDays,
+    isTop: row.isTop ?? 0,
+    isRecommend: row.isRecommend ?? 0,
+    sortOrder: row.sortOrder ?? 0
   }
   dialogVisible.value = true
 }
@@ -233,5 +262,11 @@ onMounted(loadList)
 .price-text {
   color: #1f2329;
   font-weight: 600;
+}
+/* 操作列按钮强制单排：不换行，间距由 el-button 相邻外边距提供 */
+.op-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>

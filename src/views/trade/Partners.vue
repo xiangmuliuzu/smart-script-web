@@ -47,10 +47,12 @@
           <StatusTag type="partnerStatus" :status="row.status" />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="handleFollowUp(row)">跟进</el-button>
-          <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+          <div class="op-actions">
+            <el-button size="small" @click="handleFollowUp(row)">跟进</el-button>
+            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+          </div>
         </template>
       </el-table-column>
     </TableCard>
@@ -211,5 +213,10 @@ onMounted(loadList)
 <style scoped>
 .tag-item {
   margin-right: 6px;
+}
+.op-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 </style>
