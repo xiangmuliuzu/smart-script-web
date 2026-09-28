@@ -9,7 +9,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 const router = useRouter()
-const goHome = () => router.replace('/dashboard')
+const goHome = () => router.replace('/')
 </script>
 
 <style scoped>

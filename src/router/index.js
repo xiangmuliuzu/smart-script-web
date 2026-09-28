@@ -14,7 +14,8 @@ function safeRedirect(query) {
   if (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')) {
     return raw
   }
-  return '/dashboard'
+  // 默认首页走根路由 '/'，由 MainShell.redirect 解析到真实首页，避免硬编码未注册的 '/dashboard'。
+  return '/'
 }
 
 router.beforeEach(async (to, from, next) => {
