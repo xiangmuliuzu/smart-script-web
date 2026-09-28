@@ -8,6 +8,8 @@ import ReviewWorkbench from '@/views/copyright/ReviewWorkbench.vue'
 import AiReviewRules from '@/views/copyright/AiReviewRules.vue'
 import CopyrightCenter from '@/views/copyright/CopyrightCenter.vue'
 import CopyrightAssets from '@/views/copyright/CopyrightAssets.vue'
+import ContentCategory from '@/views/content/category/index.vue'
+import ContentTag from '@/views/content/tag/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Partners from '@/views/trade/Partners.vue'
@@ -50,6 +52,8 @@ export const componentMap = {
   'copyright/AiReviewRules': AiReviewRules,
   'copyright/CopyrightCenter': CopyrightCenter,
   'copyright/CopyrightAssets': CopyrightAssets,
+  'content/category/index': ContentCategory,
+  'content/tag/index': ContentTag,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Partners': Partners,
