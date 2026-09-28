@@ -101,7 +101,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions, enumLabel } from '@/constants/tradeEnum'
-import { getPartnerList, createPartner } from '@/api/trade'
+import { getPartnerList, createPartner, updatePartner } from '@/api/trade'
 
 defineOptions({ name: 'Partners' })
 
@@ -179,7 +179,11 @@ async function handleSubmit() {
     if (!valid) return
     submitting.value = true
     try {
-      await createPartner(form.value)
+      if (dialogMode.value === 'edit') {
+        await updatePartner(form.value.partnerId, form.value)
+      } else {
+        await createPartner(form.value)
+      }
       ElMessage.success(dialogMode.value === 'create' ? '新增合作方成功' : '编辑合作方成功')
       dialogVisible.value = false
       loadList()

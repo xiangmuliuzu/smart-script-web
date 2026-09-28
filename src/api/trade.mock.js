@@ -125,6 +125,12 @@ export function mockCreatePartner(data = {}) {
   return { code: 200, data: { partnerId: Date.now(), companyName: data.companyName, createdAt: nowText() } }
 }
 
+export function mockUpdatePartner(partnerId, data = {}) {
+  const p = partners.find((x) => x.partnerId === Number(partnerId))
+  if (p) Object.assign(p, data, { partnerId: Number(partnerId) })
+  return { code: 200, data: { partnerId: Number(partnerId), updatedAt: nowText() } }
+}
+
 /* ==================== 2.37 需求标签 ==================== */
 const demandTags = [
   { tagId: 1, tagName: '电影剧本', usedCount: 12 },

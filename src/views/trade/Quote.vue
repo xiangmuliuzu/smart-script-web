@@ -99,6 +99,8 @@
         <el-descriptions-item label="报价说明" :span="2">{{ detail.description || '-' }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
+        <el-button v-if="detail.status === 'pending'" @click="handleModify(detail)">修改报价</el-button>
+        <el-button v-if="detail.status === 'pending'" type="warning" @click="handleCounterOffer(detail)">买方议价</el-button>
         <el-button v-if="detail.status === 'pending'" type="success" @click="handleAccept(detail)">接受报价</el-button>
         <el-button v-if="detail.status === 'pending'" type="danger" @click="handleReject(detail)">拒绝报价</el-button>
         <el-button @click="detailVisible = false">关闭</el-button>
@@ -116,7 +118,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions } from '@/constants/tradeEnum'
-import { getQuoteList, acceptQuote, rejectQuote } from '@/api/trade'
+import { getQuoteList, acceptQuote, rejectQuote, modifyQuote, counterOffer } from '@/api/trade'
 
 defineOptions({ name: 'Quote' })
 
@@ -188,6 +190,40 @@ async function handleReject(row) {
 
 function handleExport() {
   ElMessage.info('导出报价记录')
+}
+
+/** 修改报价（仅 pending）：弹框输入新金额 */
+async function handleModify(row) {
+  if (!row || !row.quoteId) return
+  try {
+    const { value } = await ElMessageBox.prompt('请输入新的报价金额（元）', `修改报价 ${row.quoteNo}`, {
+      confirmButtonText: '提交', cancelButtonText: '取消',
+      inputValue: row.price != null ? String(row.price) : '',
+      inputValidator: (v) => (v !== '' && !Number.isNaN(Number(v)) && Number(v) >= 0 ? true : '请输入合法金额')
+    })
+    await modifyQuote(row.quoteId, { price: Number(value) })
+    ElMessage.success('报价已修改')
+    detailVisible.value = false
+    loadList()
+  } catch { /* 用户取消 */ }
+}
+
+/** 买方议价（仅 pending）：新增一行 buyer 报价，保留历史 */
+async function handleCounterOffer(row) {
+  if (!row || !row.inquiryId) {
+    ElMessage.warning('缺少关联询盘，无法议价')
+    return
+  }
+  try {
+    const { value } = await ElMessageBox.prompt('请输入买方议价金额（元）', `买方议价（询盘 ${row.inquiryNo || ''}）`, {
+      confirmButtonText: '提交议价', cancelButtonText: '取消',
+      inputValidator: (v) => (v !== '' && !Number.isNaN(Number(v)) && Number(v) >= 0 ? true : '请输入合法金额')
+    })
+    await counterOffer({ inquiryId: row.inquiryId, price: Number(value) })
+    ElMessage.success('议价已提交')
+    detailVisible.value = false
+    loadList()
+  } catch { /* 用户取消 */ }
 }
 
 onMounted(loadList)

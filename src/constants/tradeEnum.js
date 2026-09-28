@@ -5,8 +5,9 @@
  * 依据：
  * - 订单状态：PRD 9.3（本次采用）
  * - 合作方类型 / 授权类型 / 跟进状态：附件6.1 接口 2.35 / 2.25 / 2.38
- * - 询盘状态 / 报价状态：⚠️ 文档未给完整枚举，以下为《C模块开发清单》第2节建议值，
- *   属临时枚举，待后端确认并同步若依数据字典（sys_dict_data）后校正。
+ * - 询盘状态 / 报价状态：已定稿（2026-09-28 决策），后端 Service 状态机与本表一致，
+ *   并已同步落若依数据字典（sys_dict_data，见迁移 C_20260928_002__c_trade_dict.sql）。
+ * - 征集项目 / 投稿状态：接口文档缺口，取《C模块开发清单》建议值，同步落字典供后台维护。
  *
  * tagType 取值须为 Element Plus el-tag 合法类型：success/info/warning/danger/primary。
  */
@@ -53,7 +54,7 @@ export const FOLLOW_STATUS = [
   { value: 'completed', label: '已完成', tagType: 'info' }
 ]
 
-/** ⚠️ 临时：询盘状态（文档未给完整枚举，待后端确认） */
+/** 询盘状态（已定稿）：转订单后置 deal；后端 TradeInquiryService.INQUIRY_STATUS_DEAL 一致 */
 export const INQUIRY_STATUS = [
   { value: 'pending', label: '待回复', tagType: 'warning' },
   { value: 'accepted', label: '已接受', tagType: 'success' },
@@ -63,7 +64,7 @@ export const INQUIRY_STATUS = [
   { value: 'deal', label: '已达成', tagType: 'success' }
 ]
 
-/** ⚠️ 临时：报价状态（文档未给完整枚举，待后端确认） */
+/** 报价状态（已定稿）：接受即生成订单并置 accepted；过期由后端校验置 expired */
 export const QUOTE_STATUS = [
   { value: 'pending', label: '待买方确认', tagType: 'warning' },
   { value: 'accepted', label: '已接受', tagType: 'success' },
