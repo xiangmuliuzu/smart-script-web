@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { constantRoutes } from '@/router/static-routes'
-import { getToken } from '@/utils/auth'
+import { getToken, getUserToken, getAccountType, removeAccountType } from '@/utils/auth'
+import { isUserType, isUserPortalPath, homePathFor } from '@/utils/account'
 import { useUserStore } from '@/stores/user'
+import { usePcUserStore } from '@/stores/pcUser'
 import { usePermissionStore } from '@/stores/permission'
 
 const router = createRouter({
@@ -18,29 +20,79 @@ function safeRedirect(query) {
   return '/'
 }
 
+/** 全量清理两类会话与动态路由（切换账号 / 会话不一致兜底） */
+function resetAllSessions(userStore, pcUserStore, permissionStore) {
+  userStore.resetSession()
+  pcUserStore.resetSession()
+  permissionStore.resetRoutes()
+}
+
 router.beforeEach(async (to, from, next) => {
-  const token = getToken()
+  const adminToken = getToken()
+  const userToken = getUserToken()
+  const accountType = getAccountType()
   const userStore = useUserStore()
+  const pcUserStore = usePcUserStore()
   const permissionStore = usePermissionStore()
 
-  document.title = to.meta?.title ? `${to.meta.title} - 剧云策管理后台` : '剧云策管理后台'
+  document.title = to.meta?.title ? `${to.meta.title} - 剧云策` : '剧云策'
 
   if (to.path === '/login') {
-    if (token) {
-      next(safeRedirect(to.query))
+    if (adminToken || userToken) {
+      // 已有会话再进登录页：按已确认的账号类型回到对应首页
+      next(homePathFor(accountType))
     } else {
+      if (accountType) {
+        removeAccountType()
+      }
       next()
     }
     return
   }
 
-  if (!token) {
+  if (!adminToken && !userToken) {
+    // 无会话：清理残留的账号类型与动态路由后再去登录页
+    resetAllSessions(userStore, pcUserStore, permissionStore)
     const redirect = to.fullPath && to.fullPath !== '/' ? `?redirect=${encodeURIComponent(to.fullPath)}` : ''
     next(`/login${redirect}`)
     return
   }
 
-  // 有 Token：先 getInfo，再 getRouters，再 replace 原目标
+  // 会话与账号类型不一致（旧版本登录 / 存储异常 / 切换未完成）：全量清理，要求重新登录
+  const sessionMatchesType = isUserType(accountType) ? !!userToken : accountType === '00' && !!adminToken
+  if (!sessionMatchesType) {
+    resetAllSessions(userStore, pcUserStore, permissionStore)
+    next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+    return
+  }
+
+  // ---- PC 用户端会话（01/02/03）：只允许访问 /pc/** 门户 ----
+  if (isUserType(accountType)) {
+    if (!isUserPortalPath(to.path)) {
+      next('/pc/user')
+      return
+    }
+    // 首次进入（含刷新后 store 重建）：用 /auth/me 校验令牌有效性，
+    // 避免仅凭本地令牌放行过期会话；401 已由 pcRequest 统一跳登录页
+    if (!pcUserStore.infoLoaded) {
+      try {
+        await pcUserStore.fetchMe()
+      } catch (error) {
+        pcUserStore.resetSession()
+        next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+        return
+      }
+    }
+    next()
+    return
+  }
+
+  // ---- 管理员会话（00）：禁止访问用户门户，维持原有动态路由初始化流程 ----
+  if (isUserPortalPath(to.path)) {
+    next('/')
+    return
+  }
+
   if (!userStore.infoLoaded || !permissionStore.initialized) {
     try {
       if (!userStore.infoLoaded) {
