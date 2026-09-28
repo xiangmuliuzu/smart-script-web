@@ -14,6 +14,7 @@ import ContentWork from '@/views/content/work/index.vue'
 import ContentBookstore from '@/views/content/bookstore/index.vue'
 import ContentRanking from '@/views/content/ranking/index.vue'
 import ContentBanner from '@/views/content/banner/index.vue'
+import ContentWorkfile from '@/views/content/workfile/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Partners from '@/views/trade/Partners.vue'
@@ -62,6 +63,7 @@ export const componentMap = {
   'content/bookstore/index': ContentBookstore,
   'content/ranking/index': ContentRanking,
   'content/banner/index': ContentBanner,
+  'content/workfile/index': ContentWorkfile,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Partners': Partners,

@@ -273,3 +273,9 @@ export function changeBannerSort(data) {
     data
   })
 }
+
+// ---------------- 作品上传资料 ----------------
+export function listWorkFile(query) { return request({ url: `${ADMIN_PREFIX}/workfile/list`, method: 'get', params: query }) }
+export function getWorkFile(fileId) { return request({ url: `${ADMIN_PREFIX}/workfile/${fileId}`, method: 'get' }) }
+export function listWorkVersions(query) { return request({ url: `${ADMIN_PREFIX}/workfile/versions`, method: 'get', params: query }) }
+export function getWorkVersion(versionId) { return request({ url: `${ADMIN_PREFIX}/workfile/version/${versionId}`, method: 'get' }) }
