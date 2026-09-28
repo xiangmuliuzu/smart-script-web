@@ -157,7 +157,7 @@ test('path/permission helpers', () => {
   assert.equal(resolveFromMap(componentMap, 'nope'), null)
   assert.equal(hasPermission(['*:*:*'], 'system:user:add'), true)
   assert.equal(hasPermission(['system:user:list'], 'system:user:add'), false)
-  assert.equal(safeRedirectPath('//evil'), '/dashboard')
+  assert.equal(safeRedirectPath('//evil'), '/')
 })
 
 test('dynamic route adapter rejects unknown components', () => {
