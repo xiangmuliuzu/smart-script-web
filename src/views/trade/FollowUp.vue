@@ -1,10 +1,13 @@
 <template>
   <PageContainer>
-    <PageHeader title="商务跟进" description="记录与合作方的商务跟进（电话/邮件/面谈），支持线上合作与线下谈判跟进">
+    <PageHeader title="商务跟进" description="记录与合作方的商务跟进（电话/邮件/面谈），并查看线上合作记录与线下谈判记录">
       <template #actions>
-        <BlackButton @click="handleCreate">新增跟进记录</BlackButton>
+        <BlackButton v-if="activeTab === 'follow'" @click="handleCreate">新增跟进记录</BlackButton>
       </template>
     </PageHeader>
+
+    <el-tabs v-model="activeTab" @tab-change="onTabChange">
+      <el-tab-pane label="跟进记录" name="follow">
 
     <FilterBar @query="handleQuery" @reset="handleReset">
       <el-form-item>
@@ -26,6 +29,18 @@
             :value="opt.value"
           />
         </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="跟进开始日期"
+          end-placeholder="跟进结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 260px"
+          clearable
+        />
       </el-form-item>
     </FilterBar>
 
@@ -55,6 +70,95 @@
         </template>
       </el-table-column>
     </TableCard>
+
+      </el-tab-pane>
+
+      <el-tab-pane label="线上合作记录" name="online">
+        <TableCard
+          v-model:page="onlineQuery.pageNo"
+          v-model:pageSize="onlineQuery.pageSize"
+          :data="onlineList"
+          :loading="onlineLoading"
+          :total="onlineTotal"
+          empty-text="暂无线上合作记录"
+          @page-change="loadOnline"
+          @size-change="loadOnline"
+        >
+          <el-table-column prop="workTitle" label="作品" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.workTitle || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="creatorName" label="作者" width="120">
+            <template #default="{ row }">{{ row.creatorName || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="partnerName" label="合作方" width="140">
+            <template #default="{ row }">{{ row.partnerName || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <StatusTag type="cooperationStatus" :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="expectedAmountText" label="预期金额" width="130">
+            <template #default="{ row }">{{ row.expectedAmountText || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="contactPerson" label="联系人" width="110">
+            <template #default="{ row }">{{ row.contactPerson || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="contactValue" label="联系方式" width="150">
+            <template #default="{ row }">{{ row.contactValue || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="nextFollowAt" label="下次跟进" width="160">
+            <template #default="{ row }">{{ row.nextFollowAt || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.remark || '-' }}</template>
+          </el-table-column>
+        </TableCard>
+      </el-tab-pane>
+
+      <el-tab-pane label="线下谈判记录" name="offline">
+        <TableCard
+          v-model:page="offlineQuery.pageNo"
+          v-model:pageSize="offlineQuery.pageSize"
+          :data="offlineList"
+          :loading="offlineLoading"
+          :total="offlineTotal"
+          empty-text="暂无线下谈判记录"
+          @page-change="loadOffline"
+          @size-change="loadOffline"
+        >
+          <el-table-column prop="workTitle" label="作品" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.workTitle || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="partnerName" label="合作方" width="140">
+            <template #default="{ row }">{{ row.partnerName || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <StatusTag type="cooperationStatus" :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="nextFollowAt" label="谈判时间" width="160">
+            <template #default="{ row }">{{ row.nextFollowAt || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="negotiationPlace" label="谈判地点" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.negotiationPlace || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="contactPerson" label="联系人" width="110">
+            <template #default="{ row }">{{ row.contactPerson || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="contactValue" label="联系方式" width="150">
+            <template #default="{ row }">{{ row.contactValue || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="expectedAmountText" label="预期金额" width="130">
+            <template #default="{ row }">{{ row.expectedAmountText || '-' }}</template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.remark || '-' }}</template>
+          </el-table-column>
+        </TableCard>
+      </el-tab-pane>
+    </el-tabs>
 
     <el-dialog v-model="dialogVisible" title="新增跟进记录" width="560px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -135,7 +239,7 @@ import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions, enumLabel } from '@/constants/tradeEnum'
-import { getFollowUps, createFollowUp, getPartnerList } from '@/api/trade'
+import { getFollowUps, createFollowUp, getPartnerList, getCooperations } from '@/api/trade'
 
 defineOptions({ name: 'FollowUp' })
 
@@ -147,7 +251,22 @@ const loading = ref(false)
 const list = ref([])
 const total = ref(0)
 const query = ref({ pageNo: 1, pageSize: 10, partnerId: '', status: '' })
+// 跟进时间范围（接口 2.38 startDate/endDate）；el-date-picker daterange 输出 [start, end]
+const dateRange = ref([])
 const partnerOptions = ref([])
+
+// 合作记录（分工 15 线上合作意向 / 16 线下谈判）：两个只读视图，切换页签时懒加载
+const activeTab = ref('follow')
+const onlineList = ref([])
+const onlineTotal = ref(0)
+const onlineLoading = ref(false)
+const onlineLoaded = ref(false)
+const onlineQuery = ref({ pageNo: 1, pageSize: 10 })
+const offlineList = ref([])
+const offlineTotal = ref(0)
+const offlineLoading = ref(false)
+const offlineLoaded = ref(false)
+const offlineQuery = ref({ pageNo: 1, pageSize: 10 })
 
 const dialogVisible = ref(false)
 const submitting = ref(false)
@@ -173,7 +292,12 @@ async function loadPartners() {
 async function loadList() {
   loading.value = true
   try {
-    const res = await getFollowUps(query.value)
+    const params = {
+      ...query.value,
+      startDate: dateRange.value?.[0] || undefined,
+      endDate: dateRange.value?.[1] || undefined
+    }
+    const res = await getFollowUps(params)
     list.value = res.rows || []
     total.value = res.total || 0
   } catch {
@@ -185,6 +309,43 @@ async function loadList() {
   }
 }
 
+async function loadOnline() {
+  onlineLoading.value = true
+  try {
+    const res = await getCooperations({ ...onlineQuery.value, source: 'online' })
+    onlineList.value = res.rows || []
+    onlineTotal.value = res.total || 0
+    onlineLoaded.value = true
+  } catch {
+    onlineList.value = []
+    onlineTotal.value = 0
+    ElMessage.error('加载线上合作记录失败')
+  } finally {
+    onlineLoading.value = false
+  }
+}
+
+async function loadOffline() {
+  offlineLoading.value = true
+  try {
+    const res = await getCooperations({ ...offlineQuery.value, source: 'offline' })
+    offlineList.value = res.rows || []
+    offlineTotal.value = res.total || 0
+    offlineLoaded.value = true
+  } catch {
+    offlineList.value = []
+    offlineTotal.value = 0
+    ElMessage.error('加载线下谈判记录失败')
+  } finally {
+    offlineLoading.value = false
+  }
+}
+
+function onTabChange(name) {
+  if (name === 'online' && !onlineLoaded.value) loadOnline()
+  else if (name === 'offline' && !offlineLoaded.value) loadOffline()
+}
+
 function handleQuery() {
   query.value.pageNo = 1
   loadList()
@@ -192,6 +353,7 @@ function handleQuery() {
 
 function handleReset() {
   query.value = { pageNo: 1, pageSize: 10, partnerId: '', status: '' }
+  dateRange.value = []
   loadList()
 }
 

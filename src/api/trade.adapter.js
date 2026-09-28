@@ -122,6 +122,21 @@ export function adaptFollowUps(res) {
   }))
 }
 
+/* ==================== 合作记录（分工 15 线上合作意向 / 16 线下谈判）==================== */
+/**
+ * SysOfflineCooperation → FollowUp.vue 合作记录只读视图。
+ * 后端返回扁平原始字段（source/status/expectedAmount/nextFollowAt/negotiationPlace/contactPerson/contactValue/workTitle/partnerName），
+ * 此处仅补中文 label 与金额文本，其余透传。
+ */
+export function adaptCooperations(res) {
+  return mapRows(res, (c) => ({
+    ...c,
+    sourceLabel: c.sourceLabel || enumLabel('cooperationSource', c.source),
+    statusLabel: c.statusLabel || enumLabel('cooperationStatus', c.status),
+    expectedAmountText: c.expectedAmountText || formatMoney(c.expectedAmount)
+  }))
+}
+
 /* ==================== 询盘（缺口接口）==================== */
 /** SysInquiry → Inquiry.vue：buyerName→buyer, sellerName→seller, licenseType→licenseTypeLabel, budget→budgetText */
 export function adaptInquiries(res) {

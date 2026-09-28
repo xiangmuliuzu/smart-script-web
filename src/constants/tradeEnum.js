@@ -106,6 +106,20 @@ export const SUBMISSION_STATUS = [
   { value: 'rejected', label: '未选用', tagType: 'info' }
 ]
 
+/** 合作记录来源（sys_offline_cooperation.source；分工 15 线上合作意向 / 16 线下谈判） */
+export const COOPERATION_SOURCE = [
+  { value: 'online', label: '线上合作意向', tagType: 'primary' },
+  { value: 'offline', label: '线下谈判', tagType: 'warning' }
+]
+
+/** 合作记录状态（sys_offline_cooperation.status）⚠️ C 定义，已落字典 C_20260928_007，待产品确认 */
+export const COOPERATION_STATUS = [
+  { value: 'pending', label: '待跟进', tagType: 'warning' },
+  { value: 'ongoing', label: '洽谈中', tagType: 'primary' },
+  { value: 'completed', label: '已达成', tagType: 'success' },
+  { value: 'cancelled', label: '已终止', tagType: 'info' }
+]
+
 /** 枚举注册表：StatusTag 按 type 名查表 */
 export const ENUM_REGISTRY = {
   order: ORDER_STATUS,
@@ -119,7 +133,9 @@ export const ENUM_REGISTRY = {
   tradeWork: TRADE_WORK_STATUS,
   followMethod: FOLLOW_METHOD,
   demand: DEMAND_STATUS,
-  submission: SUBMISSION_STATUS
+  submission: SUBMISSION_STATUS,
+  cooperationSource: COOPERATION_SOURCE,
+  cooperationStatus: COOPERATION_STATUS
 }
 
 /** 查枚举项 */
