@@ -279,3 +279,32 @@ export function listWorkFile(query) { return request({ url: `${ADMIN_PREFIX}/wor
 export function getWorkFile(fileId) { return request({ url: `${ADMIN_PREFIX}/workfile/${fileId}`, method: 'get' }) }
 export function listWorkVersions(query) { return request({ url: `${ADMIN_PREFIX}/workfile/versions`, method: 'get', params: query }) }
 export function getWorkVersion(versionId) { return request({ url: `${ADMIN_PREFIX}/workfile/version/${versionId}`, method: 'get' }) }
+
+// ---------------- 外部视频-渠道管理 ----------------
+export function listDramaChannel(query) { return request({ url: `${ADMIN_PREFIX}/dramaChannel/list`, method: 'get', params: query }) }
+export function getDramaChannel(channelId) { return request({ url: `${ADMIN_PREFIX}/dramaChannel/${channelId}`, method: 'get' }) }
+export function addDramaChannel(data) { return request({ url: `${ADMIN_PREFIX}/dramaChannel`, method: 'post', data }) }
+export function updateDramaChannel(data) { return request({ url: `${ADMIN_PREFIX}/dramaChannel`, method: 'put', data }) }
+export function changeDramaChannelStatus(data) { return request({ url: `${ADMIN_PREFIX}/dramaChannel/changeStatus`, method: 'put', data }) }
+
+// ---------------- 外部视频-内容管理 ----------------
+export function listDrama(query) { return request({ url: `${ADMIN_PREFIX}/drama/list`, method: 'get', params: query }) }
+export function getDrama(dramaId) { return request({ url: `${ADMIN_PREFIX}/drama/${dramaId}`, method: 'get' }) }
+export function addDrama(data) { return request({ url: `${ADMIN_PREFIX}/drama`, method: 'post', data }) }
+export function updateDrama(data) { return request({ url: `${ADMIN_PREFIX}/drama`, method: 'put', data }) }
+
+// ---------------- 外部视频-关联剧本 ----------------
+export function listDramaBind(query) { return request({ url: `${ADMIN_PREFIX}/dramaBind/list`, method: 'get', params: query }) }
+export function getDramaBind(dramaId) { return request({ url: `${ADMIN_PREFIX}/dramaBind/${dramaId}`, method: 'get' }) }
+export function bindDrama(data) { return request({ url: `${ADMIN_PREFIX}/dramaBind/bind`, method: 'put', data }) }
+export function unbindDrama(data) { return request({ url: `${ADMIN_PREFIX}/dramaBind/unbind`, method: 'put', data }) }
+
+// ---------------- 外部视频-上下架管理 ----------------
+export function listDramaStatus(query) { return request({ url: `${ADMIN_PREFIX}/dramaStatus/list`, method: 'get', params: query }) }
+export function changeDramaStatus(data) { return request({ url: `${ADMIN_PREFIX}/dramaStatus/changeStatus`, method: 'put', data }) }
+export function syncDrama(data) { return request({ url: `${ADMIN_PREFIX}/dramaStatus/sync`, method: 'put', data }) }
+
+// ---------------- 外部视频-播放数据 ----------------
+export function listDramaStats(query) { return request({ url: `${ADMIN_PREFIX}/dramaStats/list`, method: 'get', params: query }) }
+export function getDramaStats(workId) { return request({ url: `${ADMIN_PREFIX}/dramaStats/${workId}`, method: 'get' }) }
+export function listDramaHistory(query) { return request({ url: `${ADMIN_PREFIX}/dramaStats/history`, method: 'get', params: query }) }
