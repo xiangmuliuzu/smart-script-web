@@ -10,6 +10,10 @@ import CopyrightCenter from '@/views/copyright/CopyrightCenter.vue'
 import CopyrightAssets from '@/views/copyright/CopyrightAssets.vue'
 import ContentCategory from '@/views/content/category/index.vue'
 import ContentTag from '@/views/content/tag/index.vue'
+import ContentWork from '@/views/content/work/index.vue'
+import ContentBookstore from '@/views/content/bookstore/index.vue'
+import ContentRanking from '@/views/content/ranking/index.vue'
+import ContentBanner from '@/views/content/banner/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Partners from '@/views/trade/Partners.vue'
@@ -54,6 +58,10 @@ export const componentMap = {
   'copyright/CopyrightAssets': CopyrightAssets,
   'content/category/index': ContentCategory,
   'content/tag/index': ContentTag,
+  'content/work/index': ContentWork,
+  'content/bookstore/index': ContentBookstore,
+  'content/ranking/index': ContentRanking,
+  'content/banner/index': ContentBanner,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Partners': Partners,

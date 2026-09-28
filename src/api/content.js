@@ -107,3 +107,169 @@ export function delTag(tagIds) {
     method: 'delete'
   })
 }
+
+// ---------------- 作品管理 ----------------
+
+/** 作品分页列表（title 模糊，authorId/genreId/status/workType/tradeType 精确） */
+export function listWork(query) {
+  return request({
+    url: `${ADMIN_PREFIX}/work/list`,
+    method: 'get',
+    params: query
+  })
+}
+
+/** 作品详情 */
+export function getWork(workId) {
+  return request({
+    url: `${ADMIN_PREFIX}/work/${workId}`,
+    method: 'get'
+  })
+}
+
+/** 作品章节分页列表 */
+export function listWorkChapters(workId, query) {
+  return request({
+    url: `${ADMIN_PREFIX}/work/${workId}/chapters`,
+    method: 'get',
+    params: query
+  })
+}
+
+// ---------------- 书城作品管理 ----------------
+
+/** 书城作品分页列表（title 模糊，recommendStatus/status/tradeEnabled 精确） */
+export function listBookstore(query) {
+  return request({
+    url: `${ADMIN_PREFIX}/bookstore/list`,
+    method: 'get',
+    params: query
+  })
+}
+
+/** 书城作品详情 */
+export function getBookstore(workId) {
+  return request({
+    url: `${ADMIN_PREFIX}/bookstore/${workId}`,
+    method: 'get'
+  })
+}
+
+/** 上架/下架书城作品（单一职责：仅改 status） */
+export function changeBookstoreStatus(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/bookstore/changeStatus`,
+    method: 'put',
+    data
+  })
+}
+
+/** 开启/关闭交易（单一职责：仅改 tradeEnabled） */
+export function changeBookstoreTrade(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/bookstore/changeTrade`,
+    method: 'put',
+    data
+  })
+}
+
+/** 更新书城扩展信息（extJson 由前端构建为 JSON 字符串） */
+export function updateBookstoreExt(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/bookstore/updateExt`,
+    method: 'put',
+    data
+  })
+}
+
+// ---------------- 排行榜管理 ----------------
+
+/** 排行榜分页列表（rankingType/periodStart/periodEnd/status 过滤） */
+export function listRanking(query) {
+  return request({
+    url: `${ADMIN_PREFIX}/ranking/list`,
+    method: 'get',
+    params: query
+  })
+}
+
+/** 排行榜条目详情 */
+export function getRanking(rankingId) {
+  return request({
+    url: `${ADMIN_PREFIX}/ranking/${rankingId}`,
+    method: 'get'
+  })
+}
+
+/** 调整榜单排名（单一职责：仅改 rankNo） */
+export function changeRankNo(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/ranking/changeRankNo`,
+    method: 'put',
+    data
+  })
+}
+
+/** 重算榜单（按 metric 与时间窗口；返回 newSnapshotCount/oldInvalidatedCount） */
+export function recomputeRanking(params) {
+  return request({
+    url: `${ADMIN_PREFIX}/ranking/recompute`,
+    method: 'post',
+    params
+  })
+}
+
+// ---------------- Banner管理 ----------------
+
+/** Banner 分页列表（title 模糊，position/status 精确） */
+export function listBanner(query) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner/list`,
+    method: 'get',
+    params: query
+  })
+}
+
+/** Banner 详情 */
+export function getBanner(bannerId) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner/${bannerId}`,
+    method: 'get'
+  })
+}
+
+/** 新增 Banner */
+export function addBanner(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner`,
+    method: 'post',
+    data
+  })
+}
+
+/** 编辑 Banner */
+export function updateBanner(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner`,
+    method: 'put',
+    data
+  })
+}
+
+/** 上架/下架 Banner（单一职责：仅改 status） */
+export function changeBannerStatus(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner/changeStatus`,
+    method: 'put',
+    data
+  })
+}
+
+/** 调整 Banner 排序（单一职责：仅改 sortOrder） */
+export function changeBannerSort(data) {
+  return request({
+    url: `${ADMIN_PREFIX}/banner/changeSort`,
+    method: 'put',
+    data
+  })
+}
