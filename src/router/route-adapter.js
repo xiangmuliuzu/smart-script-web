@@ -98,7 +98,10 @@ export function adaptRuoYiRoutes(routers) {
 
   const layoutComp = resolveComponent('Layout')
   const visibleLeaves = leaves.filter((l) => !l.meta?.hidden)
+  // 首页优先：数据总览(/workspace/dashboard) > 旧 /dashboard > /user > 首个可见叶子。
+  // 根路由 '/' 的 redirect 据此解析，登录后即落到工作台数据总览。
   const preferred =
+    visibleLeaves.find((l) => l.path === '/workspace/dashboard') ||
     visibleLeaves.find((l) => l.path === '/dashboard') ||
     visibleLeaves.find((l) => l.path === '/user') ||
     visibleLeaves[0] ||

@@ -49,7 +49,7 @@
           <div class="header-content">
             <div class="breadcrumb">
               <el-breadcrumb separator="/">
-                <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
+                <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
                 <el-breadcrumb-item>{{ currentTitle }}</el-breadcrumb-item>
               </el-breadcrumb>
             </div>

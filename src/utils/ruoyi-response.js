@@ -169,7 +169,8 @@ export function hasPermission(permissions, permission) {
 
 export function safeRedirectPath(raw) {
   if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) {
-    return '/dashboard'
+    // 默认首页走根路由 '/'（MainShell.redirect 解析到真实首页），不硬编码未注册的 '/dashboard'。
+    return '/'
   }
   return raw
 }

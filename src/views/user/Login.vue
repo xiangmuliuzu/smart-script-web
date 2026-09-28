@@ -107,7 +107,9 @@ const rules = {
 function safeRedirectPath() {
   const raw = route.query?.redirect
   if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) {
-    return '/dashboard'
+    // 默认首页交给根路由 '/'(MainShell) 的 redirect 解析到真实首页（如 /workspace/dashboard），
+    // 不再硬编码 '/dashboard'——该路径未注册会命中 catch-all 渲染 404。
+    return '/'
   }
   return raw
 }
@@ -158,7 +160,7 @@ const handleLogin = async () => {
       await router.replace(target)
       if (router.currentRoute.value.path === '/404' || router.currentRoute.value.path === '/login') {
         const first = permissionStore.sidebarRoutes?.[0]
-        const firstLeaf = first?.children?.[0]?.path || first?.path || '/dashboard'
+        const firstLeaf = first?.children?.[0]?.path || first?.path || '/'
         await router.replace(firstLeaf)
       }
     } catch (error) {
