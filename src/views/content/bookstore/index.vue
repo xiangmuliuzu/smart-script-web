@@ -69,8 +69,8 @@
           <el-switch
             v-permission="['content:bookstore:edit']"
             v-model="row.tradeEnabled"
-            :active-value="1"
-            :inactive-value="0"
+            active-value="1"
+            inactive-value="0"
             @change="() => handleTradeChange(row)"
           />
         </template>
@@ -142,7 +142,7 @@
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
@@ -224,41 +224,23 @@ async function handleStatusChange(row) {
   const targetStatus = row.status
   const actionText = targetStatus === 'on_shelf' ? '上架' : '下架'
   try {
-    await ElMessageBox.confirm(`确认${actionText}作品「${row.title}」？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-  } catch {
-    row.status = targetStatus === 'on_shelf' ? 'off_shelf' : 'on_shelf'
-    return
-  }
-  try {
     await changeBookstoreStatus({ workId: row.workId, status: targetStatus })
     ElMessage.success(`${actionText}成功`)
   } catch {
+    // 失败回滚开关，错误信息已由 request 拦截器统一提示
     row.status = targetStatus === 'on_shelf' ? 'off_shelf' : 'on_shelf'
   }
 }
 
 async function handleTradeChange(row) {
   const targetTrade = row.tradeEnabled
-  const actionText = targetTrade === 1 ? '开启交易' : '关闭交易'
-  try {
-    await ElMessageBox.confirm(`确认${actionText}作品「${row.title}」？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-  } catch {
-    row.tradeEnabled = targetTrade === 1 ? 0 : 1
-    return
-  }
+  const actionText = targetTrade === '1' ? '开启交易' : '关闭交易'
   try {
     await changeBookstoreTrade({ workId: row.workId, tradeEnabled: targetTrade })
     ElMessage.success(`${actionText}成功`)
   } catch {
-    row.tradeEnabled = targetTrade === 1 ? 0 : 1
+    // 失败回滚开关，错误信息已由 request 拦截器统一提示
+    row.tradeEnabled = targetTrade === '1' ? '0' : '1'
   }
 }
 

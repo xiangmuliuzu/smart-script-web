@@ -71,20 +71,16 @@
       <el-table-column label="创建时间" width="170">
         <template #default="{ row }">{{ row.createTime || '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button
             v-permission="['content:work:query']"
             size="small"
-            link
-            type="primary"
             @click="openDetail(row)"
           >详情</el-button>
           <el-button
             v-permission="['content:work:list']"
             size="small"
-            link
-            type="primary"
             @click="openChapters(row)"
           >章节</el-button>
         </template>
