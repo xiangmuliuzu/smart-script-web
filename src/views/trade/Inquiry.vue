@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="询盘管理" description="买方对交易作品发起的询盘，处理后可转为授权订单（订单生成后交 D 接手）">
+    <PageHeader title="询盘管理" description="买方对交易作品发起的询盘；在报价管理接受报价即直接生成授权订单并置已达成（订单后续交 D 接手）">
       <template #actions>
         <el-button @click="handleExport">导出</el-button>
       </template>
@@ -64,17 +64,24 @@
         </template>
       </el-table-column>
       <el-table-column prop="expireAt" label="询盘截止" width="150" />
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="handleDetail(row)">详情</el-button>
-          <el-button size="small" type="primary" @click="handleConvert(row)">转订单</el-button>
         </template>
       </el-table-column>
     </TableCard>
 
-    <!-- 询盘详情：含询盘主体 + 留言；跟进/转订单为 C 分内操作 -->
+    <!-- 询盘详情：含询盘主体 + 留言；成交走报价管理（接受报价即建单），本页不再提供转订单 -->
     <el-dialog v-model="detailVisible" title="询盘详情" width="640px">
       <div v-loading="detailLoading">
+        <el-alert
+          v-if="detail.status === 'deal'"
+          class="deal-tip"
+          type="success"
+          :closable="false"
+          show-icon
+          title="该询盘已达成，授权订单已生成，请到「授权订单」页查看后续进展"
+        />
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="询盘编号">{{ detail.inquiryNo }}</el-descriptions-item>
           <el-descriptions-item label="询盘状态">
@@ -97,7 +104,6 @@
         <el-button v-if="detail.status === 'pending'" type="success" @click="handleAcceptInquiry(detail)">接受询盘</el-button>
         <el-button v-if="detail.status === 'pending'" type="danger" @click="handleRejectInquiry(detail)">拒绝询盘</el-button>
         <el-button @click="handleFollowUp(detail)">记录跟进</el-button>
-        <el-button type="primary" @click="handleConvert(detail)">转为订单</el-button>
         <el-button v-if="canClose(detail.status)" @click="handleCloseInquiry(detail)">关闭询盘</el-button>
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
@@ -118,7 +124,6 @@ import {
   getInquiryList,
   getInquiryDetail,
   followUpInquiry,
-  convertInquiryToOrder,
   acceptInquiry,
   rejectInquiry,
   closeInquiry
@@ -126,7 +131,7 @@ import {
 
 defineOptions({ name: 'Inquiry' })
 
-// 询盘状态为临时枚举（文档未给完整枚举，见 constants/tradeEnum.js INQUIRY_STATUS，待后端确认）
+// 询盘状态（2026-09-29 收敛）：待回复/议价中/已拒绝/已关闭/已达成，见 constants/tradeEnum.js INQUIRY_STATUS
 const inquiryStatusOptions = enumOptions('inquiry')
 const licenseOptions = enumOptions('license')
 
@@ -193,30 +198,13 @@ async function handleFollowUp(row) {
   }
 }
 
-async function handleConvert(row) {
-  if (!row || !row.inquiryId) return
-  try {
-    await ElMessageBox.confirm(
-      `确认将询盘 ${row.inquiryNo} 转为授权订单吗？`,
-      '询盘转订单',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
-    const res = await convertInquiryToOrder(row.inquiryId)
-    ElMessage.success(`已生成订单：${res?.data?.orderNo || ''}`)
-    detailVisible.value = false
-    loadList()
-  } catch {
-    // 用户取消
-  }
-}
-
 function handleExport() {
   ElMessage.info('导出询盘')
 }
 
-/** 关闭询盘：pending/accepted/quoted/rejected 可关闭（deal/closed 不可） */
+/** 关闭询盘：pending/quoted/rejected 可关闭（deal/closed 不可） */
 function canClose(status) {
-  return ['pending', 'accepted', 'quoted', 'rejected'].includes(status)
+  return ['pending', 'quoted', 'rejected'].includes(status)
 }
 
 async function handleAcceptInquiry(row) {
@@ -226,7 +214,7 @@ async function handleAcceptInquiry(row) {
       confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
     })
     await acceptInquiry(row.inquiryId)
-    ElMessage.success('已接受询盘')
+    ElMessage.success('已接受询盘，已进入议价中')
     detailVisible.value = false
     loadList()
   } catch { /* 用户取消 */ }
@@ -265,5 +253,8 @@ onMounted(loadList)
 .price-text {
   color: #1f2329;
   font-weight: 600;
+}
+.deal-tip {
+  margin-bottom: 12px;
 }
 </style>

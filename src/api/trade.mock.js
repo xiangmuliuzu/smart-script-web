@@ -206,8 +206,8 @@ export function mockCreateFollowUp(data = {}) {
 // 询盘（sys_inquiry）：字段参照《C模块开发清单》1.1，路径为前端预留桩，待后端确认
 const inquiries = [
   { inquiryId: 1, inquiryNo: '#INQ-001', workTitle: '《都市迷途》', buyer: '影视公司A', seller: '张编剧', licenseType: 'exclusive', licenseTypeLabel: '独家授权', intendedUse: '院线电影改编', budget: 5000000, budgetText: '¥50,000', message: '希望获得独家改编权', status: 'pending', statusLabel: '待回复', expireAt: '2026-09-20 23:59', createdAt: '2026-09-08 09:00' },
-  { inquiryId: 2, inquiryNo: '#INQ-002', workTitle: '《暗夜追踪》', buyer: '制作公司B', seller: '李作者', licenseType: 'non_exclusive', licenseTypeLabel: '非独家授权', intendedUse: '网剧拍摄', budget: 2500000, budgetText: '¥25,000', message: '计划明年开机', status: 'quoted', statusLabel: '已报价', expireAt: '2026-09-25 23:59', createdAt: '2026-09-07 14:00' },
-  { inquiryId: 3, inquiryNo: '#INQ-003', workTitle: '《长安旧事》', buyer: '平台C', seller: '王编剧', licenseType: 'adaptation', licenseTypeLabel: '改编授权', intendedUse: '短剧改编', budget: 1800000, budgetText: '¥18,000', message: '需确认改编范围', status: 'accepted', statusLabel: '已接受', expireAt: '2026-09-30 23:59', createdAt: '2026-09-06 11:00' }
+  { inquiryId: 2, inquiryNo: '#INQ-002', workTitle: '《暗夜追踪》', buyer: '制作公司B', seller: '李作者', licenseType: 'non_exclusive', licenseTypeLabel: '非独家授权', intendedUse: '网剧拍摄', budget: 2500000, budgetText: '¥25,000', message: '计划明年开机', status: 'quoted', statusLabel: '议价中', expireAt: '2026-09-25 23:59', createdAt: '2026-09-07 14:00' },
+  { inquiryId: 3, inquiryNo: '#INQ-003', workTitle: '《长安旧事》', buyer: '平台C', seller: '王编剧', licenseType: 'adaptation', licenseTypeLabel: '改编授权', intendedUse: '短剧改编', budget: 1800000, budgetText: '¥18,000', message: '需确认改编范围', status: 'quoted', statusLabel: '议价中', expireAt: '2026-09-30 23:59', createdAt: '2026-09-06 11:00' }
 ]
 
 export function mockInquiries(params = {}) {
@@ -227,15 +227,14 @@ export function mockFollowUpInquiry(inquiryId) {
   return { code: 200, data: { inquiryId: Number(inquiryId), createdAt: nowText() } }
 }
 
-export function mockConvertInquiryToOrder(inquiryId) {
-  return { code: 200, data: { orderId: Date.now(), orderNo: '#ORD-NEW', inquiryId: Number(inquiryId), createdAt: nowText() } }
-}
+// 2026-09-29 「询盘转订单」功能下线（成交统一由接受报价触发），mockConvertInquiryToOrder 桩同步移除
 
-// 报价/议价记录（sys_quote）：待后端确认。quoterRole=seller 为卖方报价，buyer 为买方议价
+// 报价/议价记录（sys_quote）：卖方报价 status=pending（待买方确认），买方议价 status=pending_seller（待卖方确认）
 const quotes = [
   { quoteId: 1, quoteNo: '#QUO-001', inquiryId: 2, inquiryNo: '#INQ-002', workTitle: '《暗夜追踪》', quoterName: '李作者', quoterRole: 'seller', quoterRoleLabel: '卖方报价', price: 2500000, priceText: '¥25,000', licenseType: 'non_exclusive', licenseTypeLabel: '非独家授权', validDays: 15, description: '含一轮修改', status: 'pending', statusLabel: '待买方确认', expireAt: '2026-09-22 23:59', createdAt: '2026-09-07 16:00' },
   { quoteId: 2, quoteNo: '#QUO-002', inquiryId: 2, inquiryNo: '#INQ-002', workTitle: '《暗夜追踪》', quoterName: '制作公司B', quoterRole: 'buyer', quoterRoleLabel: '买方议价', price: 2200000, priceText: '¥22,000', licenseType: 'non_exclusive', licenseTypeLabel: '非独家授权', validDays: 7, description: '买方议价，希望降价', status: 'rejected', statusLabel: '已拒绝', expireAt: '2026-09-18 23:59', createdAt: '2026-09-08 10:00' },
-  { quoteId: 3, quoteNo: '#QUO-003', inquiryId: 1, inquiryNo: '#INQ-001', workTitle: '《都市迷途》', quoterName: '张编剧', quoterRole: 'seller', quoterRoleLabel: '卖方报价', price: 5000000, priceText: '¥50,000', licenseType: 'exclusive', licenseTypeLabel: '独家授权', validDays: 30, description: '独家改编全周期', status: 'accepted', statusLabel: '已接受', expireAt: '2026-10-08 23:59', createdAt: '2026-09-08 15:00' }
+  { quoteId: 3, quoteNo: '#QUO-003', inquiryId: 1, inquiryNo: '#INQ-001', workTitle: '《都市迷途》', quoterName: '张编剧', quoterRole: 'seller', quoterRoleLabel: '卖方报价', price: 5000000, priceText: '¥50,000', licenseType: 'exclusive', licenseTypeLabel: '独家授权', validDays: 30, description: '独家改编全周期', status: 'accepted', statusLabel: '已接受', expireAt: '2026-10-08 23:59', createdAt: '2026-09-08 15:00' },
+  { quoteId: 4, quoteNo: '#QUO-004', inquiryId: 1, inquiryNo: '#INQ-001', workTitle: '《都市迷途》', quoterName: '出品方A', quoterRole: 'buyer', quoterRoleLabel: '买方议价', price: 4600000, priceText: '¥46,000', licenseType: 'exclusive', licenseTypeLabel: '独家授权', validDays: 7, description: '买方议价，待卖方在客户端确认', status: 'pending_seller', statusLabel: '待卖方确认', expireAt: '2026-09-26 23:59', createdAt: '2026-09-19 11:00' }
 ]
 
 export function mockQuotes(params = {}) {

@@ -6,7 +6,7 @@ import {
   mockPartners, mockCreatePartner, mockUpdatePartner,
   mockDemandTags, mockCreateDemandTag, mockUpdateDemandTag, mockDeleteDemandTag,
   mockFollowUps, mockCreateFollowUp,
-  mockInquiries, mockInquiryDetail, mockFollowUpInquiry, mockConvertInquiryToOrder,
+  mockInquiries, mockInquiryDetail, mockFollowUpInquiry,
   mockQuotes,
   mockDemands, mockDemandSubmissions
 } from '@/api/trade.mock'
@@ -190,11 +190,8 @@ export function followUpInquiry(id, data) {
   return request({ url: `${PREFIX}/trade/inquiry/follow-up/${id}`, method: 'post', data })
 }
 
-/** 询盘转授权订单 POST /trade/inquiry/convert-order/{id} */
-export function convertInquiryToOrder(id, data) {
-  if (isTradeMock()) return Promise.resolve(mockConvertInquiryToOrder(id, data))
-  return request({ url: `${PREFIX}/trade/inquiry/convert-order/${id}`, method: 'post', data })
-}
+// 2026-09-29 用户决策：取消「询盘转订单」功能，订单一律在接受报价时生成；
+// 后端 POST /trade/inquiry/convert-order/{id} 仅为兼容文档保留（仅 deal 可调），前端不再封装。
 
 /** 发起询盘 POST /trade/inquiry（分工条目 9，PRD APP-TRADE-02） */
 export function createInquiry(data) {

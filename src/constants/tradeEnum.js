@@ -54,19 +54,25 @@ export const FOLLOW_STATUS = [
   { value: 'completed', label: '已完成', tagType: 'info' }
 ]
 
-/** 询盘状态（已定稿）：转订单后置 deal；后端 TradeInquiryService.INQUIRY_STATUS_DEAL 一致 */
+/** 询盘状态（2026-09-29 收敛）：任意一方接受报价即生成订单并置 deal；与后端 TradeInquiryService 一致 */
 export const INQUIRY_STATUS = [
   { value: 'pending', label: '待回复', tagType: 'warning' },
-  { value: 'accepted', label: '已接受', tagType: 'success' },
+  // 2026-09-29 用户决策：原 accepted（已接受）与 quoted（已报价）统一为 quoted「议价中」
+  { value: 'quoted', label: '议价中', tagType: 'primary' },
   { value: 'rejected', label: '已拒绝', tagType: 'danger' },
   { value: 'closed', label: '已关闭', tagType: 'info' },
-  { value: 'quoted', label: '已报价', tagType: 'primary' },
   { value: 'deal', label: '已达成', tagType: 'success' }
 ]
 
-/** 报价状态（已定稿）：接受即生成订单并置 accepted；过期由后端校验置 expired */
+/**
+ * 报价状态（2026-09-29 甲方双端拆分后定稿）：
+ * pending（待买方确认）由卖方报价产生，甲方 PC 端可接受/拒绝；
+ * pending_seller（待卖方确认）由买方议价产生，需卖方在客户端确认，本端不可接受/拒绝；
+ * 接受即生成订单并置 accepted；过期由后端校验置 expired。
+ */
 export const QUOTE_STATUS = [
   { value: 'pending', label: '待买方确认', tagType: 'warning' },
+  { value: 'pending_seller', label: '待卖方确认', tagType: 'primary' },
   { value: 'accepted', label: '已接受', tagType: 'success' },
   { value: 'rejected', label: '已拒绝', tagType: 'danger' },
   { value: 'expired', label: '已过期', tagType: 'info' }
