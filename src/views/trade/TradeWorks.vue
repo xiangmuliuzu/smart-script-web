@@ -1,9 +1,8 @@
 <template>
   <PageContainer>
-    <PageHeader title="交易作品管理" description="管理已上架的交易作品：授权类型、价格、议价范围、置顶、推荐">
+    <PageHeader title="交易作品管理" description="管理交易作品的上架状态与交易设置：授权类型、价格、议价范围、置顶、推荐">
       <template #actions>
         <el-button @click="handleExport">导出</el-button>
-        <BlackButton @click="handleCreate">上架新作品</BlackButton>
       </template>
     </PageHeader>
 
@@ -72,19 +71,17 @@
         <template #default="{ row }">
           <div class="op-actions">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleUnlist(row)">下架</el-button>
+            <el-button v-if="row.tradeEnabled === 1" size="small" type="danger" @click="handleToggle(row)">下架</el-button>
+            <el-button v-else size="small" type="success" @click="handleToggle(row)">上架</el-button>
           </div>
         </template>
       </el-table-column>
     </TableCard>
 
-    <!-- 上架/编辑交易设置弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="dialogMode === 'create' ? '上架新作品' : '编辑交易设置'" width="580px">
+    <!-- 编辑交易设置弹窗 -->
+    <el-dialog v-model="dialogVisible" title="编辑交易设置" width="580px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item v-if="dialogMode === 'create'" label="作品ID" prop="workId">
-          <el-input v-model.number="form.workId" placeholder="输入已审核通过的作品ID" />
-        </el-form-item>
-        <el-form-item v-else label="作品">
+        <el-form-item label="作品">
           <el-input :model-value="`${form.title} (ID: ${form.workId})`" disabled />
         </el-form-item>
         <el-form-item label="授权类型" prop="tradeType">
@@ -127,7 +124,6 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import BlackButton from '@/components/BlackButton.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { enumOptions, enumLabel } from '@/constants/tradeEnum'
@@ -142,12 +138,10 @@ const total = ref(0)
 const query = ref({ pageNo: 1, pageSize: 10, authorizationType: '', listingStatus: '', keyword: '' })
 
 const dialogVisible = ref(false)
-const dialogMode = ref('create')
 const submitting = ref(false)
 const formRef = ref()
 const form = ref({ workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null, isTop: 0, isRecommend: 0, sortOrder: 0 })
 const rules = {
-  workId: [{ required: true, message: '请输入作品ID', trigger: 'blur' }],
   tradeType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
   price: [{ required: true, message: '请输入授权价格', trigger: 'blur' }]
 }
@@ -190,14 +184,7 @@ function handleReset() {
   loadList()
 }
 
-function handleCreate() {
-  dialogMode.value = 'create'
-  form.value = { workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null, isTop: 0, isRecommend: 0, sortOrder: 0 }
-  dialogVisible.value = true
-}
-
 function handleEdit(row) {
-  dialogMode.value = 'edit'
   form.value = {
     workId: row.workId,
     title: row.title,
@@ -219,13 +206,8 @@ async function handleSubmit() {
     if (!valid) return
     submitting.value = true
     try {
-      if (dialogMode.value === 'create') {
-        await createTradeWork(form.value)
-        ElMessage.success('上架成功')
-      } else {
-        await updateTradeWork(form.value.workId, form.value)
-        ElMessage.success('交易设置已更新')
-      }
+      await updateTradeWork(form.value.workId, form.value)
+      ElMessage.success('交易设置已更新')
       dialogVisible.value = false
       loadList()
     } catch (e) {
@@ -236,18 +218,26 @@ async function handleSubmit() {
   })
 }
 
-async function handleUnlist(row) {
+async function handleToggle(row) {
+  const listing = row.tradeEnabled === 1
   try {
-    await ElMessageBox.confirm(`确认下架作品「${row.title}」吗？`, '下架确认', {
+    await ElMessageBox.confirm(`确认${listing ? '下架' : '上架'}作品「${row.title}」吗？`, listing ? '下架确认' : '上架确认', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await updateTradeWork(row.workId, { tradeEnabled: 0 })
-    ElMessage.success('已下架')
+    if (listing) {
+      await updateTradeWork(row.workId, { tradeEnabled: 0 })
+      ElMessage.success('已下架')
+    } else {
+      // 上架走 2.26 POST /trade/works，由后端校验作品已审核通过后置 trade_enabled=1
+      await createTradeWork({ workId: row.workId })
+      ElMessage.success('已上架')
+    }
     loadList()
-  } catch {
-    // 用户取消
+  } catch (e) {
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e?.response?.data?.msg || e?.msg || '操作失败')
   }
 }
 
