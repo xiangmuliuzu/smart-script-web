@@ -37,7 +37,7 @@ const tradeWorks = [
   { tradeWorkId: 1, workNo: '#T001', title: '《都市迷途》', authorizationType: 'exclusive', authorizationTypeLabel: '独家授权', price: 5000000, priceText: '¥50,000', viewCount: 1234, favoriteCount: 89, topped: true, sortWeight: 100, listingStatus: 'listed', listingStatusLabel: '已上架' },
   { tradeWorkId: 2, workNo: '#T002', title: '《暗夜追踪》', authorizationType: 'non_exclusive', authorizationTypeLabel: '非独家授权', price: 2500000, priceText: '¥25,000', viewCount: 856, favoriteCount: 42, topped: false, sortWeight: 80, listingStatus: 'listed', listingStatusLabel: '已上架' },
   { tradeWorkId: 3, workNo: '#T003', title: '《长安旧事》', authorizationType: 'adaptation', authorizationTypeLabel: '改编授权', price: 8000000, priceText: '¥80,000', viewCount: 2043, favoriteCount: 156, topped: false, sortWeight: 60, listingStatus: 'listed', listingStatusLabel: '已上架' },
-  { tradeWorkId: 4, workNo: '#T004', title: '《孤岛来信》', authorizationType: 'negotiable', authorizationTypeLabel: '可议价', price: 1800000, priceText: '¥18,000', viewCount: 432, favoriteCount: 23, topped: false, sortWeight: 40, listingStatus: 'offline', listingStatusLabel: '已下架' }
+  { tradeWorkId: 4, workNo: '#T004', title: '《孤岛来信》', authorizationType: 'non_exclusive', authorizationTypeLabel: '非独家授权', price: 1800000, priceText: '¥18,000', viewCount: 432, favoriteCount: 23, topped: false, sortWeight: 40, listingStatus: 'offline', listingStatusLabel: '已下架' }
 ]
 
 export function mockTradeWorks(params = {}) {
@@ -223,9 +223,7 @@ export function mockInquiryDetail(inquiryId) {
   return inquiries.find((i) => i.inquiryId === id) || inquiries[0]
 }
 
-export function mockFollowUpInquiry(inquiryId) {
-  return { code: 200, data: { inquiryId: Number(inquiryId), createdAt: nowText() } }
-}
+// 2026-09-29 询盘管理「记录跟进」功能下线（非分工清单需求），mockFollowUpInquiry 桩同步移除
 
 // 2026-09-29 「询盘转订单」功能下线（成交统一由接受报价触发），mockConvertInquiryToOrder 桩同步移除
 

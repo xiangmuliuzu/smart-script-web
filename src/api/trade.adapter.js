@@ -122,6 +122,21 @@ export function adaptFollowUps(res) {
   }))
 }
 
+/**
+ * FollowUp.vue 表单 → 新增商务跟进请求体（请求方向反向映射，修复 BIZ_FOLLOW_001）。
+ * 页面字段 method/followUpAt/nextFollowUpAt 与后端 domain 的 followType/followTime/nextFollowDate 不一致，
+ * 而 sys_business_follow.follow_type/follow_time 均 NOT NULL，直接透传会因字段名不匹配落 null 触发 SQL 异常。
+ * 日期已由 el-date-picker 的 value-format 输出为 'YYYY-MM-DD HH:mm:ss'，与后端 @JsonFormat 一致，无需再转换。
+ */
+export function toFollowPayload(form = {}) {
+  return {
+    ...form,
+    followType: form.followType ?? form.method,
+    followTime: form.followTime ?? form.followUpAt,
+    nextFollowDate: form.nextFollowDate ?? form.nextFollowUpAt
+  }
+}
+
 /* ==================== 合作记录（分工 15 线上合作意向 / 16 线下谈判）==================== */
 /**
  * SysOfflineCooperation → FollowUp.vue 合作记录只读视图。

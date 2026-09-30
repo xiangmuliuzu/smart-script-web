@@ -103,7 +103,6 @@
       <template #footer>
         <el-button v-if="detail.status === 'pending'" type="success" @click="handleAcceptInquiry(detail)">接受询盘</el-button>
         <el-button v-if="detail.status === 'pending'" type="danger" @click="handleRejectInquiry(detail)">拒绝询盘</el-button>
-        <el-button @click="handleFollowUp(detail)">记录跟进</el-button>
         <el-button v-if="canClose(detail.status)" @click="handleCloseInquiry(detail)">关闭询盘</el-button>
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
@@ -123,7 +122,6 @@ import { enumOptions } from '@/constants/tradeEnum'
 import {
   getInquiryList,
   getInquiryDetail,
-  followUpInquiry,
   acceptInquiry,
   rejectInquiry,
   closeInquiry
@@ -179,22 +177,6 @@ async function handleDetail(row) {
     ElMessage.error('加载询盘详情失败')
   } finally {
     detailLoading.value = false
-  }
-}
-
-async function handleFollowUp(row) {
-  if (!row || !row.inquiryId) return
-  try {
-    const { value } = await ElMessageBox.prompt('请输入跟进内容', `跟进询盘 ${row.inquiryNo}`, {
-      confirmButtonText: '提交',
-      cancelButtonText: '取消',
-      inputType: 'textarea',
-      inputValidator: (v) => (v && v.trim() ? true : '跟进内容不能为空')
-    })
-    await followUpInquiry(row.inquiryId, { content: value })
-    ElMessage.success('已记录跟进')
-  } catch {
-    // 用户取消
   }
 }
 

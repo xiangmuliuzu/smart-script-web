@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="交易作品管理" description="管理交易作品的上架状态与交易设置：授权类型、价格、议价范围、置顶、推荐">
+    <PageHeader title="交易作品管理" description="管理交易作品的上架状态与交易设置：授权类型、价格、议价范围、置顶、推荐。所有作品均可议价；填了议价上下限则双方出价须落在区间内，留空表示不限">
       <template #actions>
         <el-button @click="handleExport">导出</el-button>
       </template>
@@ -45,15 +45,21 @@
           <span class="price-text">¥{{ formatPrice(row.price) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="议价范围" width="140">
+      <el-table-column label="议价范围" width="160">
         <template #default="{ row }">
-          <span v-if="row.negotiableMin != null">¥{{ formatPrice(row.negotiableMin) }} ~ ¥{{ formatPrice(row.negotiableMax) }}</span>
-          <span v-else>-</span>
+          {{ rangeText(row) }}
         </template>
       </el-table-column>
       <el-table-column prop="viewCount" label="浏览量" width="80" />
       <el-table-column prop="favoriteCount" label="收藏" width="70" />
-      <el-table-column label="状态" width="100">
+      <el-table-column label="作品状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="enumTagType('work', row.status)" size="small" effect="light">
+            {{ enumLabel('work', row.status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="交易状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.tradeEnabled === 1 ? 'success' : 'info'" size="small" effect="light">
             {{ row.tradeEnabled === 1 ? '已上架' : '未上架' }}
@@ -93,10 +99,10 @@
           <el-input-number v-model="form.price" :min="0" :precision="2" :step="100" style="width: 100%" placeholder="设置授权价格" />
         </el-form-item>
         <el-form-item label="议价下限(元)">
-          <el-input-number v-model="form.negotiableMin" :min="0" :precision="2" style="width: 100%" placeholder="可选" />
+          <el-input-number v-model="form.negotiableMin" :min="0" :precision="2" style="width: 100%" placeholder="可选，留空表示不限" />
         </el-form-item>
-        <el-form-item label="议价上限(元)">
-          <el-input-number v-model="form.negotiableMax" :min="0" :precision="2" style="width: 100%" placeholder="可选" />
+        <el-form-item label="议价上限(元)" prop="negotiableMax">
+          <el-input-number v-model="form.negotiableMax" :min="0" :precision="2" style="width: 100%" placeholder="可选，留空表示不限" />
         </el-form-item>
         <el-form-item label="报价有效天数">
           <el-input-number v-model="form.quoteValidDays" :min="1" :max="365" style="width: 100%" placeholder="可选" />
@@ -126,7 +132,7 @@ import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
-import { enumOptions, enumLabel } from '@/constants/tradeEnum'
+import { enumOptions, enumLabel, enumTagType } from '@/constants/tradeEnum'
 import { getTradeWorks, createTradeWork, updateTradeWork } from '@/api/trade'
 
 defineOptions({ name: 'TradeWorks' })
@@ -141,14 +147,40 @@ const dialogVisible = ref(false)
 const submitting = ref(false)
 const formRef = ref()
 const form = ref({ workId: null, title: '', tradeType: '', price: null, negotiableMin: null, negotiableMax: null, quoteValidDays: null, isTop: 0, isRecommend: 0, sortOrder: 0 })
+/**
+ * 议价区间校验（2026-09-30 决策：议价范围与授权类型解绑，所有作品均可议价）：
+ * 上下限均可留空表示不限，也允许只填单边；两者都填时下限不得大于上限。
+ * 与后端 TradeWorkService.assertNegotiableRange 同口径。
+ */
+function validateRange(rule, value, callback) {
+  const min = form.value.negotiableMin
+  const max = form.value.negotiableMax
+  if (min != null && max != null && Number(min) > Number(max)) {
+    callback(new Error('议价下限不得大于上限'))
+    return
+  }
+  callback()
+}
+
 const rules = {
   tradeType: [{ required: true, message: '请选择授权类型', trigger: 'change' }],
-  price: [{ required: true, message: '请输入授权价格', trigger: 'blur' }]
+  price: [{ required: true, message: '请输入授权价格', trigger: 'blur' }],
+  negotiableMax: [{ validator: validateRange, trigger: 'blur' }]
 }
 
 function formatPrice(val) {
   if (val == null) return '-'
   return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/** 议价范围展示：双边区间 / 只限下限 / 只限上限 / 未设（不限） */
+function rangeText(row) {
+  const min = row.negotiableMin
+  const max = row.negotiableMax
+  if (min != null && max != null) return `¥${formatPrice(min)} ~ ¥${formatPrice(max)}`
+  if (min != null) return `≥ ¥${formatPrice(min)}`
+  if (max != null) return `≤ ¥${formatPrice(max)}`
+  return '不限'
 }
 
 async function loadList() {
@@ -168,7 +200,7 @@ async function loadList() {
   } catch {
     list.value = []
     total.value = 0
-    ElMessage.error('加载交易作品列表失败')
+    // 加载失败提示已由 request 拦截器统一处理，避免重复弹窗
   } finally {
     loading.value = false
   }
@@ -185,13 +217,14 @@ function handleReset() {
 }
 
 function handleEdit(row) {
+  // 议价区间与授权类型无关，一律按库中原值回显（含只填单边的情况）
   form.value = {
     workId: row.workId,
     title: row.title,
     tradeType: row.tradeType || '',
     price: row.price,
-    negotiableMin: row.negotiableMin,
-    negotiableMax: row.negotiableMax,
+    negotiableMin: row.negotiableMin ?? null,
+    negotiableMax: row.negotiableMax ?? null,
     quoteValidDays: row.quoteValidDays,
     isTop: row.isTop ?? 0,
     isRecommend: row.isRecommend ?? 0,
@@ -206,12 +239,14 @@ async function handleSubmit() {
     if (!valid) return
     submitting.value = true
     try {
-      await updateTradeWork(form.value.workId, form.value)
+      // negotiableRangeProvided=true 告知后端：本次为交易设置整体提交，议价上下限需无条件写入
+      // （含置空为「不限」）；上架/下架等局部更新不带此标记，故不会误清已设区间
+      await updateTradeWork(form.value.workId, { ...form.value, negotiableRangeProvided: true })
       ElMessage.success('交易设置已更新')
       dialogVisible.value = false
       loadList()
-    } catch (e) {
-      ElMessage.error(e?.response?.data?.msg || '操作失败')
+    } catch {
+      // 错误提示已由 request 拦截器统一弹窗，避免重复提示
     } finally {
       submitting.value = false
     }
@@ -236,8 +271,8 @@ async function handleToggle(row) {
     }
     loadList()
   } catch (e) {
+    // 用户取消不提示；真实错误已由 request 拦截器统一弹窗，避免重复提示
     if (e === 'cancel' || e === 'close') return
-    ElMessage.error(e?.response?.data?.msg || e?.msg || '操作失败')
   }
 }
 

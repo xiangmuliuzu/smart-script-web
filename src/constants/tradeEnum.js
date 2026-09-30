@@ -39,12 +39,20 @@ export const PARTNER_STATUS = [
   { value: 'pending', label: '待审核', tagType: 'warning' }
 ]
 
-/** 授权类型（接口 2.25）。注意文档为下划线 non_exclusive，非连字符 */
+/**
+ * 授权类型（接口 2.25 仅给出示例值 exclusive，未列举全集）。
+ * 注意文档为下划线 non_exclusive，非连字符。
+ *
+ * 2026-09-30 决策：移除原第 4 项 negotiable「可议价」。
+ * 依据分工第 4 条「完成授权类型、授权价格和**可议价范围**展示」——议价是范围而非授权类型，
+ * 且附件6.1 从未把 negotiable 列为授权类型取值。现所有作品一律可议价，
+ * 区间由 sys_work.negotiable_min / negotiable_max 表达：填了则出价须落在区间内，留空为不限。
+ * 存量 negotiable 数据由 sql/smartscript_full_init.sql 第 7 部分归一为 non_exclusive。
+ */
 export const LICENSE_TYPE = [
   { value: 'exclusive', label: '独家' },
   { value: 'non_exclusive', label: '非独家' },
-  { value: 'adaptation', label: '改编' },
-  { value: 'negotiable', label: '可议价' }
+  { value: 'adaptation', label: '改编' }
 ]
 
 /** 商务跟进状态（接口 2.38） */
@@ -126,6 +134,24 @@ export const COOPERATION_STATUS = [
   { value: 'cancelled', label: '已终止', tagType: 'info' }
 ]
 
+/**
+ * 作品状态（sys_work.status）——展示用，区别于交易上架状态 TRADE_WORK_STATUS（trade_enabled）。
+ * 值来源（禁止编造，逐项标注出处）：
+ * - on_shelf / off_shelf：云端库 sys_work 实测存在的两种值（内容侧上/下架）。
+ * - approved / rejected / returned：附件5.1 触发器 T01（trg_sys_review_record_au_sync_work）按 review_result
+ *   同步 sys_work.status 的设计值；因该触发器/审核回写链路未落地，实际库中暂无这三种值。
+ * - draft / pending：队友 SysWork domain 注释提及的创作/待审核态。
+ */
+export const WORK_STATUS = [
+  { value: 'draft', label: '草稿', tagType: 'info' },
+  { value: 'pending', label: '待审核', tagType: 'warning' },
+  { value: 'approved', label: '审核通过', tagType: 'success' },
+  { value: 'rejected', label: '审核未通过', tagType: 'danger' },
+  { value: 'returned', label: '退回修改', tagType: 'warning' },
+  { value: 'on_shelf', label: '已上架', tagType: 'success' },
+  { value: 'off_shelf', label: '已下架', tagType: 'info' }
+]
+
 /** 枚举注册表：StatusTag 按 type 名查表 */
 export const ENUM_REGISTRY = {
   order: ORDER_STATUS,
@@ -137,6 +163,7 @@ export const ENUM_REGISTRY = {
   partnerStatus: PARTNER_STATUS,
   license: LICENSE_TYPE,
   tradeWork: TRADE_WORK_STATUS,
+  work: WORK_STATUS,
   followMethod: FOLLOW_METHOD,
   demand: DEMAND_STATUS,
   submission: SUBMISSION_STATUS,

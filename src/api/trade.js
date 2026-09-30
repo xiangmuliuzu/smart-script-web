@@ -6,13 +6,13 @@ import {
   mockPartners, mockCreatePartner, mockUpdatePartner,
   mockDemandTags, mockCreateDemandTag, mockUpdateDemandTag, mockDeleteDemandTag,
   mockFollowUps, mockCreateFollowUp,
-  mockInquiries, mockInquiryDetail, mockFollowUpInquiry,
+  mockInquiries, mockInquiryDetail,
   mockQuotes,
   mockDemands, mockDemandSubmissions
 } from '@/api/trade.mock'
 import {
   adaptTradeWorks, adaptOrders, adaptOrderDetail, adaptOrderStatusLog,
-  adaptPartners, adaptFollowUps, adaptCooperations, adaptInquiries, adaptInquiryDetail, adaptQuotes,
+  adaptPartners, adaptFollowUps, toFollowPayload, adaptCooperations, adaptInquiries, adaptInquiryDetail, adaptQuotes,
   adaptDemands, adaptDemandSubmissions
 } from '@/api/trade.adapter'
 
@@ -141,7 +141,8 @@ export function getFollowUps(params) {
 /** 2.38 新增商务跟进记录 POST /trade/partners/follow-ups */
 export function createFollowUp(data) {
   if (isTradeMock()) return Promise.resolve(mockCreateFollowUp(data))
-  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'post', data })
+  // 请求方向反向映射（method→followType、followUpAt→followTime、nextFollowUpAt→nextFollowDate），修复 BIZ_FOLLOW_001
+  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'post', data: toFollowPayload(data) })
 }
 
 /* ==================== 合作记录（分工 15 线上合作意向 / 16 线下谈判）==================== */
@@ -182,12 +183,6 @@ export function getInquiryList(params) {
 export function getInquiryDetail(id) {
   if (isTradeMock()) return Promise.resolve(mockInquiryDetail(id))
   return request({ url: `${PREFIX}/trade/inquiry/detail/${id}`, method: 'get' }).then(adaptInquiryDetail)
-}
-
-/** 询盘跟进记录 POST /trade/inquiry/follow-up/{id} */
-export function followUpInquiry(id, data) {
-  if (isTradeMock()) return Promise.resolve(mockFollowUpInquiry(id, data))
-  return request({ url: `${PREFIX}/trade/inquiry/follow-up/${id}`, method: 'post', data })
 }
 
 // 2026-09-29 用户决策：取消「询盘转订单」功能，订单一律在接受报价时生成；
