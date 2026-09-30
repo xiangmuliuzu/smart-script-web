@@ -7,7 +7,7 @@
  * 枚举驱动的状态标签：消除各页 getXxxStatusType / getXxxStatusText 重复函数。
  * 用法：<StatusTag type="order" :status="row.status" />
  * type 取值见 constants/tradeEnum.js 的 ENUM_REGISTRY：
- *   order / inquiry / quote / follow / partnerType / license / tradeWork / demand / submission
+ *   order / inquiry / quote / follow / partnerType / license / tradeWork / demand / submission / cooperationSource / cooperationStatus
  * 颜色沿用 global.css 的 el-tag 皮肤，本组件只负责 value→label/type 映射。
  */
 import { computed } from 'vue'

@@ -6,13 +6,13 @@ import {
   mockPartners, mockCreatePartner, mockUpdatePartner,
   mockDemandTags, mockCreateDemandTag, mockUpdateDemandTag, mockDeleteDemandTag,
   mockFollowUps, mockCreateFollowUp,
-  mockInquiries, mockInquiryDetail, mockFollowUpInquiry, mockConvertInquiryToOrder,
+  mockInquiries, mockInquiryDetail,
   mockQuotes,
   mockDemands, mockDemandSubmissions
 } from '@/api/trade.mock'
 import {
   adaptTradeWorks, adaptOrders, adaptOrderDetail, adaptOrderStatusLog,
-  adaptPartners, adaptFollowUps, adaptInquiries, adaptInquiryDetail, adaptQuotes,
+  adaptPartners, adaptFollowUps, toFollowPayload, adaptCooperations, adaptInquiries, adaptInquiryDetail, adaptQuotes,
   adaptDemands, adaptDemandSubmissions
 } from '@/api/trade.adapter'
 
@@ -29,12 +29,25 @@ import {
  */
 const PREFIX = '/api/v1/admin'
 
+/**
+ * 分页参数适配：前端统一用 pageNo（附件6.1 接口口径），但若依 startPage() 读取的是 pageNum，
+ * 取不到会默认 pageNum=1，导致「翻页仍返回第一页」。此处在真实请求前把 pageNo 映射为 pageNum；
+ * mock 分支仍传原始 pageNo（见 trade.mock.js paginate），故不受影响。
+ */
+function withPageNum(params) {
+  if (params && params.pageNo !== undefined && params.pageNum === undefined) {
+    const { pageNo, ...rest } = params
+    return { ...rest, pageNum: pageNo }
+  }
+  return params
+}
+
 /* ==================== 交易作品（2.25 / 2.26 / 2.27）==================== */
 
 /** 2.25 交易作品列表 GET /trade/works */
 export function getTradeWorks(params) {
   if (isTradeMock()) return Promise.resolve(mockTradeWorks(params))
-  return request({ url: `${PREFIX}/trade/works`, method: 'get', params }).then(adaptTradeWorks)
+  return request({ url: `${PREFIX}/trade/works`, method: 'get', params: withPageNum(params) }).then(adaptTradeWorks)
 }
 
 /** 2.26 上架新作品到交易大厅 POST /trade/works（作品须已审核通过） */
@@ -54,7 +67,7 @@ export function updateTradeWork(tradeWorkId, data) {
 /** 2.28 授权订单列表 GET /trade/orders */
 export function getOrderList(params) {
   if (isTradeMock()) return Promise.resolve(mockOrders(params))
-  return request({ url: `${PREFIX}/trade/orders`, method: 'get', params }).then(adaptOrders)
+  return request({ url: `${PREFIX}/trade/orders`, method: 'get', params: withPageNum(params) }).then(adaptOrders)
 }
 
 /**
@@ -80,7 +93,7 @@ export function getOrderStatusLog(orderId) {
 /** 2.35 合作方列表 GET /trade/partners */
 export function getPartnerList(params) {
   if (isTradeMock()) return Promise.resolve(mockPartners(params))
-  return request({ url: `${PREFIX}/trade/partners`, method: 'get', params }).then(adaptPartners)
+  return request({ url: `${PREFIX}/trade/partners`, method: 'get', params: withPageNum(params) }).then(adaptPartners)
 }
 
 /** 2.36 新增合作方 POST /trade/partners */
@@ -98,7 +111,7 @@ export function updatePartner(partnerId, data) {
 /** 2.37 需求标签列表 GET /trade/partners/tags */
 export function getDemandTags(params) {
   if (isTradeMock()) return Promise.resolve(mockDemandTags(params))
-  return request({ url: `${PREFIX}/trade/partners/tags`, method: 'get', params })
+  return request({ url: `${PREFIX}/trade/partners/tags`, method: 'get', params: withPageNum(params) })
 }
 
 /** 2.37 新增需求标签 POST /trade/partners/tags */
@@ -122,13 +135,40 @@ export function deleteDemandTag(tagId) {
 /** 2.38 商务跟进记录列表 GET /trade/partners/follow-ups */
 export function getFollowUps(params) {
   if (isTradeMock()) return Promise.resolve(mockFollowUps(params))
-  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'get', params }).then(adaptFollowUps)
+  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'get', params: withPageNum(params) }).then(adaptFollowUps)
 }
 
 /** 2.38 新增商务跟进记录 POST /trade/partners/follow-ups */
 export function createFollowUp(data) {
   if (isTradeMock()) return Promise.resolve(mockCreateFollowUp(data))
-  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'post', data })
+  // 请求方向反向映射（method→followType、followUpAt→followTime、nextFollowUpAt→nextFollowDate），修复 BIZ_FOLLOW_001
+  return request({ url: `${PREFIX}/trade/partners/follow-ups`, method: 'post', data: toFollowPayload(data) })
+}
+
+/* ==================== 合作记录（分工 15 线上合作意向 / 16 线下谈判）==================== */
+
+/** 合作记录列表 GET /trade/cooperation/list（source=online 线上合作记录 / offline 线下谈判记录） */
+export function getCooperations(params) {
+  if (isTradeMock()) return Promise.resolve({ rows: [], total: 0 })
+  return request({ url: `${PREFIX}/trade/cooperation/list`, method: 'get', params: withPageNum(params) }).then(adaptCooperations)
+}
+
+/** 合作记录详情 GET /trade/cooperation/{id} */
+export function getCooperationDetail(id) {
+  if (isTradeMock()) return Promise.resolve({})
+  return request({ url: `${PREFIX}/trade/cooperation/${id}`, method: 'get' })
+}
+
+/** 新增合作记录 POST /trade/cooperation（APP 线下谈判录入复用；PC 商务跟进页只读不发起） */
+export function createCooperation(data) {
+  if (isTradeMock()) return Promise.resolve({ code: 200, msg: 'success' })
+  return request({ url: `${PREFIX}/trade/cooperation`, method: 'post', data })
+}
+
+/** 更新合作记录 PUT /trade/cooperation/{id} */
+export function updateCooperation(id, data) {
+  if (isTradeMock()) return Promise.resolve({ code: 200, msg: 'success' })
+  return request({ url: `${PREFIX}/trade/cooperation/${id}`, method: 'put', data })
 }
 
 /* ==================== ⚠️ 询盘（文档缺口 3.2，前端预留桩，路径待后端确认）==================== */
@@ -136,7 +176,7 @@ export function createFollowUp(data) {
 /** 询盘列表 GET /trade/inquiry/list */
 export function getInquiryList(params) {
   if (isTradeMock()) return Promise.resolve(mockInquiries(params))
-  return request({ url: `${PREFIX}/trade/inquiry/list`, method: 'get', params }).then(adaptInquiries)
+  return request({ url: `${PREFIX}/trade/inquiry/list`, method: 'get', params: withPageNum(params) }).then(adaptInquiries)
 }
 
 /** 询盘详情 GET /trade/inquiry/detail/{id} */
@@ -145,17 +185,8 @@ export function getInquiryDetail(id) {
   return request({ url: `${PREFIX}/trade/inquiry/detail/${id}`, method: 'get' }).then(adaptInquiryDetail)
 }
 
-/** 询盘跟进记录 POST /trade/inquiry/follow-up/{id} */
-export function followUpInquiry(id, data) {
-  if (isTradeMock()) return Promise.resolve(mockFollowUpInquiry(id, data))
-  return request({ url: `${PREFIX}/trade/inquiry/follow-up/${id}`, method: 'post', data })
-}
-
-/** 询盘转授权订单 POST /trade/inquiry/convert-order/{id} */
-export function convertInquiryToOrder(id, data) {
-  if (isTradeMock()) return Promise.resolve(mockConvertInquiryToOrder(id, data))
-  return request({ url: `${PREFIX}/trade/inquiry/convert-order/${id}`, method: 'post', data })
-}
+// 2026-09-29 用户决策：取消「询盘转订单」功能，订单一律在接受报价时生成；
+// 后端 POST /trade/inquiry/convert-order/{id} 仅为兼容文档保留（仅 deal 可调），前端不再封装。
 
 /** 发起询盘 POST /trade/inquiry（分工条目 9，PRD APP-TRADE-02） */
 export function createInquiry(data) {
@@ -186,7 +217,7 @@ export function closeInquiry(id) {
 /** 报价/议价记录列表 GET /trade/quote/list */
 export function getQuoteList(params) {
   if (isTradeMock()) return Promise.resolve(mockQuotes(params))
-  return request({ url: `${PREFIX}/trade/quote/list`, method: 'get', params }).then(adaptQuotes)
+  return request({ url: `${PREFIX}/trade/quote/list`, method: 'get', params: withPageNum(params) }).then(adaptQuotes)
 }
 
 /** 接受报价 PUT /trade/quote/{quoteId}/accept */
@@ -224,7 +255,7 @@ export function counterOffer(data) {
 /** 征集项目列表 GET /trade/demand/list */
 export function getDemandList(params) {
   if (isTradeMock()) return Promise.resolve(mockDemands(params))
-  return request({ url: `${PREFIX}/trade/demand/list`, method: 'get', params }).then(adaptDemands)
+  return request({ url: `${PREFIX}/trade/demand/list`, method: 'get', params: withPageNum(params) }).then(adaptDemands)
 }
 
 /** 征集项目投稿作品 GET /trade/demand/{demandId}/submissions */

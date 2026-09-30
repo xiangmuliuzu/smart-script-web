@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, logout as logoutApi, getInfo } from '@/api/login'
-import { getToken, setToken, removeToken } from '@/utils/auth'
+import { logout as logoutApi, getInfo } from '@/api/login'
+import { getToken, setToken, removeToken, setAccountType } from '@/utils/auth'
 import { usePermissionStore } from '@/stores/permission'
 
 export const useUserStore = defineStore('user', {
@@ -19,30 +19,21 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    async login(loginForm) {
-      const payload = {
-        username: loginForm.username,
-        password: loginForm.password
-      }
-      if (loginForm.code !== undefined && loginForm.code !== null && loginForm.code !== '') {
-        payload.code = loginForm.code
-      }
-      if (loginForm.uuid) {
-        payload.uuid = loginForm.uuid
-      }
-      const data = await loginApi(payload)
-      const token = data?.token
-      if (!token) {
-        throw new Error('登录接口未返回 Token')
-      }
+    /** 统一登录成功后写入管理端会话；token 为若依管理端令牌（服务端已确认 user_type=00） */
+    adoptAdminToken(token) {
       this.token = token
       setToken(token)
-      return data
+      setAccountType('00')
     },
 
     async fetchUserInfo() {
       const data = await getInfo()
       const user = data?.user || null
+      // 账号域防御：管理端会话只允许 00；后端已在 /login 拦截，这里兜底防御旧 Token / 异常数据
+      if (user?.userType && user.userType !== '00') {
+        this.resetSession()
+        throw new Error('该账号类型不允许在管理端登录')
+      }
       this.user = user
       this.roles = Array.isArray(data?.roles) ? [...data.roles] : []
       const perms = data?.permissions
