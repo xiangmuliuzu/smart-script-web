@@ -4,8 +4,8 @@
     <div class="page-header">
       <h2 class="page-title">作品审核工作台</h2>
       <div class="header-actions">
-        <el-button size="default">导出报告</el-button>
-        <el-button type="primary" size="default" class="black-button">批量分配</el-button>
+        <el-button size="default" @click="handleExportReport">导出报告</el-button>
+        <el-button type="primary" size="default" class="black-button" @click="handleBatchAssign">批量分配</el-button>
       </div>
     </div>
 
@@ -139,7 +139,7 @@
       <template #header>
         <div class="log-header">
           <span class="log-title">审核日志</span>
-          <el-button size="small">导出日志</el-button>
+          <el-button size="small" @click="handleExportLogs">导出日志</el-button>
         </div>
       </template>
       <el-table :data="reviewLogs" style="width: 100%">
@@ -215,6 +215,38 @@
         <el-button @click="detailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量分配弹窗 -->
+    <el-dialog
+      v-model="assignDialogVisible"
+      title="批量分配审核任务"
+      width="500px"
+    >
+      <el-alert
+        v-if="selectedWorks.length === 0"
+        title="请先在列表中选择需要分配的作品（勾选左侧复选框）"
+        type="warning"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+      <el-form :model="assignForm" label-width="100px">
+        <el-form-item label="待分配数量">
+          <span>{{ selectedWorks.length }} 个作品</span>
+        </el-form-item>
+        <el-form-item label="分配审核人">
+          <el-select v-model="assignForm.reviewerId" placeholder="请选择审核人" style="width: 100%">
+            <el-option label="审核员一" :value="1" />
+            <el-option label="审核员二" :value="2" />
+            <el-option label="审核员三" :value="3" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="assignDialogVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="selectedWorks.length === 0" @click="handleSubmitAssign">确认分配</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -277,11 +309,10 @@ onMounted(async () => {
     }
 
     // 获取审核列表
-    const listRes = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
-    const listData = await listRes.json()
-    if (listData.code === 200) {
-      worksList.value = listData.rows || []
-    }
+    await loadWorks()
+
+    // 获取审核日志
+    await loadLogs()
   } catch (e) {
     console.error('获取数据失败:', e)
   }
@@ -346,21 +377,25 @@ const handleReview = (row) => {
 // 提交审核结果
 const handleSubmitReview = async () => {
   try {
-    await fetch(`/api/admin/reviews/${currentReview.value.review_id}/audit`, {
+    const res = await fetch('/api/v1/admin/review/operate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        result: reviewForm.value.action,
-        opinion: reviewForm.value.remark
+        reviewId: currentReview.value.id,
+        status: reviewForm.value.action === 'approve' ? 'approved' : 'rejected',
+        reviewOpinion: reviewForm.value.remark,
+        reviewerId: 1
       })
     })
-    ElMessage.success('审核提交成功')
-    reviewDialogVisible.value = false
-    // 刷新列表
-    const res = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
-      worksList.value = data.rows || []
+      ElMessage.success('审核提交成功')
+      reviewDialogVisible.value = false
+      // 刷新列表和日志
+      await loadWorks()
+      await loadLogs()
+    } else {
+      ElMessage.error(data.msg || '审核提交失败')
     }
   } catch (e) {
     ElMessage.error('提交失败，请重试')
@@ -375,6 +410,114 @@ const currentDetail = ref({})
 const handleDetail = (row) => {
   currentDetail.value = row
   detailDialogVisible.value = true
+}
+
+// 批量分配弹窗
+const assignDialogVisible = ref(false)
+const assignForm = ref({
+  reviewerId: 1
+})
+
+// 打开批量分配弹窗
+const handleBatchAssign = () => {
+  if (selectedWorks.value.length === 0) {
+    ElMessage.warning('请先勾选需要分配的作品')
+    return
+  }
+  assignForm.value.reviewerId = 1
+  assignDialogVisible.value = true
+}
+
+// 提交批量分配
+const handleSubmitAssign = async () => {
+  try {
+    const ids = selectedWorks.value.map(item => item.id)
+    const res = await fetch('/api/v1/admin/review/batch-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reviewIds: ids,
+        reviewerId: assignForm.value.reviewerId
+      })
+    })
+    const data = await res.json()
+    if (data.code === 200) {
+      ElMessage.success('批量分配成功')
+      assignDialogVisible.value = false
+      // 刷新列表
+      await loadWorks()
+    } else {
+      ElMessage.error(data.msg || '批量分配失败')
+    }
+  } catch (e) {
+    ElMessage.error('批量分配失败，请检查后端服务')
+  }
+}
+
+// 导出审核报告
+const handleExportReport = async () => {
+  try {
+    const res = await fetch('/api/v1/admin/review/export')
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'review_report.csv'
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出报告成功')
+  } catch (e) {
+    ElMessage.error('导出报告失败，请检查后端服务')
+  }
+}
+
+// 导出审核日志
+const handleExportLogs = async () => {
+  try {
+    const res = await fetch('/api/v1/admin/review/logs/export')
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'review_logs.csv'
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出日志成功')
+  } catch (e) {
+    ElMessage.error('导出日志失败，请检查后端服务')
+  }
+}
+
+// 加载作品列表
+const loadWorks = async () => {
+  try {
+    const res = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      worksList.value = data.rows || []
+    }
+  } catch (e) {
+    console.error('获取列表失败:', e)
+  }
+}
+
+// 加载审核日志
+const loadLogs = async () => {
+  try {
+    const res = await fetch('/api/v1/admin/review/logs')
+    const data = await res.json()
+    if (data.code === 200) {
+      reviewLogs.value = (data.rows || []).map(item => ({
+        time: item.createTime || '',
+        operator: item.operator || '',
+        work: item.reviewId || '',
+        action: item.action || '',
+        remark: (item.beforeStatus || '') + ' → ' + (item.afterStatus || '')
+      }))
+    }
+  } catch (e) {
+    console.error('获取日志失败:', e)
+  }
 }
 
 
