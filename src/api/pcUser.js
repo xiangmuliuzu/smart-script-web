@@ -15,3 +15,33 @@ export function appLogout() {
     method: 'post'
   })
 }
+
+export function getProfile() {
+  return request({ url: '/api/v1/users/me/profile', method: 'get' })
+}
+
+export function updateProfile(data) {
+  return request({ url: '/api/v1/users/me/profile', method: 'put', data })
+}
+
+export function uploadAvatar(file) {
+  const data = new FormData()
+  data.append('file', file)
+  return request({ url: '/api/v1/users/me/avatar', method: 'post', data })
+}
+
+export function listMessages(params) {
+  return request({ url: '/api/v1/messages', method: 'get', params })
+}
+
+export function getMessage(messageId) {
+  return request({ url: `/api/v1/messages/${messageId}`, method: 'get' })
+}
+
+export function markMessageRead(messageId) {
+  return request({ url: `/api/v1/messages/${messageId}/read`, method: 'put' })
+}
+
+export function markAllMessagesRead() {
+  return request({ url: '/api/v1/messages/read-all', method: 'put' })
+}

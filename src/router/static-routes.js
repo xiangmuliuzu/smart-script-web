@@ -27,30 +27,27 @@ export const constantRoutes = [
     component: () => import('@/views/error/404.vue'),
     meta: { title: '未找到' }
   },
-  // ---- PC 用户门户（01/02/03 共用，本阶段未开发的功能用占位页） ----
+  // ---- PC 用户门户（01/02/03 共用） ----
   {
     path: '/pc/user',
-    name: 'PcUserHome',
-    component: () => import('@/views/pc/UserHome.vue'),
-    meta: { title: '工作台' }
-  },
-  {
-    path: '/pc/user/works',
-    name: 'PcUserWorks',
-    component: () => import('@/views/pc/DevPlaceholder.vue'),
-    meta: { title: '我的作品' }
-  },
-  {
-    path: '/pc/user/orders',
-    name: 'PcUserOrders',
-    component: () => import('@/views/pc/DevPlaceholder.vue'),
-    meta: { title: '我的订单' }
-  },
-  {
-    path: '/pc/user/profile',
-    name: 'PcUserProfile',
-    component: () => import('@/views/pc/DevPlaceholder.vue'),
-    meta: { title: '账号资料' }
+    component: () => import('@/views/pc/PcUserLayout.vue'),
+    redirect: '/pc/user/home',
+    children: [
+      { path: 'home', name: 'PcUserHome', component: () => import('@/views/pc/UserHome.vue'), meta: { title: '工作台首页' } },
+      { path: 'works', redirect: '/pc/user/works/all' },
+      ...[
+        ['all', '全部作品'], ['draft', '草稿'], ['review', '审核中'],
+        ['revision', '待修改'], ['listed', '已上架']
+      ].map(([path, title]) => ({
+        path: `works/${path}`,
+        name: `PcUserWorks${path[0].toUpperCase()}${path.slice(1)}`,
+        component: () => import('@/views/pc/UserWorks.vue'),
+        meta: { title, workStatus: path }
+      })),
+      { path: 'messages', name: 'PcUserMessages', component: () => import('@/views/pc/UserMessages.vue'), meta: { title: '消息与沟通' } },
+      { path: 'profile', name: 'PcUserProfile', component: () => import('@/views/pc/UserProfile.vue'), meta: { title: '个人资料' } },
+      { path: 'orders', redirect: '/pc/user/home' }
+    ]
   },
   // catch-all：管理员动态路由注册前后未知路径都落 404（动态路由优先级高于通配，注册后不受影响）
   {
