@@ -32,6 +32,9 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { listMessages, getMessage, markMessageRead, markAllMessagesRead } from '@/api/pcUser'
+import { usePcUnreadStore } from '@/stores/pcUnread'
+
+const pcUnreadStore = usePcUnreadStore()
 
 const types = [
   { value: '', label: '全部消息' }, { value: 'SYSTEM', label: '系统消息' },
@@ -77,6 +80,8 @@ async function openMessage(item) {
     if (!item.read) {
       await markMessageRead(item.messageId)
       item.read = true
+      // 已读后刷新公共角标
+      pcUnreadStore.refresh()
     }
   } catch {
     detailVisible.value = false
@@ -88,6 +93,7 @@ async function handleReadAll() {
   try {
     await markAllMessagesRead()
     messages.value.forEach(item => { item.read = true })
+    pcUnreadStore.refresh()
     ElMessage.success('已全部标为已读')
   } catch {
     // 请求封装统一展示服务端错误

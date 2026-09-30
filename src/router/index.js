@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { constantRoutes } from '@/router/static-routes'
 import { getToken, getUserToken, getAccountType, removeAccountType } from '@/utils/auth'
-import { isUserType, isUserPortalPath, homePathFor } from '@/utils/account'
+import { isUserType, isUserPortalPath, homePathFor, USER_PORTAL_HOME } from '@/utils/account'
 import { useUserStore } from '@/stores/user'
 import { usePcUserStore } from '@/stores/pcUser'
 import { usePermissionStore } from '@/stores/permission'
@@ -72,16 +73,28 @@ router.beforeEach(async (to, from, next) => {
       next('/pc/user')
       return
     }
-    // 首次进入（含刷新后 store 重建）：用 /auth/me 校验令牌有效性，
-    // 避免仅凭本地令牌放行过期会话；401 已由 pcRequest 统一跳登录页
+    // 首次进入（含刷新后 store 重建）：用 /auth/me 校验令牌有效性。
+    // 认证失效与账号停用已由 pcRequest 清理会话并跳登录页；
+    // 临时网络/服务故障（超时、5xx）不得清空有效凭证：
+    // 转身份确认页提供重试，确认前不展示受保护内容。
+    if (to.path === '/pc/user/session-check' && !pcUserStore.infoLoaded) {
+      next()
+      return
+    }
     if (!pcUserStore.infoLoaded) {
       try {
         await pcUserStore.fetchMe()
       } catch (error) {
-        pcUserStore.resetSession()
-        next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+        next({ path: '/pc/user/session-check', query: { redirect: to.fullPath } })
         return
       }
+    }
+    // 作品路由按作者能力拦截：判断唯一来源是 /auth/me 的 authorCapability，
+    // 身份未确认（infoLoaded=false）时不放行；后端作品接口仍独立校验归属
+    if (to.path.startsWith(`${USER_PORTAL_HOME}/works`) && !pcUserStore.authorCapability) {
+      ElMessage.warning('尚未开通创作者功能')
+      next('/pc/user/home')
+      return
     }
     next()
     return

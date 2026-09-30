@@ -46,6 +46,7 @@ export const constantRoutes = [
       })),
       { path: 'messages', name: 'PcUserMessages', component: () => import('@/views/pc/UserMessages.vue'), meta: { title: '消息与沟通' } },
       { path: 'profile', name: 'PcUserProfile', component: () => import('@/views/pc/UserProfile.vue'), meta: { title: '个人资料' } },
+      { path: 'session-check', name: 'PcUserSessionCheck', component: () => import('@/views/pc/SessionCheck.vue'), meta: { title: '身份确认' } },
       { path: 'orders', redirect: '/pc/user/home' }
     ]
   },
