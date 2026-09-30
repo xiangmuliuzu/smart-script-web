@@ -1,172 +1,22 @@
-# 智能剧本创作平台 PC 管理后台
+# 智能剧本创作平台 PC Web
 
-PC 管理后台面向平台管理员，按业务域组织版权审核、内容作品、交易商务、平台运营、AI 福利、数据统计和系统配置功能。
+Vue 3 + Vite 应用。管理员账号（`00`）进入管理端，用户账号（`01/02/03`）进入个人工作台。管理端菜单来自后端 `/getRouters`；用户侧使用独立路由和 App 凭证域接口。页面、接口、权限与样式位于 `src/`，`scripts/` 与 `tests/` 用于校验。
 
-## 当前框架
-
-- Vue 3 + Vite
-- Element Plus
-- Vue Router
-- Pinia
-- Axios
-- ECharts
-- 若依后端接口兼容：AjaxResult、TableDataInfo、Bearer Token、RBAC 权限
-
-## 当前主线与共享文档
-
-| 字段 | 值 |
-| --- | --- |
-| 当前分支（2026-09-23） | `main@01e2aec`，与 `origin/main` 同步；A7 分支 `a7/release-prep` 从此 SHA 切出 |
-| 后端主线 | `smart-script-backend main@ae3ebc0` |
-| App 主线 | `smart-script-app main@541e05b` |
-| 开发规格 / 评审标准 | [`../shared/A用户与认证开发规格.md`](../shared/A用户与认证开发规格.md) v1.7 / [`../shared/A用户与认证评审验收标准.md`](../shared/A用户与认证评审验收标准.md) v1.6 |
-| 阶段状态 | A1 整合、A3/G3、A4/G4 已完成；A5/A6 快速阶段交付已进入后端与 App `main`；A7 已完成本仓生产构建与产物服务验证 |
-| A7 记录 | [`../shared/A7-G8-交付与发布准备记录.md`](../shared/A7-G8-交付与发布准备记录.md)、[`../shared/A7-PR-PC.md`](../shared/A7-PR-PC.md) |
-| 后续工作 | A5–A7 安全、测试和发布加固见 [`../shared/A5-A7-后续加固清单.md`](../shared/A5-A7-后续加固清单.md) |
-
-> `main` 当前另含 C 模块前端页面（交易作品、询盘、报价、合作方等）由其他负责人合入的提交。
-> 这部分不在 A7 的 A 模块验证范围内，且其依赖的 C 后端表在全新建库中不存在
-> （见 A7 记录 A7-Q1/A7-Q5），发布前需由 C 负责人与项目经理明确处置。
-
-本地工作区从 `D:\build` 仓库根目录通过 `../shared/…` 引用共享文档。PC 管理端以产品页面和业务结构为基础，使用若依登录、`/getInfo`、`/getRouters`、动态菜单与权限；不整体覆盖若依示例页。
-
-> **默认测试账号**：`admin` / `admin123`（备用的 `ry` 同为 `admin123`）。
-> 前提：按 [`smart-script-backend/README.md`](../smart-script-backend/README.md) 完成
-> 后端数据库初始化（空库跑 `scripts/db/init-database.sh|ps1`），账号由种子 SQL 内置，无需手工插入。
-
-## 已补齐的业务入口
-
-### 内容与作品
-
-- 作品内容管理：作品、章节、展示状态和作者信息入口
-- 分类与标签：书城分类、题材标签和漫剧分类入口
-- 排行榜管理：热门榜、新作榜和漫剧榜配置
-- 外部漫剧发行：通过外部视频接口同步，不提供视频上传
-
-### 版权审核管理
-
-- 作品审核工作台
-- AI 审核规则配置
-- 版权中心对接
-- 版权资产库管理
-- 印章审核：查看印章图片、审核材料和审核状态
-
-### 交易商务管理
-
-- 交易作品管理
-- 授权订单管理
-- 合作方管理
-- 询盘与报价：需求登记、报价、线下谈判跟进和转授权订单
-- 合同与结算：合同、托管、交割、分成、提现入口
-
-### 平台运营和风控
-
-- 广告运营配置
-- 用户与创作者管理
-- 用户画像与推荐配置
-- 全局风控管理
-
-### AI 创作与福利
-
-- AI 创作与次数：积分兑换、广告奖励、次数消耗和规则配置
-- 福利与积分配置：积分发放和兑换规则
-- 消息与公告：APP 消息、系统公告和审核结果通知
-
-### 数据和系统
-
-- 运营数据总览
-- 明细数据查询
-- 权限管理
-- 系统配置
-- 操作日志
-
-## 项目结构
-
-```text
-src/
-├── api/              # 按业务域划分的接口文件
-├── components/       # 可复用组件
-├── directives/       # v-permission 前端权限显示指令
-├── layout/           # PC 主布局和侧边栏
-├── router/           # 路由、菜单入口和登录守卫
-├── stores/           # Pinia 用户状态
-├── styles/           # 全局主题和 Element Plus 样式覆盖
-├── utils/            # Axios 请求封装
-└── views/
-    ├── common/       # 通用业务列表和开发交接骨架
-    ├── content/      # 内容与作品入口
-    ├── copyright/    # 版权审核和印章
-    ├── trade/        # 交易、合同和结算
-    ├── operation/    # 平台运营
-    ├── ai/           # AI 创作与次数
-    ├── support/      # 福利与积分
-    ├── statistics/   # 数据统计
-    ├── risk/         # 风控
-    ├── system/       # 权限、配置、日志
-    └── user/         # 登录和用户管理
-```
-
-## 运行方式
+## 安装与运行
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-开发服务器默认端口为 `3000`（被占用时 Vite 会自动换端口，看终端提示）。
+开发服务器默认使用 `http://localhost:3000`。联调时设置 `VITE_API_TARGET` 指向后端；后端数据库初始化及启动见 [后端 README](../smart-script-backend/README.md)。跨端接口约定见 [共享资源](../shared/README.md)。
 
-验收和生产构建必须 `VITE_USE_MOCK=false` 并对接后端；演示口令不得写入生产配置或作为验收默认口令。
+## 校验与构建
 
-> `.env.local` 已被 `.gitignore` 忽略，不会提交。
+```bash
+npm run gate
+```
 
-## 后端与数据库初始化
+该命令依次执行 lint、静态检查、测试和生产构建。`scripts/typecheck-static.mjs` 及 `tests/menu-icon.test.js` 会读取同级 `../shared/sql/` 的菜单 seed 与 rollback SQL，因此整个 `shared/sql/` 应与三仓保持同级目录。
 
-PC 管理端依赖的后端、数据库结构与侧边栏菜单数据全部来自 `smart-script-backend`：
-
-| 内容 | 位置 |
-| --- | --- |
-| 环境准备、环境变量、**数据库初始化命令**、启动命令 | [smart-script-backend/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/README.md) |
-| 初始化步骤清单（A2 → A1 → A4 → PC，每步校验 `SUMMARY=PASS`） | [scripts/db/init-steps.txt](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/scripts/db/init-steps.txt) |
-| 已有数据库的升级与回滚说明 | [sql/migrations/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/sql/migrations/README.md) |
-| 侧边栏层级、顺序与改名的最终校验项 | [sql/migrations/pc/README.md](https://github.com/xiangmuliuzu/smart-script-backend/blob/main/sql/migrations/pc/README.md) |
-
-要点：初始化**只允许**写入不存在或完全为空的库，检测到已有表会安全拒绝；
-已有数据的库走迁移路径，不要导入 `ry_20260320.sql`。数据库就绪后按后端 README
-设置 `DB_URL` / `REDIS_*` / `TOKEN_SECRET` / `APP_*` 等环境变量再启动后端，然后在
-`.env.local` 里把 `VITE_API_TARGET` 指向该后端（默认 `http://localhost:8080`）。
-
-本仓侧边栏是后端 `/getRouters` 下发的动态菜单，页面层级由后端 `sys_menu` 决定，
-前端不维护静态菜单树；`src/layout` 只负责渲染。
-
-## 接口约定
-
-- 统一前缀：`/api/v1/admin/`
-- 认证方式：`Authorization: Bearer {token}`
-- 普通接口兼容若依 `AjaxResult`
-- 分页接口兼容若依 `TableDataInfo`，返回 `code`、`msg`、`rows`、`total`
-- 401 自动清理 Token 并跳转登录
-- 403 显示权限不足
-- 所有高风险操作需要由后端记录若依操作日志
-- 前端 `v-permission` 只负责隐藏无权限按钮，真正权限必须由后端校验
-
-## 开发分工对应关系
-
-| 负责人 | PC 页面范围 |
-| --- | --- |
-| A | 登录、用户与创作者、权限管理、数据统计、福利与运营支撑 |
-| B | 作品内容、章节、分类标签、书城内容、排行榜、外部漫剧 |
-| C | 交易作品、询盘、报价、订单前半段和线下谈判 |
-| D | 印章审核、版权资产、合同、结算、提现 |
-| E | 作品审核、AI 审核规则、风控、AI 创作与次数 |
-
-通用页面骨架位于 `src/views/common/ModuleScaffold.vue`。负责人接手后，先保留路由和页面结构，再把模拟数据替换为对应 API，不要重新创建一套菜单、主题和表格规范。
-
-## 提交前检查
-
-- 页面可以通过路由访问
-- 使用已有主题和公共组件
-- 列表处理加载、空数据和错误状态
-- 接口使用统一请求封装
-- 登录、Token、403 和退出登录流程正常
-- 高风险操作接入权限标识和操作日志
-- 提交说明包含页面截图、接口地址、自测结果和是否使用 Mock
+管理端遵循若依返回体和 RBAC 权限；用户侧请求使用 App Access Token。客户端隐藏无权限操作，写入权限仍由后端校验。
