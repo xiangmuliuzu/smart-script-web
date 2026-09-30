@@ -6,11 +6,17 @@
       <el-scrollbar class="portal-menu-scroll">
         <el-menu class="portal-menu" :default-active="route.path" :default-openeds="['works']" router>
           <el-menu-item index="/pc/user/home"><el-icon><House /></el-icon><span>工作台首页</span></el-menu-item>
-          <el-sub-menu index="works">
+          <!-- 作品管理入口只在 authorCapability === true 时显示（/auth/me 唯一判断来源） -->
+          <el-sub-menu v-if="pcUserStore.authorCapability" index="works">
             <template #title><el-icon><Document /></el-icon><span>我的作品</span></template>
             <el-menu-item v-for="item in workItems" :key="item.path" :index="item.path">{{ item.title }}</el-menu-item>
           </el-sub-menu>
-          <el-menu-item index="/pc/user/messages"><el-icon><ChatLineSquare /></el-icon><span>消息与沟通</span></el-menu-item>
+          <el-menu-item index="/pc/user/messages">
+            <el-icon><ChatLineSquare /></el-icon><span>消息与沟通</span>
+            <!-- 会话未读来源（A3）接入前不显示数字合计，仅有通知未读时显示圆点 -->
+            <el-badge v-if="unreadBadge" :value="unreadBadge" class="menu-badge" />
+            <el-badge v-else-if="pcUnreadStore.showPartialDot" is-dot class="menu-badge" title="有未读系统通知" />
+          </el-menu-item>
           <el-menu-item index="/pc/user/profile"><el-icon><User /></el-icon><span>个人资料</span></el-menu-item>
         </el-menu>
       </el-scrollbar>
@@ -34,15 +40,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Files, House, Document, ChatLineSquare, User, UserFilled, Right, Avatar } from '@element-plus/icons-vue'
 import { usePcUserStore } from '@/stores/pcUser'
+import { usePcUnreadStore } from '@/stores/pcUnread'
+import { userTypeLabel as userTypeText } from '@/utils/pcFormat'
 
 const route = useRoute()
 const router = useRouter()
 const pcUserStore = usePcUserStore()
+const pcUnreadStore = usePcUnreadStore()
 const workItems = [
   { path: '/pc/user/works/all', title: '全部作品' },
   { path: '/pc/user/works/draft', title: '草稿' },
@@ -50,9 +59,40 @@ const workItems = [
   { path: '/pc/user/works/revision', title: '待修改' },
   { path: '/pc/user/works/listed', title: '已上架' }
 ]
-const userTypeLabel = computed(() => ({ '01': '普通用户', '02': '创作者', '03': '甲方' })[pcUserStore.userType] || '用户')
+const userTypeLabel = computed(() => userTypeText(pcUserStore.userType))
+const unreadBadge = computed(() => pcUnreadStore.badgeText || '')
+// ---- 公共未读角标轮询：初始立即查询，30 秒周期，标签隐藏暂停，卸载/退出停止 ----
+const UNREAD_INTERVAL_MS = 30000
+let unreadTimer = null
+
+function pollUnread() {
+  if (!document.hidden) {
+    pcUnreadStore.refresh()
+  }
+}
+
+function onVisibilityChange() {
+  if (!document.hidden) {
+    pcUnreadStore.refresh()
+  }
+}
+
+onMounted(() => {
+  pcUnreadStore.refresh()
+  unreadTimer = setInterval(pollUnread, UNREAD_INTERVAL_MS)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    clearInterval(unreadTimer)
+    unreadTimer = null
+  }
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
 
 async function handleLogout() {
+  // 退出失败也清理本地会话（pcUserStore.logout 内部兜底），进入登录页
   await pcUserStore.logout()
   ElMessage.success('已退出登录')
   router.replace('/login')
@@ -71,6 +111,8 @@ async function handleLogout() {
 .portal-menu :deep(.el-menu-item.is-active){background:rgba(255,255,255,.08);color:#fff;position:relative}
 .portal-menu :deep(.el-menu-item.is-active::before){content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#fff;border-radius:0 2px 2px 0}
 .portal-menu :deep(.el-sub-menu .el-menu-item){padding-left:48px!important;height:38px;line-height:38px;min-width:0}
+.menu-badge{margin-left:auto}
+.menu-badge :deep(.el-badge__content){background-color:#f56c6c;border:0}
 .portal-account{display:flex;align-items:center;gap:10px;padding:16px 14px;background:#1a1d23;border-top:1px solid #30343c}
 .account-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.account-copy strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-copy small{color:#8a8f99}
 .logout-button{color:#a8abb2}.portal-main{flex:1;min-width:0;display:flex;flex-direction:column}

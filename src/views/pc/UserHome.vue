@@ -2,10 +2,11 @@
   <div class="home-page">
     <section class="welcome-panel">
       <div><p class="eyebrow">PERSONAL WORKSPACE</p><h1>{{ greeting }}，{{ pcUserStore.displayName }}</h1><p>欢迎来到你的个人工作台。</p></div>
-      <router-link class="welcome-action" to="/pc/user/works/all">查看我的作品 <el-icon><ArrowRight /></el-icon></router-link>
+      <!-- 作品快捷入口与公共菜单同一判断来源：authorCapability（A1 对接点） -->
+      <router-link v-if="pcUserStore.authorCapability" class="welcome-action" to="/pc/user/works/all">查看我的作品 <el-icon><ArrowRight /></el-icon></router-link>
     </section>
     <div class="home-grid">
-      <router-link class="home-card" to="/pc/user/works/all"><el-icon class="card-icon"><Document /></el-icon><h2>我的作品</h2><p>按创作与审核状态查看作品</p><span>进入作品管理 <el-icon><ArrowRight /></el-icon></span></router-link>
+      <router-link v-if="pcUserStore.authorCapability" class="home-card" to="/pc/user/works/all"><el-icon class="card-icon"><Document /></el-icon><h2>我的作品</h2><p>按创作与审核状态查看作品</p><span>进入作品管理 <el-icon><ArrowRight /></el-icon></span></router-link>
       <router-link class="home-card" to="/pc/user/messages"><el-icon class="card-icon"><ChatLineSquare /></el-icon><h2>消息与沟通</h2><p>查看审核、交易与系统消息</p><span>查看消息 <el-icon><ArrowRight /></el-icon></span></router-link>
       <router-link class="home-card" to="/pc/user/profile"><el-icon class="card-icon"><User /></el-icon><h2>个人资料</h2><p>维护昵称、头像与个人简介</p><span>编辑资料 <el-icon><ArrowRight /></el-icon></span></router-link>
     </div>

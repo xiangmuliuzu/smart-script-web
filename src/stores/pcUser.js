@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { getMe, appLogout } from '@/api/pcUser'
+import { usePcUnreadStore } from '@/stores/pcUnread'
 import {
   getUserToken, setUserToken, removeUserToken,
   getUserRefreshToken, setUserRefreshToken, removeUserRefreshToken,
@@ -21,7 +22,15 @@ export const usePcUserStore = defineStore('pcUser', {
   getters: {
     isLoggedIn: (state) => !!state.token,
     displayName: (state) => state.user?.nickname || state.user?.userName || '用户',
-    userType: (state) => state.user?.userType || ''
+    userType: (state) => state.user?.userType || '',
+    /**
+     * 创作者能力唯一判断来源：/auth/me 的 authorCapability === true。
+     * 角色、实名状态、userType 都不能替代；字段缺失视为无能力，
+     * 信息未加载（user 为 null）时不显示作品管理入口。
+     */
+    authorCapability: (state) => state.user?.authorCapability === true,
+    /** 是否已设置密码：决定账号安全区显示「修改密码」还是「设置密码」 */
+    hasPassword: (state) => state.user?.hasPassword === true
   },
 
   actions: {
@@ -68,6 +77,8 @@ export const usePcUserStore = defineStore('pcUser', {
       removeUserToken()
       removeUserRefreshToken()
       removeAccountType()
+      // 未读统计属当前用户：会话清理时一并清空，避免串到下一个登录用户
+      usePcUnreadStore().reset()
     }
   }
 })
