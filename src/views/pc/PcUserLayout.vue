@@ -100,8 +100,8 @@ async function handleLogout() {
 </script>
 
 <style scoped>
-.portal-layout{display:flex;min-height:100vh;background:#f5f6f8}
-.portal-sidebar{width:240px;min-width:240px;min-height:100vh;display:flex;flex-direction:column;background:#1f2329;color:#fff}
+.portal-layout{display:flex;height:100vh;overflow:hidden;background:#f5f6f8}
+.portal-sidebar{width:240px;min-width:240px;height:100vh;position:sticky;top:0;display:flex;flex-direction:column;background:#1f2329;color:#fff;overflow:hidden}
 .portal-brand{height:64px;display:flex;align-items:center;gap:12px;padding:0 24px;color:#fff;text-decoration:none;font-size:18px;font-weight:600;letter-spacing:2px}
 .portal-caption{height:40px;display:flex;align-items:center;margin:8px 8px 4px;padding:0 17px;border-left:3px solid #4a4d52;background:rgba(255,255,255,.03);font-size:11px;font-weight:700;letter-spacing:1.5px;color:#909399}
 .portal-menu-scroll{flex:1;min-height:0}.portal-menu{border:0;background:transparent}
@@ -115,7 +115,11 @@ async function handleLogout() {
 .menu-badge :deep(.el-badge__content){background-color:#f56c6c;border:0}
 .portal-account{display:flex;align-items:center;gap:10px;padding:16px 14px;background:#1a1d23;border-top:1px solid #30343c}
 .account-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.account-copy strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-copy small{color:#8a8f99}
-.logout-button{color:#a8abb2}.portal-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.logout-button{color:#a8abb2}.portal-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+.portal-main::-webkit-scrollbar{width:5px}
+.portal-main::-webkit-scrollbar-track{background:transparent}
+.portal-main::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px}
+.portal-main::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.28)}
 .portal-header{height:60px;padding:0 28px;background:#fff;border-bottom:1px solid #e8e8e8;display:flex;align-items:center;justify-content:space-between}
 .header-user{display:flex;align-items:center;gap:7px;color:#606266;text-decoration:none}.portal-content{flex:1;padding:28px;min-width:0}
 @media(max-width:760px){.portal-layout{display:block}.portal-sidebar{width:100%;min-width:0;min-height:0}.portal-brand{height:52px}.portal-caption,.portal-account{display:none}.portal-menu-scroll{overflow-x:auto}.portal-menu{display:flex;width:max-content}.portal-menu :deep(.el-menu-item),.portal-menu :deep(.el-sub-menu__title){padding:0 14px!important}.portal-menu :deep(.el-sub-menu .el-menu-item){padding:0 14px!important}.portal-header{padding:0 16px}.portal-content{padding:16px}}
