@@ -122,23 +122,8 @@ check('role payload carries appGrantable (A4 grantable marker maintenance path)'
   }
 })
 
-check('role page exposes appGrantable switch', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
-  if (!src.includes('form.appGrantable')) {
-    throw new Error('role page must bind form.appGrantable so admins can maintain the marker')
-  }
-})
-
-check('role add form resets appGrantable to false (default deny)', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
-  const openFormIdx = src.indexOf('async function openForm')
-  if (openFormIdx < 0) throw new Error('openForm not found')
-  // 取新增路径的重置块（openForm 到 row?.roleId 分支之前）
-  const addBranch = src.slice(openFormIdx, src.indexOf('if (row?.roleId)', openFormIdx))
-  if (!/appGrantable:\s*false/.test(addBranch)) {
-    throw new Error('openForm add-branch must reset appGrantable to false')
-  }
-})
+// 2026-10-08 菜单精简：system/role 页面已随"系统管理"目录下线，角色标记改为开发直连维护，
+// 上述两条 role page 检查随之移除。
 
 check('material download avoids same-origin script execution', () => {
   // 材料是用户上传内容，可能是 HTML/SVG。若在页面源内打开（createObjectURL +
