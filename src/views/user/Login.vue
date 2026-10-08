@@ -225,6 +225,8 @@ const handleLogin = async () => {
       if (isUserType(accountType)) {
         // 01/02/03：App 凭证域令牌，进入 PC 用户门户
         pcUserStore.setSession(result.session, accountType)
+        // 登录接口返回的 user 可能不含 authorCapability，补一次 /auth/me 确保能力字段就绪（否则“我的作品”菜单不显示）
+        try { await pcUserStore.fetchMe() } catch (e) { /* 网络瞬断忽略，刷新后由路由守卫重试 */ }
         persistRememberedUsername()
         ElMessage.success('登录成功')
         await router.replace(safeRedirectPath(accountType))
