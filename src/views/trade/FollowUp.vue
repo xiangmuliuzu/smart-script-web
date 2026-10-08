@@ -201,7 +201,7 @@
             placeholder="请输入跟进内容"
           />
         </el-form-item>
-        <el-form-item label="下次跟进">
+        <el-form-item label="下次跟进" prop="nextFollowUpAt">
           <el-date-picker
             v-model="form.nextFollowUpAt"
             type="datetime"
@@ -277,7 +277,19 @@ const rules = {
   followUpAt: [{ required: true, message: '请选择跟进时间', trigger: 'change' }],
   method: [{ required: true, message: '请选择跟进方式', trigger: 'change' }],
   content: [{ required: true, message: '请输入跟进内容', trigger: 'blur' }],
+  nextFollowUpAt: [{ validator: validateNextFollowUp, trigger: 'change' }],
   status: [{ required: true, message: '请选择跟进状态', trigger: 'change' }]
+}
+
+// 修复 BIZ_FOLLOW_002：下次跟进时间不得早于跟进时间（按日期比较，选填项为空时不校验）
+function validateNextFollowUp(rule, value, callback) {
+  const next = value ? String(value).slice(0, 10) : ''
+  const cur = form.value.followUpAt ? String(form.value.followUpAt).slice(0, 10) : ''
+  if (next && cur && next < cur) {
+    callback(new Error('下次跟进时间不能早于跟进时间'))
+  } else {
+    callback()
+  }
 }
 
 async function loadPartners() {

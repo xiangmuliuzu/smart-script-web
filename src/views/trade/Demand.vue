@@ -80,7 +80,7 @@
           <el-input-number v-model="publishForm.budget" :min="0" :precision="2" :step="10000" style="width: 100%" placeholder="设置征集预算" />
         </el-form-item>
         <el-form-item label="截止日期" prop="deadline">
-          <el-date-picker v-model="publishForm.deadline" type="date" placeholder="选择截止日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker v-model="publishForm.deadline" type="date" placeholder="选择截止日期" value-format="YYYY-MM-DD" :disabled-date="disablePastDate" style="width: 100%" />
         </el-form-item>
         <el-form-item label="联系方式" prop="contactInfo">
           <el-input v-model="publishForm.contactInfo" placeholder="请输入联系方式" />
@@ -175,8 +175,42 @@ const publishRules = {
   title: [{ required: true, message: '请输入征集标题', trigger: 'blur' }],
   genreId: [{ required: true, message: '请选择题材', trigger: 'change' }],
   budget: [{ required: true, message: '请输入预算', trigger: 'blur' }],
-  deadline: [{ required: true, message: '请选择截止日期', trigger: 'change' }],
-  contactInfo: [{ required: true, message: '请输入联系方式', trigger: 'blur' }]
+  deadline: [{ required: true, message: '请选择截止日期', trigger: 'change' }, { validator: validateDeadlineNotPast, trigger: 'change' }],
+  contactInfo: [{ required: true, message: '请输入联系方式', trigger: 'blur' }, { validator: validateContactPhone, trigger: 'blur' }]
+}
+
+// 修复 COLLECT_002：截止日期不得早于当前日期
+function validateDeadlineNotPast(rule, value, callback) {
+  if (value && String(value).slice(0, 10) < todayStr()) {
+    callback(new Error('截止日期不能早于当前日期'))
+  } else {
+    callback()
+  }
+}
+
+// 修复 COLLECT_003：纯电话录入（仅数字/横线/空格）必须符合标准格式，
+// 混合文本（如「姓名 + 电话」、邮箱等）不做格式限制，避免误伤
+const PHONE_ONLY_RE = /^[\d\s-]+$/
+const PHONE_VALID_RE = /^(1[3-9]\d{9}|0\d{2,3}-?\d{7,8}|(400|800)-?\d{3}-?\d{4})$/
+function validateContactPhone(rule, value, callback) {
+  const t = (value || '').trim()
+  if (t && PHONE_ONLY_RE.test(t) && !PHONE_VALID_RE.test(t)) {
+    callback(new Error('联系电话格式不正确，请输入 11 位手机号或带区号的固定电话'))
+  } else {
+    callback()
+  }
+}
+
+function todayStr() {
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+function disablePastDate(date) {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  return date.getTime() < start.getTime()
 }
 
 async function loadList() {
