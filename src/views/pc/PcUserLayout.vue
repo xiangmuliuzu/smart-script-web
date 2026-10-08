@@ -13,9 +13,9 @@
           </el-sub-menu>
           <el-menu-item index="/pc/user/messages">
             <el-icon><ChatLineSquare /></el-icon><span>消息与沟通</span>
-            <!-- 会话未读来源（A3）接入前不显示数字合计，仅有通知未读时显示圆点 -->
+            <!-- A3 会话未读已接入：两来源（通知+会话）均成功时显示数字合计，任一失败降级为圆点 -->
             <el-badge v-if="unreadBadge" :value="unreadBadge" class="menu-badge" />
-            <el-badge v-else-if="pcUnreadStore.showPartialDot" is-dot class="menu-badge" title="有未读系统通知" />
+            <el-badge v-else-if="pcUnreadStore.showPartialDot" is-dot class="menu-badge" title="有未读消息" />
           </el-menu-item>
           <el-menu-item index="/pc/user/profile"><el-icon><User /></el-icon><span>个人资料</span></el-menu-item>
         </el-menu>

@@ -201,7 +201,7 @@
             placeholder="请输入跟进内容"
           />
         </el-form-item>
-        <el-form-item label="下次跟进">
+        <el-form-item label="下次跟进" prop="nextFollowUpAt">
           <el-date-picker
             v-model="form.nextFollowUpAt"
             type="datetime"
@@ -272,11 +272,24 @@ const dialogVisible = ref(false)
 const submitting = ref(false)
 const formRef = ref()
 const form = ref({ partnerId: '', followUpAt: '', method: '', content: '', nextFollowUpAt: '', status: '' })
+// BIZ_FOLLOW_002：下次跟进日期不得早于跟进日期（与后端 TradeFollowUpService 一致，按天比较、同日允许）
+function dayOf(value) { return value ? String(value).slice(0, 10) : '' }
+const validateNextFollowUp = (rule, value, callback) => {
+  if (!value) { callback(); return }
+  const followDay = dayOf(form.value.followUpAt)
+  const nextDay = dayOf(value)
+  if (followDay && nextDay && nextDay < followDay) {
+    callback(new Error('下次跟进时间不能早于跟进时间'))
+    return
+  }
+  callback()
+}
 const rules = {
   partnerId: [{ required: true, message: '请选择合作方', trigger: 'change' }],
   followUpAt: [{ required: true, message: '请选择跟进时间', trigger: 'change' }],
   method: [{ required: true, message: '请选择跟进方式', trigger: 'change' }],
   content: [{ required: true, message: '请输入跟进内容', trigger: 'blur' }],
+  nextFollowUpAt: [{ validator: validateNextFollowUp, trigger: 'change' }],
   status: [{ required: true, message: '请选择跟进状态', trigger: 'change' }]
 }
 

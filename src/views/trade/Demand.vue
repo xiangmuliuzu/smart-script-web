@@ -80,7 +80,7 @@
           <el-input-number v-model="publishForm.budget" :min="0" :precision="2" :step="10000" style="width: 100%" placeholder="设置征集预算" />
         </el-form-item>
         <el-form-item label="截止日期" prop="deadline">
-          <el-date-picker v-model="publishForm.deadline" type="date" placeholder="选择截止日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker v-model="publishForm.deadline" type="date" placeholder="选择截止日期" value-format="YYYY-MM-DD" :disabled-date="disablePastDate" style="width: 100%" />
         </el-form-item>
         <el-form-item label="联系方式" prop="contactInfo">
           <el-input v-model="publishForm.contactInfo" placeholder="请输入联系方式" />
@@ -171,12 +171,44 @@ const publishVisible = ref(false)
 const publishing = ref(false)
 const publishFormRef = ref()
 const publishForm = ref({ title: '', genreId: null, budget: null, deadline: '', contactInfo: '', requirement: '' })
+// COLLECT_002：截止日期不得早于当前日期（与后端 TradeDemandService 一致，按天比较、当天允许）
+function todayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function disablePastDate(date) {
+  return date.getTime() < new Date(`${todayStr()}T00:00:00`).getTime()
+}
+const validateDeadlineNotPast = (rule, value, callback) => {
+  if (!value) { callback(); return }
+  if (String(value).slice(0, 10) < todayStr()) {
+    callback(new Error('截止日期不能早于当前日期'))
+    return
+  }
+  callback()
+}
+// COLLECT_003：仅纯电话录入（数字/横线/空格）才校验格式，混合文本（姓名+电话、邮箱）不误伤
+const validateContactPhone = (rule, value, callback) => {
+  const contact = value == null ? '' : String(value).trim()
+  if (contact && /^[\d\s-]+$/.test(contact)
+      && !/^(1[3-9]\d{9}|0\d{2,3}-?\d{7,8}|(400|800)-?\d{3}-?\d{4})$/.test(contact)) {
+    callback(new Error('联系电话格式不正确，请输入 11 位手机号或带区号的固定电话'))
+    return
+  }
+  callback()
+}
 const publishRules = {
   title: [{ required: true, message: '请输入征集标题', trigger: 'blur' }],
   genreId: [{ required: true, message: '请选择题材', trigger: 'change' }],
   budget: [{ required: true, message: '请输入预算', trigger: 'blur' }],
-  deadline: [{ required: true, message: '请选择截止日期', trigger: 'change' }],
-  contactInfo: [{ required: true, message: '请输入联系方式', trigger: 'blur' }]
+  deadline: [
+    { required: true, message: '请选择截止日期', trigger: 'change' },
+    { validator: validateDeadlineNotPast, trigger: 'change' }
+  ],
+  contactInfo: [
+    { required: true, message: '请输入联系方式', trigger: 'blur' },
+    { validator: validateContactPhone, trigger: 'blur' }
+  ]
 }
 
 async function loadList() {
