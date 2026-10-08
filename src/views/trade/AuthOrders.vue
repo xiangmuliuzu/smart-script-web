@@ -106,12 +106,20 @@
         </el-timeline>
         <el-empty v-else description="暂无状态流转记录" :image-size="60" />
       </div>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+        <!-- A3 联系用户入口（任务 27）：TODO 待订单关联真实买家 userId 后启用 -->
+        <el-button type="primary" plain :disabled="!detail.creator?.userId" @click="handleContactUser(detail)">
+          联系作者
+        </el-button>
+      </template>
     </el-dialog>
   </PageContainer>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -120,6 +128,9 @@ import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions } from '@/constants/tradeEnum'
 import { getOrderList, getOrderDetail } from '@/api/trade'
+import { adminCreateSession } from '@/api/adminChat'
+
+const router = useRouter()
 
 defineOptions({ name: 'AuthOrders' })
 
@@ -175,6 +186,29 @@ async function handleDetail(row) {
 
 function handleExport() {
   ElMessage.info('导出订单')
+}
+
+// A3 联系用户（任务 27）：创建/获取会话并跳转到聊天详情
+async function handleContactUser(row) {
+  const userId = row.creator?.userId
+  if (!userId) {
+    ElMessage.info('该订单暂未关联作者用户 ID，无法发起沟通')
+    return
+  }
+  try {
+    const res = await adminCreateSession({
+      targetUserId: userId,
+      businessType: 'ORDER',
+      businessId: row.orderId || null,
+      businessName: row.workTitle || row.orderNo || null
+    })
+    const sessionId = res?.sessionId || res?.data?.sessionId
+    if (sessionId) {
+      router.push({ path: '/chat/chat-detail', query: { sessionId } })
+    }
+  } catch {
+    ElMessage.error('创建沟通会话失败')
+  }
 }
 
 onMounted(loadList)

@@ -44,6 +44,8 @@ import SystemDict from '@/views/system/dict/index.vue'
 import SystemConfigRuoYi from '@/views/system/config/index.vue'
 import MonitorOperlog from '@/views/monitor/operlog/index.vue'
 import MonitorLogininfor from '@/views/monitor/logininfor/index.vue'
+import ChatSessions from '@/views/chat/ChatSessions.vue'
+import ChatDetail from '@/views/chat/ChatDetail.vue'
 
 /**
  * 服务端 component 标识 → 本地组件显式白名单。
@@ -98,7 +100,10 @@ export const componentMap = {
   'system/dict/index': SystemDict,
   'system/config/index': SystemConfigRuoYi,
   'monitor/operlog/index': MonitorOperlog,
-  'monitor/logininfor/index': MonitorLogininfor
+  'monitor/logininfor/index': MonitorLogininfor,
+
+  'chat/ChatSessions': ChatSessions,
+  'chat/ChatDetail': ChatDetail
 }
 
 export function resolveComponent(component) {

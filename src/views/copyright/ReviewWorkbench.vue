@@ -213,6 +213,10 @@
       </el-descriptions>
       <template #footer>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <!-- A3 联系用户入口（任务 25）：TODO 待作品关联真实 userId 后启用 -->
+        <el-button type="primary" plain :disabled="!currentDetail.userId" @click="handleContactUser(currentDetail)">
+          联系用户
+        </el-button>
       </template>
     </el-dialog>
 
@@ -252,7 +256,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { adminCreateSession } from '@/api/adminChat'
+
+const router = useRouter()
 
 // 筛选表单
 const filterForm = ref({
@@ -410,6 +418,28 @@ const currentDetail = ref({})
 const handleDetail = (row) => {
   currentDetail.value = row
   detailDialogVisible.value = true
+}
+
+// A3 联系用户（任务 25）：创建/获取会话并跳转到聊天详情
+const handleContactUser = async (row) => {
+  if (!row.userId) {
+    ElMessage.info('该作品暂未关联用户，无法发起沟通')
+    return
+  }
+  try {
+    const res = await adminCreateSession({
+      targetUserId: row.userId,
+      businessType: 'WORK',
+      businessId: row.id ? Number(String(row.id).replace(/\D/g, '')) || null : null,
+      businessName: row.name || row.workTitle || null
+    })
+    const sessionId = res?.sessionId || res?.data?.sessionId
+    if (sessionId) {
+      router.push({ path: '/chat/chat-detail', query: { sessionId } })
+    }
+  } catch {
+    ElMessage.error('创建沟通会话失败')
+  }
 }
 
 // 批量分配弹窗

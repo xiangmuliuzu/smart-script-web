@@ -60,13 +60,17 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" @click="handleDetail(row)">详情</el-button>
               <el-button size="small" @click="handleEdit(row)">编辑</el-button>
               <el-button size="small" @click="handleToggleOnline(row)">
                 {{ row.onlineStatus === 'online' ? '下架' : '上架' }}
+              </el-button>
+              <!-- A3 联系用户入口（任务 26）：TODO 待版权资产关联真实 userId 后启用 -->
+              <el-button size="small" type="primary" plain :disabled="!row.userId" @click="handleContactUser(row)">
+                联系用户
               </el-button>
             </div>
           </template>
@@ -103,7 +107,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { adminCreateSession } from '@/api/adminChat'
+
+const router = useRouter()
 
 // 筛选表单
 const filterForm = ref({
@@ -197,6 +205,28 @@ const handleDetail = (row) => {
 // 处理编辑
 const handleEdit = (row) => {
   ElMessage.info(`编辑作品：${row.name}`)
+}
+
+// A3 联系用户（任务 26）：创建/获取会话并跳转到聊天详情
+const handleContactUser = async (row) => {
+  if (!row.userId) {
+    ElMessage.info('该版权资产暂未关联用户，无法发起沟通')
+    return
+  }
+  try {
+    const res = await adminCreateSession({
+      targetUserId: row.userId,
+      businessType: 'COPYRIGHT',
+      businessId: row.id ? Number(String(row.id).replace(/\D/g, '')) || null : null,
+      businessName: row.name || null
+    })
+    const sessionId = res?.sessionId || res?.data?.sessionId
+    if (sessionId) {
+      router.push({ path: '/chat/chat-detail', query: { sessionId } })
+    }
+  } catch {
+    ElMessage.error('创建沟通会话失败')
+  }
 }
 
 // 处理上架/下架切换
