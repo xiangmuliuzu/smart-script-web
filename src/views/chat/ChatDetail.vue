@@ -319,7 +319,7 @@ async function handleMarkRead() {
 }
 
 function goBack() {
-  router.push({ path: '/chat/chat-sessions' })
+  router.push({ path: '/appuser/chat-sessions' })
 }
 
 // 30s 轮询刷新消息（管理端多坐席，非实时推送）

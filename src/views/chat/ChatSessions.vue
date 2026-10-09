@@ -216,7 +216,7 @@ function handleReset() {
 }
 
 function openDetail(row) {
-  router.push({ path: '/chat/chat-detail', query: { sessionId: row.sessionId } })
+  router.push({ path: '/appuser/chat-detail', query: { sessionId: row.sessionId } })
 }
 
 // ---- 发起对话逻辑 ----
@@ -285,7 +285,7 @@ async function handleCreate() {
     })
     if (res?.sessionId) {
       createVisible.value = false
-      router.push({ path: '/chat/chat-detail', query: { sessionId: res.sessionId } })
+      router.push({ path: '/appuser/chat-detail', query: { sessionId: res.sessionId } })
     }
   } catch {
     ElMessage.error('创建会话失败')
