@@ -76,8 +76,8 @@
         <el-table-column prop="businessType" label="业务类型" min-width="120" />
         <el-table-column prop="type" label="变更类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="getCallTypeTag(row.change_type)" size="small">
-              {{ row.change_type }}
+            <el-tag :type="getCallTypeTag(row.type)" size="small">
+              {{ row.type }}
             </el-tag>
           </template>
         </el-table-column>
