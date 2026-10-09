@@ -11,6 +11,8 @@ import CopyrightAssets from '@/views/copyright/CopyrightAssets.vue'
 import CopyrightSealReview from '@/views/copyright/SealReview.vue'
 import WithdrawReview from '@/views/copyright/WithdrawReview.vue'
 import ContractManage from '@/views/copyright/ContractManage.vue'
+import SettlementManage from '@/views/copyright/SettlementManage.vue'
+import FinanceAbnormal from '@/views/copyright/FinanceAbnormal.vue'
 import ContentCategory from '@/views/content/category/index.vue'
 import ContentTag from '@/views/content/tag/index.vue'
 import ContentWork from '@/views/content/work/index.vue'
@@ -66,6 +68,8 @@ export const componentMap = {
   'copyright/SealReview': CopyrightSealReview,
   'copyright/WithdrawReview': WithdrawReview,
   'copyright/ContractManage': ContractManage,
+  'copyright/SettlementManage': SettlementManage,
+  'copyright/FinanceAbnormal': FinanceAbnormal,
   'content/category/index': ContentCategory,
   'content/tag/index': ContentTag,
   'content/work/index': ContentWork,

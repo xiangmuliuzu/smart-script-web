@@ -238,3 +238,68 @@ export function downloadContract(contractId) {
     responseType: 'blob'
   })
 }
+
+// 结算管理API
+export function getSettlementList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/settlement/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getSettlementDetail(settlementId) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}`,
+    method: 'get'
+  })
+}
+
+export function batchCalculateSettlement(data) {
+  return request({
+    url: '/pc/copyright/settlement/calculate',
+    method: 'post',
+    data
+  })
+}
+
+export function handleSettlementAbnormal(settlementId, data) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}/handle`,
+    method: 'post',
+    data
+  })
+}
+
+export function confirmSettlement(settlementId) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}/settle`,
+    method: 'post'
+  })
+}
+
+// 财务异常API
+export function getFinanceAbnormalList(params) {
+  const { pageNo, type, ...filters } = params || {}
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/list`,
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getFinanceAbnormalDetail(type, recordId) {
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/${recordId}`,
+    method: 'get'
+  })
+}
+
+export function handleFinanceAbnormal(type, recordId, data) {
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/${recordId}/handle`,
+    method: 'post',
+    data
+  })
+}

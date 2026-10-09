@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target,
           changeOrigin: true
+        },
+        // PC端管理API（提现审核、合同管理、结算管理、财务异常等）
+        '/pc': {
+          target,
+          changeOrigin: true
         }
       }
     }
