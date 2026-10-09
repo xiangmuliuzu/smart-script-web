@@ -1,0 +1,11 @@
+/* 消息管理局部样式，避免全局实心按钮样式覆盖表格文字操作。 */
+.messages-manager .el-button.is-link {
+  background: transparent !important;
+  border: 0 !important;
+  height: auto !important;
+  padding: 0 4px !important;
+  color: #606266 !important;
+}
+.messages-manager .el-button.is-link.el-button--danger { color: #f56c6c !important; }
+.messages-manager .el-button.is-link:hover { color: #303133 !important; }
+.messages-manager .el-button.is-link.is-disabled { color: #c0c4cc !important; }

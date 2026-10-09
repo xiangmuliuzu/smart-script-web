@@ -5,6 +5,7 @@ const DIAG = '[route-adapter]'
 // These D-module paths must not fall back to the generic scaffold when a
 // legacy server menu still returns its placeholder component identifier.
 const PATH_COMPONENT_OVERRIDES = {
+  '/support/messages': 'support/MessagesAnnouncements',
   '/copyright/assets': 'copyright/CopyrightAssets',
   '/copyright/seals': 'copyright/SealReview'
 }
@@ -103,6 +104,13 @@ export function adaptRuoYiRoutes(routers) {
   sidebar.push(...topSidebar)
 
   const layoutComp = resolveComponent('Layout')
+  // 接收者阅读只依赖后台身份。没有业务菜单的管理员也需要布局和阅读入口。
+  // 隐藏路由不加入侧栏，也不提供任何公告管理能力。
+  const inboxComp = resolveComponent('support/ReceivedAnnouncements')
+  if (inboxComp && !leaves.some(leaf => leaf.path === '/support/announcements')) {
+    leaves.push({ path: '/support/announcements', name: 'AdminReceivedAnnouncements', component: inboxComp,
+      meta: { title: '后台公告', hidden: true }, hidden: true })
+  }
   const visibleLeaves = leaves.filter((l) => !l.meta?.hidden)
   // 首页优先：数据总览(/workspace/dashboard) > 旧 /dashboard > /user > 首个可见叶子。
   // 根路由 '/' 的 redirect 据此解析，登录后即落到工作台数据总览。

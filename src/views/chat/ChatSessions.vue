@@ -1,8 +1,9 @@
 <template>
-  <PageContainer>
-    <PageHeader title="用户沟通" description="管理端查看全部用户会话，可筛选、进入详情回复、分配处理管理员与流转状态">
+  <component :is="embedded ? 'section' : PageContainer">
+    <PageHeader title="用户沟通" description="查看用户会话，打开详情即可阅读并处理，可结束或重新打开会话">
       <template #actions>
-        <el-button type="primary" @click="createVisible = true">发起对话</el-button>
+        <el-button :disabled="loading" @click="loadList()">刷新会话</el-button>
+        <el-button v-permission="['chat:session:create']" type="primary" @click="createVisible = true">发起对话</el-button>
       </template>
     </PageHeader>
 
@@ -42,7 +43,7 @@
       <el-table-column label="用户" min-width="140">
         <template #default="{ row }">
           <div class="user-cell">
-            <el-avatar :size="28" :src="row.user1Avatar || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
+            <el-avatar :size="28" :src="avatarUrl(row.user1Avatar) || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
             <span>{{ row.user1Name || ('用户#' + row.user1Id) }}</span>
           </div>
         </template>
@@ -61,9 +62,9 @@
           <el-tag size="small" :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="用户未读" width="90" align="center">
+      <el-table-column label="管理员未读" width="110" align="center">
         <template #default="{ row }">
-          <el-badge v-if="row.user1Unread > 0" :value="row.user1Unread" class="unread-badge" />
+          <el-badge v-if="row.user2Unread > 0" :value="row.user2Unread" class="unread-badge" />
           <span v-else class="muted">0</span>
         </template>
       </el-table-column>
@@ -72,7 +73,7 @@
       </el-table-column>
       <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">进入详情</el-button>
+          <el-button v-if="canOpen" size="small" @click="openDetail(row)">进入详情</el-button>
         </template>
       </el-table-column>
     </TableCard>
@@ -116,11 +117,13 @@
         <el-button type="primary" :loading="creating" :disabled="!createForm.targetUserId" @click="handleCreate">创建并进入</el-button>
       </template>
     </el-dialog>
-  </PageContainer>
+  </component>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { avatarUrl } from '@/utils/avatarUrl'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
@@ -135,13 +138,15 @@ import { getCopyrightSealList, getCopyrightAssets } from '@/api/copyright'
 import { getOrderList } from '@/api/trade'
 
 defineOptions({ name: 'ChatSessions' })
+const props = defineProps({ embedded: Boolean })
+const userStore = useUserStore()
+const canOpen = computed(() => userStore.hasPermission('chat:session:query') && userStore.hasPermission('chat:message:list'))
 
 const router = useRouter()
 
-// 会话状态（ChatService：0=待处理 1=处理中 2=已结束）
+// 历史状态 1 与状态 0 均属于进行中。
 const statusOptions = [
-  { value: 0, label: '待处理' },
-  { value: 1, label: '处理中' },
+  { value: 0, label: '进行中' },
   { value: 2, label: '已结束' }
 ]
 // 业务类型（ChatSessionCreateRequest：WORK / SEAL / COPYRIGHT / ORDER / GENERAL）
@@ -168,12 +173,11 @@ const bizLoading = ref(false)
 const bizOptions = ref([])
 
 function statusLabel(status) {
-  return statusOptions.find(o => o.value === Number(status))?.label || '未知'
+  return statusOptions.find(o => o.value === (Number(status) === 1 ? 0 : Number(status)))?.label || '未知'
 }
 function statusTagType(status) {
   const s = Number(status)
-  if (s === 0) return 'warning'
-  if (s === 1) return 'primary'
+  if (s === 0 || s === 1) return 'primary'
   return 'info'
 }
 function businessTypeLabel(type) {
@@ -183,8 +187,13 @@ function formatTime(value) {
   return value ? String(value).replace('T', ' ').slice(0, 19) : '—'
 }
 
-async function loadList() {
-  loading.value = true
+let generation = 0, inFlight = false, timer
+async function loadList(silent = false) {
+  silent = silent === true
+  if (silent && inFlight) return
+  const current = ++generation
+  inFlight = true
+  if (!silent) loading.value = true
   try {
     const params = {
       pageNum: query.value.pageNum,
@@ -193,15 +202,17 @@ async function loadList() {
       businessType: query.value.businessType || undefined,
       keyword: query.value.keyword || undefined
     }
-    const res = await listSessions(params)
+    const res = await listSessions(params, { silent })
+    if (current !== generation) return
     list.value = res.rows || []
     total.value = res.total || 0
   } catch {
+    if (current !== generation || silent) return
     list.value = []
     total.value = 0
     ElMessage.error('加载会话列表失败')
   } finally {
-    loading.value = false
+    if (current === generation) { loading.value = false; inFlight = false }
   }
 }
 
@@ -216,7 +227,7 @@ function handleReset() {
 }
 
 function openDetail(row) {
-  router.push({ path: '/appuser/chat-detail', query: { sessionId: row.sessionId } })
+  router.push({ path: '/appuser/chat-detail', query: { sessionId: row.sessionId, ...(props.embedded ? { from: 'messages' } : {}) } })
 }
 
 // ---- 发起对话逻辑 ----
@@ -294,7 +305,10 @@ async function handleCreate() {
   }
 }
 
-onMounted(loadList)
+function poll() { if (!document.hidden) loadList(true) }
+defineExpose({ refresh: loadList })
+onMounted(() => { loadList(); timer = setInterval(poll, 5000); document.addEventListener('visibilitychange', poll) })
+onBeforeUnmount(() => { generation++; clearInterval(timer); document.removeEventListener('visibilitychange', poll) })
 </script>
 
 <style scoped>

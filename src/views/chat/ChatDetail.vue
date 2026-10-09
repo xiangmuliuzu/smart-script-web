@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="会话详情" description="查看用户会话上下文、回复消息、分配处理管理员并流转会话状态">
+    <PageHeader title="会话详情" description="阅读即已读，由打开详情的管理员处理，可结束或重新打开会话">
       <template #actions>
         <el-button @click="goBack">返回列表</el-button>
       </template>
@@ -12,7 +12,7 @@
         <template #header>
           <div class="chat-head">
             <div class="chat-head-user">
-              <el-avatar :size="32" :src="session.user1Avatar || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
+              <el-avatar :size="32" :src="avatarUrl(session.user1Avatar) || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
               <div>
                 <strong>{{ session.user1Name || ('用户#' + (session.user1Id || '')) }}</strong>
                 <small>{{ businessTypeLabel(session.businessType) }}<template v-if="session.businessName"> · {{ session.businessName }}</template></small>
@@ -32,7 +32,7 @@
                 class="msg-row"
                 :class="{ mine: isMine(m) }"
               >
-                <el-avatar :size="30" :src="m.senderAvatar || undefined">
+                <el-avatar :size="30" :src="avatarUrl(m.senderAvatar) || undefined">
                   <el-icon><UserFilled /></el-icon>
                 </el-avatar>
                 <div class="msg-body">
@@ -55,14 +55,14 @@
             maxlength="1000"
             show-word-limit
             resize="none"
-            :disabled="isClosed || !isHandler"
-            :placeholder="isClosed ? '会话已结束，无法发送消息' : (isHandler ? '输入回复内容，Enter 发送，Shift+Enter 换行' : '会话已分配给其他管理员处理')"
+            :disabled="loading || isClosed || !isHandler"
+            :placeholder="isClosed ? '会话已结束，无法发送消息' : (isHandler ? '输入回复内容，Enter 发送，Shift+Enter 换行' : '其他管理员已打开此会话，请重新进入详情处理')"
             @keydown.enter="handleKeydown"
           />
           <div class="chat-input-actions">
             <span v-if="isClosed" class="closed-tip">会话已结束</span>
-            <span v-else-if="!isHandler" class="closed-tip">已分配给 {{ assignedAdminLabel }} 处理，你无法参与回复</span>
-            <el-button type="primary" class="black-button" :loading="sending" :disabled="isClosed || !isHandler" @click="handleSend">发送</el-button>
+            <span v-else-if="!isHandler" class="closed-tip">{{ assignedAdminLabel }} 已打开此会话，请重新进入详情处理</span>
+            <el-button v-permission="['chat:message:send']" type="primary" class="black-button" :loading="sending" :disabled="loading || isClosed || !isHandler" @click="handleSend">发送</el-button>
           </div>
         </div>
       </el-card>
@@ -74,6 +74,7 @@
           <el-descriptions :column="1" size="small" border>
             <el-descriptions-item label="用户ID">{{ session.user1Id || '—' }}</el-descriptions-item>
             <el-descriptions-item label="昵称">{{ session.user1Name || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="当前处理人">{{ assignedAdminLabel }}</el-descriptions-item>
             <el-descriptions-item label="业务类型">{{ businessTypeLabel(session.businessType) }}</el-descriptions-item>
             <el-descriptions-item label="业务ID">{{ session.businessId || '—' }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatTime(session.createdAt) }}</el-descriptions-item>
@@ -94,28 +95,10 @@
         </div>
 
         <div class="side-block">
-          <div class="side-title">分配处理管理员</div>
-          <div class="assign-row">
-            <el-select v-model="assignAdminId" placeholder="选择管理员" filterable style="flex: 1" :loading="adminLoading">
-              <el-option
-                v-for="a in adminOptions"
-                :key="a.userId"
-                :label="(a.nickName || a.userName) + '（#' + a.userId + '）'"
-                :value="a.userId"
-              />
-            </el-select>
-            <el-button :loading="assigning" :disabled="!assignAdminId" @click="handleAssign">分配</el-button>
-          </div>
-          <div class="assign-current">当前：{{ assignedAdminLabel }}</div>
-        </div>
-
-        <div class="side-block">
-          <div class="side-title">会话状态流转</div>
-          <div class="status-actions">
-            <el-button v-if="Number(session.status) !== 1" :loading="acting" :disabled="!isHandler" @click="handleChangeStatus('processing')">标记处理中</el-button>
-            <el-button v-if="Number(session.status) !== 2" type="danger" class="close-btn" :loading="acting" :disabled="!isHandler" @click="handleChangeStatus('close')">结束会话</el-button>
-            <el-button v-if="Number(session.status) === 2" :loading="acting" :disabled="!isHandler" @click="handleChangeStatus('reopen')">重新打开</el-button>
-            <el-button :loading="markingRead" @click="handleMarkRead">标记已读</el-button>
+          <div class="side-title">会话操作</div>
+          <div v-permission="['chat:session:status']" class="status-actions">
+            <el-button v-if="!isClosed" type="danger" class="close-btn" :loading="acting" :disabled="loading || !isHandler" @click="handleChangeStatus('close')">结束会话</el-button>
+            <el-button v-else :loading="acting" :disabled="loading || !isHandler" @click="handleChangeStatus('reopen')">重新打开</el-button>
           </div>
         </div>
       </el-card>
@@ -130,8 +113,9 @@ import { ElMessage } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { getSession, listMessages, sendMessage, markSessionRead, assignAdmin, changeStatus, listAdmins } from '@/api/adminChat'
+import { getSession, openSession, listMessages, sendMessage, markSessionRead, changeStatus } from '@/api/adminChat'
 import { useUserStore } from '@/stores/user'
+import { avatarUrl } from '@/utils/avatarUrl'
 
 defineOptions({ name: 'ChatDetail' })
 
@@ -143,39 +127,32 @@ const sessionId = route.query.sessionId
 const loading = ref(false)
 const sending = ref(false)
 const acting = ref(false)
-const assigning = ref(false)
-const markingRead = ref(false)
-const adminLoading = ref(false)
 
 const session = ref({})
 const messages = ref([])
 const draft = ref('')
 const scrollRef = ref()
-const adminOptions = ref([])
-const assignAdminId = ref(null)
+const opened = ref(false)
 
 const isClosed = computed(() => Number(session.value.status) === 2)
-// 分配保护：会话已分配给其他管理员时，当前管理员只读（仍可转派/标记已读）；未分配时任何管理员可参与
-const isHandler = computed(() => !session.value.assignedAdminId || Number(session.value.assignedAdminId) === Number(userStore.userId))
+// 最近打开详情者处理会话；轮询仅同步，不改变处理人。
+const isHandler = computed(() => opened.value && Number(session.value.assignedAdminId) === Number(userStore.userId))
 const assignedAdminLabel = computed(() => {
   const id = session.value.assignedAdminId
-  if (!id) return '未分配'
-  const hit = adminOptions.value.find(a => a.userId === id)
-  return hit ? `${hit.nickName || hit.userName}（#${id}）` : `管理员#${id}`
+  if (!id) return '—'
+  return session.value.user2Name || `管理员#${id}`
 })
 
 const statusOptions = [
-  { value: 0, label: '待处理' },
-  { value: 1, label: '处理中' },
+  { value: 0, label: '进行中' },
   { value: 2, label: '已结束' }
 ]
 function statusLabel(status) {
-  return statusOptions.find(o => o.value === Number(status))?.label || '未知'
+  return statusOptions.find(o => o.value === (Number(status) === 1 ? 0 : Number(status)))?.label || '未知'
 }
 function statusTagType(status) {
   const s = Number(status)
-  if (s === 0) return 'warning'
-  if (s === 1) return 'primary'
+  if (s === 0 || s === 1) return 'primary'
   return 'info'
 }
 function businessTypeLabel(type) {
@@ -211,7 +188,6 @@ async function scrollToBottom() {
 async function loadSession() {
   const detail = await getSession(sessionId)
   session.value = detail || {}
-  assignAdminId.value = session.value.assignedAdminId || null
 }
 
 async function loadMessages() {
@@ -228,22 +204,15 @@ async function loadAll() {
   loading.value = true
   try {
     await Promise.all([loadSession(), loadMessages()])
+    await nextTick()
+    if (disposed || document.hidden) return
+    session.value = await openSession(sessionId, displayedMessageId())
+    opened.value = true
+    window.dispatchEvent(new Event('admin-chat-changed'))
   } catch {
     ElMessage.error('加载会话详情失败')
   } finally {
     loading.value = false
-  }
-}
-
-async function loadAdmins() {
-  adminLoading.value = true
-  try {
-    const res = await listAdmins()
-    adminOptions.value = Array.isArray(res) ? res : []
-  } catch {
-    adminOptions.value = []
-  } finally {
-    adminLoading.value = false
   }
 }
 
@@ -256,6 +225,7 @@ function handleKeydown(e) {
 }
 
 async function handleSend() {
+  if (loading.value || !isHandler.value || sending.value) return
   const content = draft.value.trim()
   if (!content) {
     ElMessage.warning('请输入回复内容')
@@ -277,21 +247,6 @@ async function handleSend() {
   }
 }
 
-async function handleAssign() {
-  if (!assignAdminId.value) return
-  assigning.value = true
-  try {
-    await assignAdmin(sessionId, assignAdminId.value)
-    ElMessage.success('已分配处理管理员')
-    // 处理人变更会在服务端写入系统提示，立即刷新会话与消息流让提示马上可见
-    await Promise.all([loadSession(), loadMessages()])
-  } catch {
-    // ignore
-  } finally {
-    assigning.value = false
-  }
-}
-
 async function handleChangeStatus(action) {
   acting.value = true
   try {
@@ -305,39 +260,48 @@ async function handleChangeStatus(action) {
   }
 }
 
-async function handleMarkRead() {
-  markingRead.value = true
-  try {
-    await markSessionRead(sessionId)
-    ElMessage.success('已标记已读')
-    await loadSession()
-  } catch {
-    // ignore
-  } finally {
-    markingRead.value = false
-  }
+function displayedMessageId() {
+  return messages.value.reduce((max, message) => Math.max(max, Number(message.messageId) || 0), 0)
+}
+
+async function readDisplayedMessages() {
+  if (document.hidden || !isHandler.value) return
+  const unread = messages.value.filter(message => String(message.senderId) === String(session.value.user1Id) && !message.isRead)
+  if (!unread.length) return
+  await nextTick()
+  if (disposed || document.hidden || !isHandler.value) return
+  await markSessionRead(sessionId, displayedMessageId())
+  unread.forEach(message => { message.isRead = true })
+  window.dispatchEvent(new Event('admin-chat-changed'))
 }
 
 function goBack() {
-  router.push({ path: '/appuser/chat-sessions' })
+  router.push(route.query.from === 'messages' ? { path: '/support/messages', query: { tab: 'chat' } } : { path: '/appuser/chat-sessions' })
 }
 
-// 30s 轮询刷新消息（管理端多坐席，非实时推送）
-const POLL_INTERVAL_MS = 30000
-let timer = null
-function poll() {
-  if (!document.hidden && sessionId && !isClosed.value) {
-    loadMessages()
-  }
+// 5s 轮询刷新会话与消息，页面隐藏时暂停。
+const POLL_INTERVAL_MS = 5000
+let timer = null, refreshing = false, disposed = false
+async function poll() {
+  if (document.hidden || !sessionId || refreshing || disposed) return
+  if (!opened.value) { if (!loading.value) await loadAll(); return }
+  refreshing = true
+  try {
+    await Promise.all([loadSession(), loadMessages()])
+    if (!disposed) await readDisplayedMessages()
+  } catch { /* 后续刷新重试，不改变处理人。 */ }
+  finally { refreshing = false }
 }
 
 onMounted(async () => {
-  await Promise.all([loadAll(), loadAdmins()])
+  await loadAll()
+  if (disposed) return
   timer = setInterval(poll, POLL_INTERVAL_MS)
   document.addEventListener('visibilitychange', poll)
 })
 
 onUnmounted(() => {
+  disposed = true
   if (timer) clearInterval(timer)
   document.removeEventListener('visibilitychange', poll)
 })
@@ -373,8 +337,6 @@ onUnmounted(() => {
 .side-block:last-child { border-bottom: 0; margin-bottom: 0; }
 .side-title { font-size: 13px; font-weight: 600; color: #1f2329; margin-bottom: 12px; }
 .biz-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #303133; }
-.assign-row { display: flex; gap: 8px; align-items: center; }
-.assign-current { margin-top: 8px; font-size: 12px; color: #8a8f99; }
 .status-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 900px) { .chat-detail { flex-direction: column; } .chat-side { width: 100%; min-width: 0; } }
 </style>

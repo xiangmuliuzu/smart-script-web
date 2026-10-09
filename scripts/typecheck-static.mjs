@@ -126,7 +126,7 @@ check('A4 detail buttons gated by query permission', () => {
   const files = [
     'src/views/user/UserManage.vue',
     'src/views/user/realname/index.vue',
-    'src/views/user/message/index.vue',
+    'src/components/messages/UserMessageManager.vue',
     'src/views/user/feedback/index.vue'
   ]
   const missing = []
