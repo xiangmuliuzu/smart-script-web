@@ -54,6 +54,8 @@
               </el-breadcrumb>
             </div>
             <div class="header-right">
+              <AdminChatInbox />
+              <AdminAnnouncementInbox />
               <el-dropdown @command="handleCommand">
                 <span class="user-info">
                   <el-icon><Avatar /></el-icon>
@@ -86,6 +88,8 @@ import { usePermissionStore } from '@/stores/permission'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Files, Avatar, Right } from '@element-plus/icons-vue'
 import SidebarMenuItem from '@/components/SidebarMenuItem.vue'
+import AdminAnnouncementInbox from '@/components/messages/AdminAnnouncementInbox.vue'
+import AdminChatInbox from '@/components/messages/AdminChatInbox.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -434,6 +438,7 @@ const handleCommand = async (command) => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
 .user-info {

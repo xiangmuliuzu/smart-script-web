@@ -30,7 +30,7 @@
                   type="button"
                   @click="openSession(s)"
                 >
-                  <el-avatar :size="34" :src="s.peerAvatar || undefined"><el-icon><ChatDotRound /></el-icon></el-avatar>
+                  <el-avatar :size="34" :src="avatarUrl(s.peerAvatar) || undefined"><el-icon><ChatDotRound /></el-icon></el-avatar>
                   <div class="session-copy">
                     <div class="session-title">
                       <strong>{{ s.peerName || '平台管理员' }}</strong>
@@ -68,7 +68,7 @@
                   <template v-for="m in chatMessages" :key="m.messageId">
                     <div v-if="m.msgType === 'SYSTEM'" class="msg-system">{{ m.content }}</div>
                     <div v-else class="msg-row" :class="{ mine: isMine(m) }">
-                      <el-avatar :size="30" :src="(m.senderAvatar || (isMine(m) ? myAvatar : activeSession.peerAvatar)) || undefined">
+                      <el-avatar :size="30" :src="avatarUrl(m.senderAvatar || (isMine(m) ? myAvatar : activeSession.peerAvatar)) || undefined">
                         <el-icon><UserFilled /></el-icon>
                       </el-avatar>
                       <div class="msg-body">
@@ -104,17 +104,18 @@
       </el-tab-pane>
 
       <!-- ==================== 系统通知 ==================== -->
-      <el-tab-pane label="系统通知" name="notice">
+      <el-tab-pane name="notice">
+        <template #label><span class="tab-label">系统通知<el-badge v-if="notificationUnread > 0" :value="notificationUnread" :max="99" class="tab-badge" /></span></template>
         <div class="messages-panel">
           <div class="message-filters">
             <el-radio-group v-model="filterType" @change="changeType">
               <el-radio-button v-for="item in types" :key="item.value" :value="item.value">{{ item.label }}</el-radio-button>
             </el-radio-group>
-            <el-button class="read-all" :loading="markingAll" @click="handleReadAll">全部标为已读</el-button>
+            <div><el-button :disabled="loading" @click="loadMessages()">刷新通知</el-button><el-button class="read-all" :loading="markingAll" @click="handleReadAll">全部标为已读</el-button></div>
           </div>
           <div v-loading="loading" class="message-list">
             <div v-if="loadError && !loading" class="message-error"><el-alert title="消息加载失败" type="error" :closable="false" show-icon /><el-button @click="loadMessages">重新加载</el-button></div>
-            <button v-for="item in messages" :key="item.messageId" class="message-row" type="button" @click="openMessage(item)">
+            <button v-for="item in messages" :key="`${item.source || 'NOTIFICATION'}:${item.messageId}`" class="message-row" type="button" @click="openMessage(item)">
               <span class="unread-dot" :class="{ hidden: item.read }" aria-hidden="true" />
               <div class="message-copy"><div class="message-title"><strong>{{ item.title || '未命名消息' }}</strong><el-tag size="small" type="info">{{ typeLabel(item.type) }}</el-tag></div><p>{{ item.summary || '点击查看消息内容' }}</p></div>
               <span class="message-time">{{ formatTime(item.createdAt) }}</span>
@@ -163,6 +164,8 @@
 </template>
 
 <script setup>
+import { userAnnouncements } from '@/api/announcements'
+import { avatarUrl } from '@/utils/avatarUrl'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -184,6 +187,7 @@ const pcUnreadStore = usePcUnreadStore()
 const pcUserStore = usePcUserStore()
 const router = useRouter()
 
+const notificationUnread = computed(() => pcUnreadStore.notifyUnread + pcUnreadStore.announcementUnread)
 const activeTab = ref('chat')
 const myAvatar = computed(() => pcUserStore.user?.avatar || '')
 
@@ -204,24 +208,28 @@ const markingAll = ref(false)
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
-const noticeLoaded = ref(false)
+let noticeGeneration = 0
 
 function typeLabel(type) { return types.find(item => item.value === type)?.label || type || '消息' }
 function changeType() { pageNum.value = 1; loadMessages() }
 
-async function loadMessages() {
-  loading.value = true
-  loadError.value = false
+async function loadMessages(silent = false) {
+  silent = silent === true
+  if (silent && loading.value) return
+  const generation = ++noticeGeneration
+  if (!silent) { loading.value = true; loadError.value = false }
   try {
-    const data = await listMessages({ pageNum: pageNum.value, pageSize, type: filterType.value || undefined })
+    const data = await listMessages({ pageNum: pageNum.value, pageSize, type: filterType.value || undefined, includeAnnouncements: true }, { silent })
+    if (generation !== noticeGeneration) return
     messages.value = Array.isArray(data?.list) ? data.list : []
     total.value = Number(data?.total || 0)
-    noticeLoaded.value = true
+    loadError.value = false
   } catch {
+    if (generation !== noticeGeneration || silent) return
     messages.value = []
     total.value = 0
     loadError.value = true
-  } finally { loading.value = false }
+  } finally { if (generation === noticeGeneration) loading.value = false }
 }
 
 async function openMessage(item) {
@@ -229,9 +237,13 @@ async function openMessage(item) {
   detailLoading.value = true
   detail.value = { ...item, content: '' }
   try {
-    detail.value = await getMessage(item.messageId)
+    const isAnnouncement = item.source === 'ANNOUNCEMENT'
+    if (isAnnouncement) {
+      const result = await userAnnouncements.detail(item.messageId)
+      detail.value = { ...item, content: result.noticeContent }
+    } else detail.value = await getMessage(item.messageId)
     if (!item.read) {
-      await markMessageRead(item.messageId)
+      await (isAnnouncement ? userAnnouncements.read(item.messageId) : markMessageRead(item.messageId))
       item.read = true
       pcUnreadStore.refresh()
     }
@@ -243,7 +255,7 @@ async function openMessage(item) {
 async function handleReadAll() {
   markingAll.value = true
   try {
-    await markAllMessagesRead()
+    await markAllMessagesRead({ includeAnnouncements: true })
     messages.value.forEach(item => { item.read = true })
     pcUnreadStore.refresh()
     ElMessage.success('已全部标为已读')
@@ -268,15 +280,13 @@ const isSessionClosed = computed(() => Number(activeSession.value?.status) === 2
 
 function chatStatusLabel(status) {
   const s = Number(status)
-  if (s === 0) return '待处理'
-  if (s === 1) return '处理中'
+  if (s === 0 || s === 1) return '进行中'
   if (s === 2) return '已结束'
   return '未知'
 }
 function chatStatusTag(status) {
   const s = Number(status)
-  if (s === 0) return 'warning'
-  if (s === 1) return 'primary'
+  if (s === 0 || s === 1) return 'primary'
   return 'info'
 }
 function businessTypeLabel(type) {
@@ -454,11 +464,11 @@ async function handleCreateSession() {
 }
 
 function onTabChange(name) {
-  if (name === 'notice' && !noticeLoaded.value) loadMessages()
+  if (name === 'notice') { loadMessages(); pcUnreadStore.refresh() }
 }
 
 /* ==================== 轮询与生命周期 ==================== */
-const POLL_INTERVAL_MS = 30000
+const POLL_INTERVAL_MS = 5000
 let timer = null
 function poll() {
   if (document.hidden) return
@@ -466,6 +476,7 @@ function poll() {
     loadSessions()
     if (activeSession.value && !isSessionClosed.value) loadChatMessages()
   }
+  if (activeTab.value === 'notice') loadMessages(true)
   pcUnreadStore.refresh()
 }
 
@@ -477,6 +488,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  noticeGeneration++
   if (timer) clearInterval(timer)
   document.removeEventListener('visibilitychange', poll)
 })

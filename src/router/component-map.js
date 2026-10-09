@@ -40,6 +40,8 @@ import UserProfileRec from '@/views/operation/UserProfileRec.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
 import UserRealName from '@/views/user/realname/index.vue'
 import UserMessage from '@/views/user/message/index.vue'
+import MessagesAnnouncements from '@/views/support/MessagesAnnouncements.vue'
+import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import AiOperations from '@/views/system/AiOperations.vue'
@@ -99,6 +101,8 @@ export const componentMap = {
   'user/UserManage': UserManageProduct,
   'user/realname/index': UserRealName,
   'user/message/index': UserMessage,
+  'support/MessagesAnnouncements': MessagesAnnouncements,
+  'support/ReceivedAnnouncements': ReceivedAnnouncements,
   'user/feedback/index': UserFeedback,
   'risk/RiskManage': RiskManage,
   'system/AiOperations': AiOperations,

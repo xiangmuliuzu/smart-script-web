@@ -13,7 +13,7 @@
           </el-sub-menu>
           <el-menu-item index="/pc/user/messages">
             <el-icon><ChatLineSquare /></el-icon><span>消息与沟通</span>
-            <!-- A3 会话未读已接入：两来源（通知+会话）均成功时显示数字合计，任一失败降级为圆点 -->
+            <!-- 通知、会话、公告三个来源均成功时显示数字合计，任一失败降级为圆点 -->
             <el-badge v-if="unreadBadge" :value="unreadBadge" class="menu-badge" />
             <el-badge v-else-if="pcUnreadStore.showPartialDot" is-dot class="menu-badge" title="有未读消息" />
           </el-menu-item>
@@ -21,7 +21,7 @@
         </el-menu>
       </el-scrollbar>
       <div class="portal-account">
-        <el-avatar :size="34" :src="pcUserStore.user?.avatar || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
+        <el-avatar :size="34" :src="avatarUrl(pcUserStore.user?.avatar) || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
         <div class="account-copy"><strong>{{ pcUserStore.displayName }}</strong><small>{{ userTypeLabel }}</small></div>
         <el-button text class="logout-button" title="退出登录" aria-label="退出登录" @click="handleLogout"><el-icon><Right /></el-icon></el-button>
       </div>
@@ -45,6 +45,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Files, House, Document, ChatLineSquare, User, UserFilled, Right, Avatar } from '@element-plus/icons-vue'
 import { usePcUserStore } from '@/stores/pcUser'
+import { avatarUrl } from '@/utils/avatarUrl'
 import { usePcUnreadStore } from '@/stores/pcUnread'
 import { userTypeLabel as userTypeText } from '@/utils/pcFormat'
 
