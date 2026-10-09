@@ -54,7 +54,7 @@
               <div class="conv-head">
                 <strong>{{ activeSession.peerName || '平台管理员' }}</strong>
                 <el-tag size="small" :type="chatStatusTag(activeSession.status)">{{ chatStatusLabel(activeSession.status) }}</el-tag>
-                <span v-if="activeSession.businessName" class="conv-biz">{{ businessTypeLabel(activeSession.businessType) }} · {{ activeSession.businessName }}</span>
+                <span v-if="activeSession.businessName" class="conv-biz">{{ businessTypeLabel(activeSession.businessType) }} · <el-link v-if="canJumpBusiness(activeSession)" class="biz-link" :underline="false" @click="goBusiness(activeSession)">{{ activeSession.businessName }}</el-link><template v-else>{{ activeSession.businessName }}</template></span>
               </div>
               <el-scrollbar ref="convScrollRef" class="conv-scroll">
                 <div v-loading="messagesLoading" class="conv-messages">
@@ -128,6 +128,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, UserFilled } from '@element-plus/icons-vue'
 import { listMessages, getMessage, markMessageRead, markAllMessagesRead } from '@/api/pcUser'
@@ -143,6 +144,7 @@ import { usePcUserStore } from '@/stores/pcUser'
 
 const pcUnreadStore = usePcUnreadStore()
 const pcUserStore = usePcUserStore()
+const router = useRouter()
 
 const activeTab = ref('chat')
 const myAvatar = computed(() => pcUserStore.user?.avatar || '')
@@ -242,6 +244,13 @@ function chatStatusTag(status) {
 function businessTypeLabel(type) {
   const map = { WORK: '作品', SEAL: '印章', COPYRIGHT: '版权', ORDER: '订单', GENERAL: '通用咨询' }
   return map[type] || (type || '通用咨询')
+}
+// 任务 16：关联作品跳转——用户门户目前仅有作品详情页，WORK 类型且带 businessId 时可点击
+function canJumpBusiness(s) {
+  return s.businessType === 'WORK' && Number(s.businessId) > 0
+}
+function goBusiness(s) {
+  router.push(`/pc/user/works/${s.businessId}`)
 }
 function formatTime(value) { return value ? String(value).replace('T', ' ').slice(0, 16) : '—' }
 function shortTime(value) {
@@ -375,6 +384,7 @@ onUnmounted(() => {
 .session-badge :deep(.el-badge__content){background-color:#f56c6c;border:0}
 .conversation-pane{flex:1;min-width:0;display:flex;flex-direction:column}
 .conv-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #edf0f2}.conv-head strong{font-size:15px;color:#1f2329}.conv-biz{margin-left:auto;color:#8a8f99;font-size:12px}
+.biz-link{font-size:12px;vertical-align:baseline}.biz-link :deep(.el-link__inner){color:#409eff;font-size:12px}
 .conv-scroll{flex:1;min-height:0;background:#fafbfc}
 .conv-messages{padding:18px;display:flex;flex-direction:column;gap:16px;min-height:100%}
 .conv-empty,.conv-placeholder{color:#a8abb2}

@@ -212,6 +212,8 @@
         </el-descriptions-item>
       </el-descriptions>
       <template #footer>
+        <!-- A3 联系用户入口（任务 25）：待作品关联真实 userId 后自动启用 -->
+        <el-button type="primary" plain :disabled="!currentDetail.userId" @click="handleContactUser(currentDetail)">联系用户</el-button>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
@@ -253,6 +255,16 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useContactUser } from '@/composables/useContactUser'
+
+// A3 联系用户（任务 25）：复用公共 composable 创建会话并跳转聊天详情
+const { handleContactUser } = useContactUser({
+  businessType: 'WORK',
+  extractUserId: (row) => row.userId,
+  extractBusinessId: (row) => row.workId || row.reviewId,
+  extractBusinessName: (row) => row.name || row.workName,
+  emptyMessage: '该作品暂未关联用户，无法发起沟通'
+})
 
 // 筛选表单
 const filterForm = ref({

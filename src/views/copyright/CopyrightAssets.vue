@@ -52,7 +52,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="240" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <div class="asset-actions">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
@@ -67,6 +67,8 @@
             >
               {{ row.status === 'on_shelf' ? '下架' : '上架' }}
             </el-button>
+            <!-- A3 联系用户入口（任务 26）：待版权资产关联真实 userId 后自动启用 -->
+            <el-button link type="primary" :disabled="!row.userId" @click="handleContactUser(row)">联系用户</el-button>
           </div>
         </template>
       </el-table-column>
@@ -133,6 +135,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useContactUser } from '@/composables/useContactUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -144,6 +147,7 @@ import {
   getCopyrightAuthorizationHistory,
   updateCopyrightAssetStatus
 } from '@/api/copyright'
+
 
 defineOptions({ name: 'CopyrightAssets' })
 
@@ -311,6 +315,15 @@ function openHistory(row) {
   historyVisible.value = true
   loadHistory()
 }
+
+// A3 联系用户（任务 26）：复用公共 composable 创建会话并跳转聊天详情
+const { handleContactUser } = useContactUser({
+  businessType: 'COPYRIGHT',
+  extractUserId: (row) => row.userId,
+  extractBusinessId: (row) => row.workId,
+  extractBusinessName: (row) => row.workName || row.title,
+  emptyMessage: '该版权资产暂未关联用户，无法发起沟通'
+})
 
 async function loadHistory() {
   if (historyWorkId.value == null) return

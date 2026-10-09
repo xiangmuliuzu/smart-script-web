@@ -53,7 +53,7 @@
         <template #default="{ row }">{{ row.rejectReason || '—' }}</template>
       </el-table-column>
       <el-table-column prop="createTime" label="申请时间" width="170" />
-      <el-table-column label="操作" width="210" fixed="right">
+      <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">查看材料</el-button>
           <el-button v-if="row.reviewStatus === 'pending'" v-permission="'smartscript:copyright:seals:audit'" link type="primary" @click="openReview(row)">审核</el-button>
@@ -61,6 +61,8 @@
           <el-button v-if="row.reviewStatus === 'approved' && ['disabled', 'enabled'].includes(row.sealStatus)" v-permission="'smartscript:copyright:seals:status'" class="seal-status-button" :type="row.sealStatus === 'enabled' ? 'danger' : 'success'" :loading="statusChangingSealId === row.sealId" :disabled="statusChangingSealId !== null && statusChangingSealId !== row.sealId" @click="changeStatus(row)">
             {{ row.sealStatus === 'enabled' ? '停用' : '启用' }}
           </el-button>
+          <!-- A3 联系用户入口（任务 27）：待印章申请关联真实 userId 后自动启用 -->
+          <el-button link type="primary" :disabled="!row.userId" @click="handleContactUser(row)">联系用户</el-button>
         </template>
       </el-table-column>
     </TableCard>
@@ -157,12 +159,14 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useContactUser } from '@/composables/useContactUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { getCopyrightSealList, getCopyrightSealDetail, getCopyrightSealLogs, reviewCopyrightSeal, updateCopyrightSealStatus, resolveAbnormalCopyrightSeal } from '@/api/copyright'
+
 
 defineOptions({ name: 'CopyrightSealReview' })
 
@@ -312,6 +316,15 @@ function openReview(row) {
   reviewForm.value = { sealId: row.sealId, action: 'approve', reason: '' }
   reviewVisible.value = true
 }
+
+// A3 联系用户（任务 27）：复用公共 composable 创建会话并跳转聊天详情
+const { handleContactUser } = useContactUser({
+  businessType: 'SEAL',
+  extractUserId: (row) => row.userId,
+  extractBusinessId: (row) => row.sealId,
+  extractBusinessName: (row) => row.sealName,
+  emptyMessage: '该印章申请暂未关联用户，无法发起沟通'
+})
 
 async function submitReview() {
   if (reviewSubmitting.value) return

@@ -78,6 +78,19 @@
         </div>
 
         <div class="side-block">
+          <div class="side-title">关联业务</div>
+          <div class="biz-summary">
+            <span>{{ businessTypeLabel(session.businessType) }}<template v-if="session.businessName"> · {{ session.businessName }}</template></span>
+            <el-button
+              v-if="businessRoute"
+              link
+              type="primary"
+              @click="goBusiness"
+            >查看{{ businessTypeLabel(session.businessType) }}详情</el-button>
+          </div>
+        </div>
+
+        <div class="side-block">
           <div class="side-title">分配处理管理员</div>
           <div class="assign-row">
             <el-select v-model="assignAdminId" placeholder="选择管理员" filterable style="flex: 1" :loading="adminLoading">
@@ -162,6 +175,20 @@ function statusTagType(status) {
 function businessTypeLabel(type) {
   const map = { WORK: '作品', SEAL: '印章', COPYRIGHT: '版权', ORDER: '订单', GENERAL: '通用' }
   return map[type] || (type || '通用')
+}
+// 任务 21：关联业务跳转——业务类型对应管理端页面；GENERAL 或无路由时不出按钮
+const businessRouteMap = {
+  WORK: '/copyright/ai-review/review',
+  COPYRIGHT: '/copyright/assets',
+  ORDER: '/trade/orders',
+  SEAL: '/copyright/seals'
+}
+const businessRoute = computed(() => {
+  const path = businessRouteMap[session.value.businessType]
+  return path && Number(session.value.businessId) > 0 ? path : null
+})
+function goBusiness() {
+  router.push({ path: businessRoute.value, query: { businessId: session.value.businessId } })
 }
 function formatTime(value) {
   return value ? String(value).replace('T', ' ').slice(0, 19) : '—'
@@ -329,6 +356,7 @@ onUnmounted(() => {
 .side-block { padding: 4px 0 18px; border-bottom: 1px solid #f0f0f0; margin-bottom: 16px; }
 .side-block:last-child { border-bottom: 0; margin-bottom: 0; }
 .side-title { font-size: 13px; font-weight: 600; color: #1f2329; margin-bottom: 12px; }
+.biz-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #303133; }
 .assign-row { display: flex; gap: 8px; align-items: center; }
 .assign-current { margin-top: 8px; font-size: 12px; color: #8a8f99; }
 .status-actions { display: flex; flex-wrap: wrap; gap: 8px; }
