@@ -144,8 +144,8 @@
       </template>
       <el-table :data="reviewLogs" style="width: 100%">
         <el-table-column prop="time" label="时间" width="160" />
-        <el-table-column prop="operator" label="操作人" width="120" />
-        <el-table-column prop="work" label="作品" min-width="150" />
+        <el-table-column prop="operatorName" label="操作人" width="120" />
+        <el-table-column prop="workTitle" label="作品" min-width="150" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-tag :type="getActionType(row.action)" size="small">
@@ -163,12 +163,12 @@
       width="600px"
     >
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="作品名称">{{ currentReview.name }}</el-descriptions-item>
-        <el-descriptions-item label="作者">{{ currentReview.author }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentReview.type }}</el-descriptions-item>
-        <el-descriptions-item label="题材">{{ currentReview.genre }}</el-descriptions-item>
+        <el-descriptions-item label="作品名称">{{ currentReview.workTitle }}</el-descriptions-item>
+        <el-descriptions-item label="作者">{{ currentReview.authorName }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ currentReview.workType }}</el-descriptions-item>
+        <el-descriptions-item label="题材">{{ currentReview.genreName }}</el-descriptions-item>
         <el-descriptions-item label="AI评分">{{ currentReview.aiScore != null ? currentReview.aiScore + '分' : '-' }}</el-descriptions-item>
-        <el-descriptions-item label="提交时间">{{ currentReview.submitTime }}</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ currentReview.createTime }}</el-descriptions-item>
       </el-descriptions>
       <el-form :model="reviewForm" label-width="80px" style="margin-top: 20px">
         <el-form-item label="审核结果">
@@ -199,12 +199,12 @@
       width="700px"
     >
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="作品名称">{{ currentDetail.name }}</el-descriptions-item>
-        <el-descriptions-item label="作者">{{ currentDetail.author }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentDetail.type }}</el-descriptions-item>
-        <el-descriptions-item label="题材">{{ currentDetail.genre }}</el-descriptions-item>
+        <el-descriptions-item label="作品名称">{{ currentDetail.workTitle }}</el-descriptions-item>
+        <el-descriptions-item label="作者">{{ currentDetail.authorName }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ currentDetail.workType }}</el-descriptions-item>
+        <el-descriptions-item label="题材">{{ currentDetail.genreName }}</el-descriptions-item>
         <el-descriptions-item label="AI评分">{{ currentDetail.aiScore != null ? currentDetail.aiScore + '分' : '-' }}</el-descriptions-item>
-        <el-descriptions-item label="提交时间">{{ currentDetail.submitTime }}</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ currentDetail.createTime }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentDetail.status)" size="small">
             {{ getStatusText(currentDetail.status) }}
@@ -394,7 +394,7 @@ const handleSubmitReview = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        reviewId: currentReview.value.id,
+        reviewId: currentReview.value.reviewId,
         status: reviewForm.value.action === 'approve' ? 'approved' : 'rejected',
         reviewOpinion: reviewForm.value.remark,
         reviewerId: 1
@@ -522,8 +522,8 @@ const loadLogs = async () => {
     if (data.code === 200) {
       reviewLogs.value = (data.rows || []).map(item => ({
         time: item.createTime || '',
-        operator: item.operator || '',
-        work: item.reviewId || '',
+        operatorName: item.operatorName || '',
+        workTitle: item.workTitle || '',
         action: item.action || '',
         remark: (item.beforeStatus || '') + ' → ' + (item.afterStatus || '')
       }))
