@@ -24,12 +24,12 @@
             </div>
           </template>
           <el-table :data="violationList" style="width: 100%">
-            <el-table-column prop="content" label="内容" min-width="200" />
-            <el-table-column prop="type" label="类型" width="140" />
-            <el-table-column label="严重度" width="120">
+            <el-table-column prop="description" label="内容" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="targetType" label="类型" width="140" />
+            <el-table-column label="举报原因" width="120">
               <template #default="{ row }">
-                <el-tag :type="getSeverityType(row.severity)" size="small">
-                  {{ row.severity }}
+                <el-tag :type="getSeverityType(row.reason)" size="small">
+                  {{ row.reason || '-' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -62,8 +62,8 @@
             </div>
           </template>
           <el-table :data="ruleList" style="width: 100%">
-            <el-table-column prop="rule" label="规则" min-width="160" />
-            <el-table-column prop="condition" label="触发条件" width="140" />
+            <el-table-column prop="ruleName" label="规则" min-width="160" />
+            <el-table-column prop="ruleContent" label="触发条件" width="140" />
             <el-table-column prop="action" label="处理方式" width="140" />
             <el-table-column label="状态" width="120">
               <template #default="{ row }">
@@ -86,17 +86,21 @@
         </div>
       </template>
       <el-table :data="blacklistData" style="width: 100%">
-        <el-table-column prop="object" label="对象" min-width="180" />
+        <el-table-column prop="targetValue" label="对象" min-width="180" />
         <el-table-column label="类型" width="140">
           <template #default="{ row }">
             <el-tag type="danger" size="small">
-              {{ row.type }}
+              {{ row.targetType }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="reason" label="原因" min-width="200" />
-        <el-table-column prop="addTime" label="加入时间" width="160" />
-        <el-table-column prop="validity" label="有效期" width="120" />
+        <el-table-column prop="createTime" label="加入时间" width="160" />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.status == 1 ? 'success' : 'danger'" size="small">{{ row.status == 1 ? '生效' : '失效' }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button size="small" @click="handleRemove(row)">移除</el-button>
@@ -160,6 +164,24 @@
         <el-button type="primary" @click="handleSubmitBlacklist">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 违规内容详情弹窗 -->
+    <el-dialog v-model="reportDetailVisible" title="违规内容详情" width="520px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="举报ID">{{ reportDetail.reportId }}</el-descriptions-item>
+        <el-descriptions-item label="举报人ID">{{ reportDetail.userId }}</el-descriptions-item>
+        <el-descriptions-item label="内容类型">{{ reportDetail.targetType }}</el-descriptions-item>
+        <el-descriptions-item label="目标ID">{{ reportDetail.targetId }}</el-descriptions-item>
+        <el-descriptions-item label="举报原因">{{ reportDetail.reason }}</el-descriptions-item>
+        <el-descriptions-item label="内容描述">{{ reportDetail.description }}</el-descriptions-item>
+        <el-descriptions-item label="处理状态">{{ reportDetail.status === 'pending' ? '待处理' : '已处理' }}</el-descriptions-item>
+        <el-descriptions-item label="处理结果">{{ reportDetail.handleResult || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="举报时间">{{ reportDetail.createTime || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="reportDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -184,21 +206,30 @@ const blacklistData = ref([])
 
 // 页面加载时获取数据
 import { onMounted } from 'vue'
+import adminFetch from '@/utils/adminFetch'
 
 onMounted(async () => {
   try {
     // 获取风控规则列表
-    const ruleRes = await fetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
+    const ruleRes = await adminFetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
     const ruleData = await ruleRes.json()
     if (ruleData.code === 200) {
       ruleList.value = ruleData.rows || []
     }
 
-    // 获取违规内容列表（暂时用风控规则数据代替）
-    violationList.value = []
-    
-    // 获取黑名单数据（暂时空）
-    blacklistData.value = []
+    // 获取违规内容列表（举报记录）
+    const vRes = await adminFetch('/api/v1/admin/review/report/list?page=1&pageSize=10')
+    const vData = await vRes.json()
+    if (vData.code === 200) {
+      violationList.value = vData.rows || []
+    }
+
+    // 获取黑名单列表
+    const blRes = await adminFetch('/api/v1/admin/review/blacklist/list?page=1&pageSize=10')
+    const blData = await blRes.json()
+    if (blData.code === 200) {
+      blacklistData.value = blData.rows || []
+    }
   } catch (e) {
     console.error('获取风控数据失败:', e)
   }
@@ -208,28 +239,69 @@ onMounted(async () => {
 const getSeverityType = (severity) => {
   if (severity === '高') return 'danger'
   if (severity === '中') return 'warning'
-  return ''
+  return 'info'
 }
 
 // 处理违规内容
-const handleProcess = (row) => {
-  ElMessage.info(`处理违规内容：${row.content}`)
+const handleProcess = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认处理该违规内容：${row.description || row.targetId}？`, '处理确认', {
+      confirmButtonText: '确认处理',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await adminFetch('/api/v1/admin/review/report/handle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId: row.reportId, status: 'handled', handleResult: '已人工处理' })
+    })
+    ElMessage.success(`已处理：${row.description || row.targetId}`)
+    const res = await adminFetch('/api/v1/admin/review/report/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      violationList.value = data.rows || []
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error('处理失败，请重试')
+    }
+  }
 }
 
-// 查看详情
-const handleDetail = (row) => {
-  ElMessage.info(`查看详情：${row.content}`)
+// 查看详情（弹窗展示，调详情接口）
+const reportDetailVisible = ref(false)
+const reportDetail = ref({})
+const handleDetail = async (row) => {
+  try {
+    const res = await adminFetch(`/api/v1/admin/review/report/detail/${row.reportId}`)
+    const data = await res.json()
+    if (data.code === 200) {
+      reportDetail.value = data.data || row
+    } else {
+      reportDetail.value = row
+    }
+    reportDetailVisible.value = true
+  } catch (e) {
+    reportDetail.value = row
+    reportDetailVisible.value = true
+  }
 }
 
 // 移除黑名单
 const handleRemove = async (row) => {
   try {
-    await ElMessageBox.confirm(`确认移除黑名单 "${row.object}" 吗？`, '提示', {
+    await ElMessageBox.confirm(`确认移除黑名单 "${row.targetValue}" 吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    ElMessage.success(`已移除：${row.object}`)
+    await adminFetch(`/api/v1/admin/review/blacklist/${row.id}`, { method: 'DELETE' })
+    ElMessage.success(`已移除：${row.targetValue}`)
+    const res = await adminFetch('/api/v1/admin/review/blacklist/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      blacklistData.value = data.rows || []
+    }
   } catch {
     // 用户取消操作
   }
@@ -246,21 +318,27 @@ const ruleForm = ref({
 })
 
 const handleAddRule = () => {
-  ruleForm.value = { rule: '', condition: '', action: '' }
+  ruleForm.value = { rule_name: '', rule_type: '', trigger_condition: '', action: '', threshold: 80 }
   ruleDialogVisible.value = true
 }
 
 const handleSubmitRule = async () => {
   try {
-    await fetch('/api/v1/admin/review/risk-rule/create', {
+    await adminFetch('/api/v1/admin/review/risk-rule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ruleForm.value)
+      body: JSON.stringify({
+        ruleName: ruleForm.value.rule_name,
+        ruleType: ruleForm.value.rule_type,
+        ruleContent: ruleForm.value.trigger_condition,
+        threshold: ruleForm.value.threshold,
+        action: ruleForm.value.action
+      })
     })
     ElMessage.success('新增规则成功')
     ruleDialogVisible.value = false
     // 刷新列表
-    const res = await fetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/review/risk-rule/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       ruleList.value = data.rows || []
@@ -285,7 +363,7 @@ const handleAddBlacklist = () => {
 
 const handleSubmitBlacklist = async () => {
   try {
-    await fetch('/api/v1/admin/review/blacklist/create', {
+    await adminFetch('/api/v1/admin/review/blacklist/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(blacklistForm.value)
@@ -293,7 +371,7 @@ const handleSubmitBlacklist = async () => {
     ElMessage.success('添加黑名单成功')
     blacklistDialogVisible.value = false
     // 刷新列表
-    const res = await fetch('/api/v1/admin/review/blacklist/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/review/blacklist/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       blacklistData.value = data.rows || []

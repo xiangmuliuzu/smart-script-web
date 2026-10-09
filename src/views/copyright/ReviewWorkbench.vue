@@ -97,15 +97,15 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" />
-        <el-table-column prop="id" label="编号" width="100" />
-        <el-table-column prop="name" label="作品名称" min-width="180" />
-        <el-table-column prop="type" label="类型" width="120" />
-        <el-table-column prop="genre" label="题材" width="100" />
-        <el-table-column prop="author" label="作者" width="120" />
-        <el-table-column prop="submitTime" label="提交时间" width="160" />
+        <el-table-column prop="reviewId" label="编号" width="100" />
+        <el-table-column prop="workTitle" label="作品名称" min-width="180" />
+        <el-table-column prop="workType" label="类型" width="120" />
+        <el-table-column prop="genreName" label="题材" width="100" />
+        <el-table-column prop="authorName" label="作者" width="120" />
+        <el-table-column prop="createTime" label="提交时间" width="160" />
         <el-table-column label="AI评分" width="100">
           <template #default="{ row }">
-            <span :class="getScoreClass(row.aiScore)">{{ row.aiScore }}分</span>
+            <span :class="getScoreClass(row.aiScore)">{{ row.aiScore != null ? row.aiScore + '分' : '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="120">
@@ -167,7 +167,7 @@
         <el-descriptions-item label="作者">{{ currentReview.author }}</el-descriptions-item>
         <el-descriptions-item label="类型">{{ currentReview.type }}</el-descriptions-item>
         <el-descriptions-item label="题材">{{ currentReview.genre }}</el-descriptions-item>
-        <el-descriptions-item label="AI评分">{{ currentReview.aiScore }}分</el-descriptions-item>
+        <el-descriptions-item label="AI评分">{{ currentReview.aiScore != null ? currentReview.aiScore + '分' : '-' }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ currentReview.submitTime }}</el-descriptions-item>
       </el-descriptions>
       <el-form :model="reviewForm" label-width="80px" style="margin-top: 20px">
@@ -203,7 +203,7 @@
         <el-descriptions-item label="作者">{{ currentDetail.author }}</el-descriptions-item>
         <el-descriptions-item label="类型">{{ currentDetail.type }}</el-descriptions-item>
         <el-descriptions-item label="题材">{{ currentDetail.genre }}</el-descriptions-item>
-        <el-descriptions-item label="AI评分">{{ currentDetail.aiScore }}分</el-descriptions-item>
+        <el-descriptions-item label="AI评分">{{ currentDetail.aiScore != null ? currentDetail.aiScore + '分' : '-' }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ currentDetail.submitTime }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentDetail.status)" size="small">
@@ -305,11 +305,12 @@ const reviewLogs = ref([])
 
 // 页面加载时获取数据
 import { onMounted } from 'vue'
+import adminFetch from '@/utils/adminFetch'
 
 onMounted(async () => {
   try {
     // 获取审核统计
-    const statsRes = await fetch('/api/v1/admin/review/statistics')
+    const statsRes = await adminFetch('/api/v1/admin/review/statistics')
     const statsData = await statsRes.json()
     if (statsData.code === 200) {
       statistics.value = {
@@ -389,7 +390,7 @@ const handleReview = (row) => {
 // 提交审核结果
 const handleSubmitReview = async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/operate', {
+    const res = await adminFetch('/api/v1/admin/review/operate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -444,7 +445,7 @@ const handleBatchAssign = () => {
 const handleSubmitAssign = async () => {
   try {
     const ids = selectedWorks.value.map(item => item.id)
-    const res = await fetch('/api/v1/admin/review/batch-assign', {
+    const res = await adminFetch('/api/v1/admin/review/batch-assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -469,7 +470,7 @@ const handleSubmitAssign = async () => {
 // 导出审核报告
 const handleExportReport = async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/export')
+    const res = await adminFetch('/api/v1/admin/review/export')
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -486,7 +487,7 @@ const handleExportReport = async () => {
 // 导出审核日志
 const handleExportLogs = async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/logs/export')
+    const res = await adminFetch('/api/v1/admin/review/logs/export')
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -503,7 +504,7 @@ const handleExportLogs = async () => {
 // 加载作品列表
 const loadWorks = async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/review/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       worksList.value = data.rows || []
@@ -516,7 +517,7 @@ const loadWorks = async () => {
 // 加载审核日志
 const loadLogs = async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/logs')
+    const res = await adminFetch('/api/v1/admin/review/logs')
     const data = await res.json()
     if (data.code === 200) {
       reviewLogs.value = (data.rows || []).map(item => ({

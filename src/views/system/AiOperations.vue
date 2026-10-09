@@ -42,22 +42,21 @@
         <div class="table-header">
           <span class="table-title">AI功能次数配置</span>
           <span class="table-count">共{{ configList.length }}条</span>
+          <el-button type="primary" size="default" class="black-button" style="margin-left:auto" @click="handleAdd">新增配置</el-button>
         </div>
       </template>
       <el-table :data="configList" style="width: 100%">
         <el-table-column prop="nickname" label="用户" min-width="150" />
-        <el-table-column prop="available_quota" label="可用配额" width="120" />
-        <el-table-column prop="reserved_quota" label="预留配额" width="120" />
-        <el-table-column prop="total_earned" label="累计获得" width="120" />
-        <el-table-column prop="total_consumed" label="累计消耗" width="120" />
-        <el-table-column prop="total_refunded" label="累计补偿" width="120" />
+        <el-table-column prop="availableQuota" label="可用配额" width="120" />
+        <el-table-column prop="reservedQuota" label="预留配额" width="120" />
+        <el-table-column prop="totalEarned" label="累计获得" width="120" />
+        <el-table-column prop="totalConsumed" label="累计消耗" width="120" />
+        <el-table-column prop="totalRefunded" label="累计补偿" width="120" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button size="small" @click="handleEdit(row)">编辑</el-button>
-              <el-button size="small" @click="handleToggleStatus(row)">
-                调整配额
-              </el-button>
+              <el-button size="small" @click="handleQuota(row)">调整配额</el-button>
             </div>
           </template>
         </el-table-column>
@@ -72,52 +71,36 @@
         </div>
       </template>
       <el-table :data="callRecords" style="width: 100%">
-        <el-table-column prop="created_at" label="时间" width="160" />
-        <el-table-column prop="nickname" label="用户" width="120" />
-        <el-table-column prop="business_type" label="业务类型" min-width="120" />
-        <el-table-column prop="change_type" label="变更类型" width="120">
+        <el-table-column prop="createTime" label="时间" width="160" />
+        <el-table-column prop="userId" label="用户" width="120" />
+        <el-table-column prop="businessType" label="业务类型" min-width="120" />
+        <el-table-column prop="type" label="变更类型" width="120">
           <template #default="{ row }">
             <el-tag :type="getCallTypeTag(row.change_type)" size="small">
               {{ row.change_type }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="change_amount" label="变更数量" width="100" />
-        <el-table-column prop="after_balance" label="变更后余额" width="100" />
+        <el-table-column prop="amount" label="变更数量" width="100" />
+        <el-table-column prop="balance" label="变更后余额" width="100" />
       </el-table>
     </el-card>
 
     <!-- 配置弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogMode === 'add' ? '新增配置' : '编辑配置'"
+      :title="dialogMode === 'add' ? '新增配置' : (dialogMode === 'quota' ? '调整配额' : '编辑配置')"
       width="500px"
     >
       <el-form :model="currentConfig" label-width="100px">
-        <el-form-item label="功能名称">
-          <el-input v-model="currentConfig.name" placeholder="例如：AI大纲生成" />
+        <el-form-item label="用户ID" :disabled="dialogMode !== 'add'">
+          <el-input-number v-model="currentConfig.userId" :min="1" placeholder="用户注册后自动开通，ID见用户表" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="每日限额">
-          <el-input-number v-model="currentConfig.dailyLimit" :min="1" :max="1000" />
+        <el-form-item label="可用配额">
+          <el-input-number v-model="currentConfig.availableQuota" :min="0" />
         </el-form-item>
-        <el-form-item label="单位">
-          <el-select v-model="currentConfig.unit" style="width: 100%">
-            <el-option label="次" value="次" />
-            <el-option label="张" value="张" />
-            <el-option label="章" value="章" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="积分价格">
-          <el-input-number v-model="currentConfig.price" :min="0" />
-        </el-form-item>
-        <el-form-item label="广告奖励次数">
-          <el-input-number v-model="currentConfig.adReward" :min="0" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="currentConfig.status">
-            <el-radio value="enabled">启用</el-radio>
-            <el-radio value="disabled">停用</el-radio>
-          </el-radio-group>
+        <el-form-item label="预留配额">
+          <el-input-number v-model="currentConfig.reservedQuota" :min="0" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -131,6 +114,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import adminFetch from '@/utils/adminFetch'
 
 // 统计数据
 const stats = ref({
@@ -150,7 +134,7 @@ const callRecords = ref([])
 onMounted(async () => {
   try {
     // 获取AI配额统计
-    const statsRes = await fetch('/api/v1/admin/ai/statistics')
+    const statsRes = await adminFetch('/api/v1/admin/ai/quota/statistics')
     const statsData = await statsRes.json()
     if (statsData.code === 200) {
       stats.value = {
@@ -162,14 +146,14 @@ onMounted(async () => {
     }
 
     // 获取配额账户列表
-    const listRes = await fetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
+    const listRes = await adminFetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
     const listData = await listRes.json()
     if (listData.code === 200) {
       configList.value = listData.rows || []
     }
 
     // 获取调用记录
-    const recordsRes = await fetch('/api/v1/admin/ai/quota/records?page=1&pageSize=10')
+    const recordsRes = await adminFetch('/api/v1/admin/ai/quota/record/list?page=1&pageSize=10')
     const recordsData = await recordsRes.json()
     if (recordsData.code === 200) {
       callRecords.value = recordsData.rows || []
@@ -183,13 +167,10 @@ onMounted(async () => {
 const dialogVisible = ref(false)
 const dialogMode = ref('add')
 const currentConfig = reactive({
-  id: null,
-  name: '',
-  dailyLimit: 10,
-  unit: '次',
-  price: 0,
-  adReward: 0,
-  status: 'enabled'
+  accountId: null,
+  userId: null,
+  availableQuota: 0,
+  reservedQuota: 0
 })
 
 // 获取调用类型标签
@@ -207,13 +188,10 @@ const getCallTypeTag = (type) => {
 const handleAdd = () => {
   dialogMode.value = 'add'
   Object.assign(currentConfig, {
-    id: null,
-    name: '',
-    dailyLimit: 10,
-    unit: '次',
-    price: 0,
-    adReward: 0,
-    status: 'enabled'
+    accountId: null,
+    userId: null,
+    availableQuota: 0,
+    reservedQuota: 0
   })
   dialogVisible.value = true
 }
@@ -221,7 +199,12 @@ const handleAdd = () => {
 // 处理编辑
 const handleEdit = (row) => {
   dialogMode.value = 'edit'
-  Object.assign(currentConfig, row)
+  Object.assign(currentConfig, {
+    accountId: row.accountId,
+    userId: row.userId,
+    availableQuota: row.availableQuota,
+    reservedQuota: row.reservedQuota
+  })
   dialogVisible.value = true
 }
 
@@ -230,24 +213,52 @@ const handleSubmit = async () => {
   try {
     if (dialogMode.value === 'add') {
       // 调用后端API新增配置
-      await fetch('/api/v1/admin/ai/quota/create', {
+      await adminFetch('/api/v1/admin/ai/quota', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentConfig)
+        body: JSON.stringify({
+          userId: currentConfig.userId,
+          availableQuota: currentConfig.availableQuota,
+          reservedQuota: currentConfig.reservedQuota
+        })
       })
       ElMessage.success('新增配置成功')
-    } else {
-      // 调用后端API更新配置
-      await fetch(`/api/v1/admin/ai/quota/update/${currentConfig.account_id}`, {
+    } else if (dialogMode.value === 'quota') {
+      await adminFetch('/api/v1/admin/ai/quota', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentConfig)
+        body: JSON.stringify({
+          accountId: currentConfig.accountId,
+          userId: currentConfig.userId,
+          availableQuota: currentConfig.availableQuota,
+          reservedQuota: currentConfig.reservedQuota
+        })
+      })
+      ElMessage.success('配额调整成功')
+      dialogVisible.value = false
+      // 刷新列表
+      const res = await adminFetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
+      const data = await res.json()
+      if (data.code === 200) {
+        configList.value = data.rows || []
+      }
+    } else {
+      // 调用后端API更新配置
+      await adminFetch('/api/v1/admin/ai/quota', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: currentConfig.accountId,
+          userId: currentConfig.userId,
+          availableQuota: currentConfig.availableQuota,
+          reservedQuota: currentConfig.reservedQuota
+        })
       })
       ElMessage.success('更新配置成功')
     }
     dialogVisible.value = false
     // 刷新列表
-    const res = await fetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       configList.value = data.rows || []
@@ -258,30 +269,15 @@ const handleSubmit = async () => {
 }
 
 // 处理启用/停用
-const handleToggleStatus = async (row) => {
-  const action = row.status === 1 ? '停用' : '启用'
-  try {
-    await ElMessageBox.confirm('确认' + action + '该配置吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    // 调用后端API更新状态
-    await fetch(`/api/v1/admin/ai/quota/status/${row.account_id}`, { 
-      method: 'POST' 
-    })
-    ElMessage.success('状态更新成功')
-    // 刷新列表
-    const res = await fetch('/api/v1/admin/ai/quota/list?page=1&pageSize=10')
-    const data = await res.json()
-    if (data.code === 200) {
-      configList.value = data.rows || []
-    }
-  } catch (e) {
-    if (e !== 'cancel') {
-      ElMessage.error('更新失败，请重试')
-    }
-  }
+const handleQuota = (row) => {
+  dialogMode.value = 'quota'
+  Object.assign(currentConfig, {
+    accountId: row.accountId,
+    userId: row.userId,
+    availableQuota: row.availableQuota,
+    reservedQuota: row.reservedQuota
+  })
+  dialogVisible.value = true
 }
 
 onMounted(() => {

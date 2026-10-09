@@ -49,10 +49,10 @@
         </div>
       </template>
       <el-table :data="rulesList" style="width: 100%">
-        <el-table-column prop="name" label="规则名称" min-width="150" />
-        <el-table-column prop="type" label="类型" width="120">
+        <el-table-column prop="ruleName" label="规则名称" min-width="150" />
+        <el-table-column prop="ruleType" label="类型" width="120">
           <template #default="{ row }">
-            {{ getTypeText(row.type) }}
+            {{ getTypeText(row.ruleType) }}
           </template>
         </el-table-column>
         <el-table-column prop="threshold" label="阈值" width="120" />
@@ -149,10 +149,11 @@ const rulesList = ref([])
 
 // 页面加载时获取数据
 import { onMounted } from 'vue'
+import adminFetch from '@/utils/adminFetch'
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/admin/review/ai-rule/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/review/ai-rule/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       rulesList.value = data.rows || []
@@ -184,7 +185,14 @@ const handleReset = () => {
 // 处理编辑
 const handleEdit = (row) => {
   dialogMode.value = 'edit'
-  Object.assign(currentRule.value, row)
+  currentRule.value = {
+    id: row.ruleId,
+    name: row.ruleName,
+    type: row.ruleType,
+    threshold: row.threshold,
+    action: row.action,
+    status: row.status || 'enabled'
+  }
   ruleDialogVisible.value = true
 }
 
@@ -206,23 +214,36 @@ const handleAdd = () => {
 const handleSubmitRule = async () => {
   try {
     if (dialogMode.value === 'add') {
-      await fetch('/api/v1/admin/review/ai-rule/create', {
+      await adminFetch('/api/v1/admin/review/ai-rule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentRule.value)
+        body: JSON.stringify({
+          ruleName: currentRule.value.name,
+          ruleType: currentRule.value.type,
+          threshold: currentRule.value.threshold,
+          action: currentRule.value.action,
+          status: currentRule.value.status
+        })
       })
       ElMessage.success('新增规则成功')
     } else {
-      await fetch(`/api/v1/admin/review/ai-rule/update/${currentRule.value.id}`, {
+      await adminFetch('/api/v1/admin/review/ai-rule', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentRule.value)
+        body: JSON.stringify({
+          ruleId: currentRule.value.id,
+          ruleName: currentRule.value.name,
+          ruleType: currentRule.value.type,
+          threshold: currentRule.value.threshold,
+          action: currentRule.value.action,
+          status: currentRule.value.status
+        })
       })
       ElMessage.success('更新规则成功')
     }
     ruleDialogVisible.value = false
     // 刷新列表
-    const res = await fetch('/api/v1/admin/review/ai-rule/list?page=1&pageSize=10')
+    const res = await adminFetch('/api/v1/admin/review/ai-rule/list?page=1&pageSize=10')
     const data = await res.json()
     if (data.code === 200) {
       rulesList.value = data.rows || []
@@ -242,11 +263,13 @@ const handleToggleStatus = async (row) => {
       type: 'warning'
     })
     
-    await fetch(`/api/v1/admin/review/ai-rule/status/${row.id}`, {
-      method: 'POST'
+    await adminFetch(`/api/v1/admin/review/ai-rule/toggle-status/${row.ruleId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: row.status === 'enabled' ? 'disabled' : 'enabled' })
     })
     row.status = row.status === 'enabled' ? 'disabled' : 'enabled'
-    ElMessage.success(`已${action}规则：${row.name}`)
+    ElMessage.success(`已${action}规则：${row.ruleName}`)
   } catch {
     // 用户取消操作
   }
@@ -261,10 +284,12 @@ const handleDelete = async (row) => {
       type: 'warning'
     })
     
-    const index = rulesList.value.findIndex(item => item.id === row.id)
-    if (index > -1) {
-      rulesList.value.splice(index, 1)
-      ElMessage.success('删除成功')
+    await adminFetch(`/api/v1/admin/review/ai-rule/${row.ruleId}`, { method: 'DELETE' })
+    ElMessage.success('删除成功')
+    const res = await adminFetch('/api/v1/admin/review/ai-rule/list?page=1&pageSize=10')
+    const data = await res.json()
+    if (data.code === 200) {
+      rulesList.value = data.rows || []
     }
   } catch {
     // 用户取消操作
