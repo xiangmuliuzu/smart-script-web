@@ -303,3 +303,32 @@ export function handleFinanceAbnormal(type, recordId, data) {
     data
   })
 }
+
+// 电子证书管理API
+export function getCopyrightCertList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/cert/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightCertDetail(certId) {
+  return request({
+    url: `/pc/copyright/cert/${certId}`,
+    method: 'get'
+  })
+}
+
+export function downloadCopyrightCert(certId) {
+  return request({
+    url: `/pc/copyright/cert/${certId}/download`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+// 印章管理API - 统一使用 getCopyrightSealList
+export { getCopyrightSealList as getPersonalSealList }
+
