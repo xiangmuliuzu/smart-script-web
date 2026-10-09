@@ -98,7 +98,7 @@
         <el-table-column prop="createTime" label="加入时间" width="160" />
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.status == 1 ? 'success' : 'danger'" size="small">{{ row.status == 1 ? '生效' : '失效' }}</el-tag>
+            <el-tag :type="row.status === 'enabled' ? 'success' : 'danger'" size="small">{{ row.status === 'enabled' ? '生效' : '失效' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120">
@@ -146,14 +146,14 @@
     <el-dialog v-model="blacklistDialogVisible" title="添加黑名单" width="500px">
       <el-form :model="blacklistForm" label-width="100px">
         <el-form-item label="类型">
-          <el-select v-model="blacklistForm.target_type" placeholder="请选择类型" style="width: 100%">
+          <el-select v-model="blacklistForm.targetType" placeholder="请选择类型" style="width: 100%">
             <el-option label="用户" value="user" />
             <el-option label="IP地址" value="ip" />
             <el-option label="设备" value="device" />
           </el-select>
         </el-form-item>
         <el-form-item label="目标值">
-          <el-input v-model="blacklistForm.target_value" placeholder="请输入目标值" />
+          <el-input v-model="blacklistForm.targetValue" placeholder="请输入目标值" />
         </el-form-item>
         <el-form-item label="加入原因">
           <el-input v-model="blacklistForm.reason" type="textarea" placeholder="请输入加入黑名单的原因" />
@@ -351,13 +351,13 @@ const handleSubmitRule = async () => {
 // 添加黑名单弹窗
 const blacklistDialogVisible = ref(false)
 const blacklistForm = ref({
-  target_type: 'user',
-  target_value: '',
+  targetType: 'user',
+  targetValue: '',
   reason: ''
 })
 
 const handleAddBlacklist = () => {
-  blacklistForm.value = { username: '', reason: '' }
+  blacklistForm.value = { targetType: 'user', targetValue: '', reason: '' }
   blacklistDialogVisible.value = true
 }
 
