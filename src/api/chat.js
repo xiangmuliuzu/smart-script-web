@@ -32,6 +32,11 @@ export function markSessionRead(sessionId) {
   return request({ url: `${PREFIX}/sessions/${sessionId}/read`, method: 'put' })
 }
 
+/** 用户重新打开已结束的会话（action=reopen），返回 { sessionId, status } */
+export function reopenSession(sessionId) {
+  return request({ url: `${PREFIX}/sessions/${sessionId}/status`, method: 'put', params: { action: 'reopen' } })
+}
+
 /** 会话未读总数，返回 { chatUnread }；options 可带 { silent: true } 供角标轮询静默失败 */
 export function getChatUnreadCount(options) {
   return request({ url: `${PREFIX}/unread-count`, method: 'get', ...options })

@@ -46,6 +46,11 @@ export function markSessionRead(sessionId) {
   return request({ url: `${PREFIX}/sessions/${sessionId}/read`, method: 'put' })
 }
 
+/** 可分配的管理员候选列表（管理域账号且挂有有效角色），返回 [{ userId, userName, nickName, avatar }] */
+export function listAdmins() {
+  return request({ url: `${PREFIX}/admins`, method: 'get' })
+}
+
 /** 分配处理管理员 */
 export function assignAdmin(sessionId, adminId) {
   return request({ url: `${PREFIX}/sessions/${sessionId}/assign`, method: 'put', params: { adminId } })

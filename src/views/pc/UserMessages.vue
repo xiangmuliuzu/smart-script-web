@@ -18,7 +18,7 @@
           <div class="session-pane">
             <div class="session-head">
               <span>会话列表</span>
-              <el-button size="small" text :loading="creating" @click="handleCreateGeneral">发起咨询</el-button>
+              <el-button size="small" text @click="openCreateDialog">发起咨询</el-button>
             </div>
             <el-scrollbar class="session-scroll">
               <div v-loading="sessionsLoading" class="session-list">
@@ -34,13 +34,19 @@
                   <div class="session-copy">
                     <div class="session-title">
                       <strong>{{ s.peerName || '平台管理员' }}</strong>
-                      <el-tag size="small" :type="chatStatusTag(s.status)" effect="plain">{{ chatStatusLabel(s.status) }}</el-tag>
                     </div>
                     <p>{{ s.lastMessage || (s.businessName ? '[' + businessTypeLabel(s.businessType) + '] ' + s.businessName : '暂无消息') }}</p>
                   </div>
                   <div class="session-side">
-                    <span class="session-time">{{ shortTime(s.lastMessageTime || s.createdAt) }}</span>
                     <el-badge v-if="s.unread > 0" :value="s.unread" :max="99" class="session-badge" />
+                    <div class="session-box">
+                      <el-tag size="small" effect="plain" type="info">{{ businessTypeLabel(s.businessType) }}</el-tag>
+                      <em v-if="s.businessName" class="session-biz-name" :title="s.businessName">{{ s.businessName }}</em>
+                    </div>
+                    <div class="session-box">
+                      <el-tag size="small" :type="chatStatusTag(s.status)" effect="plain">{{ chatStatusLabel(s.status) }}</el-tag>
+                      <span class="session-time">{{ shortTime(s.lastMessageTime || s.createdAt) }}</span>
+                    </div>
                   </div>
                 </button>
                 <el-empty v-if="!sessionsLoading && !sessions.length" description="暂无会话，点击「发起咨询」开始" :image-size="70" />
@@ -59,15 +65,18 @@
               <el-scrollbar ref="convScrollRef" class="conv-scroll">
                 <div v-loading="messagesLoading" class="conv-messages">
                   <div v-if="!chatMessages.length && !messagesLoading" class="conv-empty">暂无消息，发送第一条开始沟通</div>
-                  <div v-for="m in chatMessages" :key="m.messageId" class="msg-row" :class="{ mine: isMine(m) }">
-                    <el-avatar :size="30" :src="(isMine(m) ? myAvatar : activeSession.peerAvatar) || undefined">
-                      <el-icon><UserFilled /></el-icon>
-                    </el-avatar>
-                    <div class="msg-body">
-                      <div class="msg-meta"><span>{{ m.senderName || (isMine(m) ? '我' : '平台管理员') }}</span><span>{{ formatTime(m.createdAt) }}</span></div>
-                      <div class="msg-bubble">{{ m.content }}</div>
+                  <template v-for="m in chatMessages" :key="m.messageId">
+                    <div v-if="m.msgType === 'SYSTEM'" class="msg-system">{{ m.content }}</div>
+                    <div v-else class="msg-row" :class="{ mine: isMine(m) }">
+                      <el-avatar :size="30" :src="(m.senderAvatar || (isMine(m) ? myAvatar : activeSession.peerAvatar)) || undefined">
+                        <el-icon><UserFilled /></el-icon>
+                      </el-avatar>
+                      <div class="msg-body">
+                        <div class="msg-meta"><span>{{ m.senderName || (isMine(m) ? '我' : '平台管理员') }}</span><span>{{ formatTime(m.createdAt) }}</span></div>
+                        <div class="msg-bubble">{{ m.content }}</div>
+                      </div>
                     </div>
-                  </div>
+                  </template>
                 </div>
               </el-scrollbar>
               <div class="conv-input">
@@ -79,11 +88,12 @@
                   show-word-limit
                   resize="none"
                   :disabled="isSessionClosed"
-                  :placeholder="isSessionClosed ? '会话已结束，无法发送消息' : '输入消息，Ctrl+Enter 发送'"
-                  @keydown.ctrl.enter.prevent="handleSendMessage"
+                  :placeholder="isSessionClosed ? '会话已结束，无法发送消息' : '输入消息，Enter 发送，Shift+Enter 换行'"
+                  @keydown.enter="handleKeydown"
                 />
                 <div class="conv-actions">
                   <span v-if="isSessionClosed" class="closed-tip">会话已结束</span>
+                  <el-button v-if="isSessionClosed" :loading="reopening" @click="handleReopen">打开对话</el-button>
                   <el-button type="primary" class="send-btn" :loading="sending" :disabled="isSessionClosed" @click="handleSendMessage">发送</el-button>
                 </div>
               </div>
@@ -123,6 +133,32 @@
       </div>
       <template #footer><el-button @click="detailVisible = false">关闭</el-button></template>
     </el-dialog>
+
+    <!-- 发起咨询弹窗 -->
+    <el-dialog v-model="createDialogVisible" title="发起咨询" width="480px" destroy-on-close @open="loadMyWorks">
+      <el-form :model="createForm" label-width="90px">
+        <el-form-item label="咨询类型">
+          <el-select v-model="createForm.businessType" style="width: 100%" @change="handleCreateTypeChange">
+            <el-option value="GENERAL" label="通用咨询" />
+            <el-option value="WORK" label="作品相关" />
+            <el-option value="COPYRIGHT" label="版权相关" />
+            <el-option value="ORDER" label="订单相关" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="createForm.businessType === 'WORK'" label="选择作品">
+          <el-select v-model="createForm.businessId" placeholder="选择你的作品" filterable :loading="worksLoading" style="width: 100%" @change="handleCreateWorkChange">
+            <el-option v-for="w in myWorks" :key="w.workId" :label="w.title" :value="w.workId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="createForm.businessType === 'WORK' && createForm.businessId" label="说明">
+          <span style="color:#8a8f99;font-size:12px">将针对该作品发起与管理员的沟通会话</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="creating" :disabled="createForm.businessType === 'WORK' && !createForm.businessId" @click="handleCreateSession">创建并进入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -137,8 +173,10 @@ import {
   listMessages as listChatMessages,
   sendMessage as sendChatMessage,
   markSessionRead,
+  reopenSession,
   createSession as createChatSession
 } from '@/api/chat'
+import { listWorks } from '@/api/pcWork'
 import { usePcUnreadStore } from '@/stores/pcUnread'
 import { usePcUserStore } from '@/stores/pcUser'
 
@@ -258,8 +296,9 @@ function shortTime(value) {
   const s = String(value).replace('T', ' ')
   return s.slice(5, 16)
 }
-// 会话约定 user1=当前 App 用户、user2=管理员；VO 里 peerId 即管理员，senderId 非 peer 即本人
-function isMine(m) { return String(m.senderId) !== String(activeSession.value?.peerId) }
+// 默认靠左；仅当前登录账号自己发出的消息靠右（以发送者身份判定，免疫移交后多管理员场景）
+const myUserId = computed(() => pcUserStore.user?.userId)
+function isMine(m) { return String(m.senderId) === String(myUserId.value) }
 
 async function scrollConvToBottom() {
   await nextTick()
@@ -323,10 +362,87 @@ async function handleSendMessage() {
   } finally { sending.value = false }
 }
 
+const reopening = ref(false)
+async function handleReopen() {
+  if (!activeSession.value) return
+  reopening.value = true
+  try {
+    await reopenSession(activeSession.value.sessionId)
+    activeSession.value.status = 1
+    ElMessage.success('会话已重新打开')
+    await Promise.all([loadSessions(), loadChatMessages()])
+  } catch {
+    // 请求封装统一提示服务端错误
+  } finally { reopening.value = false }
+}
+
+function handleKeydown(e) {
+  // Enter 发送；Shift+Enter 换行
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleSendMessage()
+  }
+}
+
 async function handleCreateGeneral() {
   creating.value = true
   try {
     const session = await createChatSession({ businessType: 'GENERAL', businessName: '通用咨询' })
+    await loadSessions()
+    if (session?.sessionId) {
+      const hit = sessions.value.find(s => s.sessionId === session.sessionId) || session
+      await openSession(hit)
+    }
+  } catch {
+    // ignore
+  } finally { creating.value = false }
+}
+
+// ---- 发起咨询弹窗 ----
+const createDialogVisible = ref(false)
+const createForm = ref({ businessType: 'GENERAL', businessId: null, businessName: '' })
+const myWorks = ref([])
+const worksLoading = ref(false)
+
+function openCreateDialog() {
+  createForm.value = { businessType: 'GENERAL', businessId: null, businessName: '' }
+  createDialogVisible.value = true
+}
+
+async function loadMyWorks() {
+  worksLoading.value = true
+  try {
+    const data = await listWorks('all')
+    myWorks.value = Array.isArray(data) ? data : (data?.list || [])
+  } catch {
+    myWorks.value = []
+  } finally {
+    worksLoading.value = false
+  }
+}
+
+function handleCreateTypeChange() {
+  createForm.value.businessId = null
+  createForm.value.businessName = ''
+}
+
+function handleCreateWorkChange(workId) {
+  const hit = myWorks.value.find(w => w.workId === workId)
+  createForm.value.businessName = hit ? hit.title : ''
+}
+
+async function handleCreateSession() {
+  creating.value = true
+  try {
+    const payload = { businessType: createForm.value.businessType }
+    if (createForm.value.businessId) {
+      payload.businessId = createForm.value.businessId
+      payload.businessName = createForm.value.businessName
+    } else if (createForm.value.businessType === 'GENERAL') {
+      payload.businessName = '通用咨询'
+    }
+    const session = await createChatSession(payload)
+    createDialogVisible.value = false
     await loadSessions()
     if (session?.sessionId) {
       const hit = sessions.value.find(s => s.sessionId === session.sessionId) || session
@@ -378,10 +494,11 @@ onUnmounted(() => {
 .session-list{display:flex;flex-direction:column}
 .session-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border:0;border-bottom:1px solid #f4f5f7;background:#fff;text-align:left;cursor:pointer;width:100%}
 .session-row:hover{background:#fafbfc}.session-row.active{background:#f2f3f5}
-.session-copy{flex:1;min-width:0}.session-title{display:flex;align-items:center;gap:8px}.session-title strong{font-size:14px;color:#303133;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.session-copy p{margin-top:6px;color:#8a8f99;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.session-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.session-time{color:#a0a5ac;font-size:11px;white-space:nowrap}
+.session-copy{flex:1;min-width:0}.session-title{display:flex;align-items:center}.session-title strong{font-size:14px;color:#303133;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;max-width:45%}.session-box{display:flex;align-items:center;gap:6px;min-width:0}.session-time{color:#a0a5ac;font-size:11px;white-space:nowrap}
+.session-biz-name{font-style:normal;color:#8a8f99;font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .session-badge :deep(.el-badge__content){background-color:#f56c6c;border:0}
+.session-copy p{margin-top:6px;color:#8a8f99;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .conversation-pane{flex:1;min-width:0;display:flex;flex-direction:column}
 .conv-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #edf0f2}.conv-head strong{font-size:15px;color:#1f2329}.conv-biz{margin-left:auto;color:#8a8f99;font-size:12px}
 .biz-link{font-size:12px;vertical-align:baseline}.biz-link :deep(.el-link__inner){color:#409eff;font-size:12px}
@@ -390,6 +507,7 @@ onUnmounted(() => {
 .conv-empty,.conv-placeholder{color:#a8abb2}
 .conv-placeholder{margin:auto}
 .msg-row{display:flex;gap:10px;align-items:flex-start}.msg-row.mine{flex-direction:row-reverse}
+.msg-system{text-align:center;color:#a0a5ac;font-size:12px;padding:2px 0}
 .msg-body{max-width:70%}.msg-meta{display:flex;gap:8px;align-items:center;font-size:12px;color:#a0a5ac;margin-bottom:4px}.msg-row.mine .msg-meta{flex-direction:row-reverse}
 .msg-bubble{padding:9px 13px;border-radius:8px;background:#fff;border:1px solid #edf0f2;color:#303133;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg-row.mine .msg-bubble{background:#1f2329;color:#fff;border-color:#1f2329}

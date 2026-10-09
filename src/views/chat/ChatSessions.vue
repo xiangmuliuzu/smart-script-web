@@ -1,6 +1,10 @@
 <template>
   <PageContainer>
-    <PageHeader title="用户沟通" description="管理端查看全部用户会话，可筛选、进入详情回复、分配处理管理员与流转状态" />
+    <PageHeader title="用户沟通" description="管理端查看全部用户会话，可筛选、进入详情回复、分配处理管理员与流转状态">
+      <template #actions>
+        <el-button type="primary" @click="createVisible = true">发起对话</el-button>
+      </template>
+    </PageHeader>
 
     <FilterBar @query="handleQuery" @reset="handleReset">
       <el-form-item>
@@ -72,6 +76,46 @@
         </template>
       </el-table-column>
     </TableCard>
+
+    <!-- 发起对话弹窗 -->
+    <el-dialog v-model="createVisible" title="发起对话" width="520px" destroy-on-close @open="searchUsers()">
+      <el-form :model="createForm" label-width="90px">
+        <el-form-item label="目标用户" required>
+          <el-select
+            v-model="createForm.targetUserId"
+            placeholder="搜索用户昵称或ID"
+            filterable
+            remote
+            :remote-method="searchUsers"
+            :loading="userSearchLoading"
+            style="width: 100%"
+          >
+            <el-option v-for="u in userOptions" :key="u.userId" :label="(u.nickName || u.userName) + '（#' + u.userId + '）'" :value="u.userId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="业务类型">
+          <el-select v-model="createForm.businessType" placeholder="选择业务类型" style="width: 100%" @change="handleTypeChange">
+            <el-option v-for="opt in businessTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="createForm.businessType && createForm.businessType !== 'GENERAL'" label="关联业务">
+          <el-select
+            v-model="createForm.businessId"
+            :placeholder="'选择' + businessTypeLabel(createForm.businessType)"
+            filterable
+            :loading="bizLoading"
+            style="width: 100%"
+            @change="handleBizChange"
+          >
+            <el-option v-for="b in bizOptions" :key="b.id" :label="b.name" :value="b.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createVisible = false">取消</el-button>
+        <el-button type="primary" :loading="creating" :disabled="!createForm.targetUserId" @click="handleCreate">创建并进入</el-button>
+      </template>
+    </el-dialog>
   </PageContainer>
 </template>
 
@@ -84,7 +128,11 @@ import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
-import { listSessions } from '@/api/adminChat'
+import { listSessions, createSession } from '@/api/adminChat'
+import { listAppUsers } from '@/api/user/appUser'
+import { listWork } from '@/api/content'
+import { getCopyrightSealList, getCopyrightAssets } from '@/api/copyright'
+import { getOrderList } from '@/api/trade'
 
 defineOptions({ name: 'ChatSessions' })
 
@@ -109,6 +157,15 @@ const loading = ref(false)
 const list = ref([])
 const total = ref(0)
 const query = ref({ pageNum: 1, pageSize: 10, status: '', businessType: '', keyword: '' })
+
+// 发起对话
+const createVisible = ref(false)
+const creating = ref(false)
+const createForm = ref({ targetUserId: null, businessType: '', businessId: null, businessName: '' })
+const userOptions = ref([])
+const userSearchLoading = ref(false)
+const bizLoading = ref(false)
+const bizOptions = ref([])
 
 function statusLabel(status) {
   return statusOptions.find(o => o.value === Number(status))?.label || '未知'
@@ -160,6 +217,81 @@ function handleReset() {
 
 function openDetail(row) {
   router.push({ path: '/chat/chat-detail', query: { sessionId: row.sessionId } })
+}
+
+// ---- 发起对话逻辑 ----
+async function searchUsers(keyword) {
+  userSearchLoading.value = true
+  try {
+    const res = await listAppUsers({ keyword: keyword || undefined, pageNum: 1, pageSize: 20 })
+    userOptions.value = res.rows || []
+  } catch {
+    userOptions.value = []
+  } finally {
+    userSearchLoading.value = false
+  }
+}
+
+function handleTypeChange() {
+  createForm.value.businessId = null
+  createForm.value.businessName = ''
+  bizOptions.value = []
+  if (!createForm.value.businessType || createForm.value.businessType === 'GENERAL') return
+  loadBizOptions(createForm.value.businessType)
+}
+
+async function loadBizOptions(type) {
+  bizLoading.value = true
+  try {
+    let items = []
+    if (type === 'WORK') {
+      const res = await listWork({ pageNum: 1, pageSize: 50 })
+      items = (res.rows || []).map(w => ({ id: w.workId, name: w.title || `作品#${w.workId}` }))
+    } else if (type === 'SEAL') {
+      const res = await getCopyrightSealList({ pageNo: 1, pageSize: 50 })
+      items = (res.rows || []).map(s => ({ id: s.sealId, name: s.sealName || `印章#${s.sealId}` }))
+    } else if (type === 'COPYRIGHT') {
+      const res = await getCopyrightAssets({ pageNum: 1, pageSize: 50 })
+      items = (res.rows || []).map(c => ({ id: c.workId, name: c.workName || c.title || `版权#${c.workId}` }))
+    } else if (type === 'ORDER') {
+      const res = await getOrderList({ pageNum: 1, pageSize: 50 })
+      items = (res.rows || []).map(o => ({ id: o.orderId, name: o.workTitle || o.orderNo || `订单#${o.orderId}` }))
+    }
+    bizOptions.value = items
+  } catch {
+    bizOptions.value = []
+  } finally {
+    bizLoading.value = false
+  }
+}
+
+function handleBizChange(id) {
+  const hit = bizOptions.value.find(b => b.id === id)
+  createForm.value.businessName = hit ? hit.name : ''
+}
+
+async function handleCreate() {
+  if (!createForm.value.targetUserId) {
+    ElMessage.warning('请选择目标用户')
+    return
+  }
+  creating.value = true
+  try {
+    const res = await createSession({
+      targetUserId: createForm.value.targetUserId,
+      businessType: createForm.value.businessType || 'GENERAL',
+      businessId: createForm.value.businessId || null,
+      businessName: createForm.value.businessName || null
+    })
+    if (res?.sessionId) {
+      createVisible.value = false
+      router.push({ path: '/chat/chat-detail', query: { sessionId: res.sessionId } })
+    }
+  } catch {
+    ElMessage.error('创建会话失败')
+  } finally {
+    creating.value = false
+  }
 }
 
 onMounted(loadList)
