@@ -66,13 +66,23 @@
       </el-table-column>
       <el-table-column label="交易" width="100">
         <template #default="{ row }">
-          <el-switch
-            v-permission="['content:bookstore:edit']"
-            v-model="row.tradeEnabled"
-            active-value="1"
-            inactive-value="0"
-            @change="() => handleTradeChange(row)"
-          />
+          <!-- 已下架作品不可开启交易：开关禁用，后端亦有前置校验兜底 -->
+          <el-tooltip
+            content="已下架作品不可开启交易，请先上架"
+            :disabled="row.status === 'on_shelf'"
+            placement="top"
+          >
+            <span>
+              <el-switch
+                v-permission="['content:bookstore:edit']"
+                v-model="row.tradeEnabled"
+                active-value="1"
+                inactive-value="0"
+                :disabled="row.status !== 'on_shelf'"
+                @change="() => handleTradeChange(row)"
+              />
+            </span>
+          </el-tooltip>
         </template>
       </el-table-column>
       <el-table-column prop="viewCount" label="阅读量" width="90" />
@@ -92,24 +102,24 @@
       </el-table-column>
     </TableCard>
 
-    <el-dialog v-model="dialog.visible" title="编辑推荐扩展信息" width="560px">
-      <el-form :model="form" label-width="100px">
+    <el-dialog v-model="dialog.visible" title="编辑推荐" width="520px">
+      <el-form :model="form" label-width="90px">
         <el-form-item label="推荐状态">
-          <el-select v-model="form.recommendStatus" placeholder="请选择" style="width: 100%">
+          <el-select v-model="form.recommendStatus" style="width: 100%" @change="handleRecommendChange">
             <el-option label="首页热门" value="home_hot" />
             <el-option label="分类推荐" value="category_rec" />
             <el-option label="无推荐" value="none" />
           </el-select>
         </el-form-item>
         <el-form-item label="展示位">
-          <el-checkbox-group v-model="form.showScope">
+          <el-checkbox-group v-model="form.showScope" :disabled="form.recommendStatus === 'none'">
             <el-checkbox label="bookstore">书城</el-checkbox>
             <el-checkbox label="category_page">分类页</el-checkbox>
             <el-checkbox label="search">搜索页</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
         <el-form-item label="推荐权重">
-          <el-input-number v-model="form.recommendWeight" :min="0" :max="9999" />
+          <el-input-number v-model="form.recommendWeight" :min="0" :max="9999" :disabled="form.recommendStatus === 'none'" />
         </el-form-item>
         <el-form-item label="失效时间">
           <el-date-picker
@@ -118,18 +128,8 @@
             placeholder="选择推荐失效时间"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
+            :disabled="form.recommendStatus === 'none'"
           />
-        </el-form-item>
-        <el-form-item label="extJson 原文">
-          <el-input
-            v-model="form.extJsonRaw"
-            type="textarea"
-            :rows="5"
-            placeholder='{"recommendStatus":"home_hot","showScope":["bookstore"],"recommendWeight":100}'
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button size="small" @click="syncFormToRaw">从表单同步到 extJson</el-button>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -181,7 +181,7 @@ function recommendTagType(status) {
   return RECOMMEND_TAG_MAP[status]?.type || 'info'
 }
 
-/** GET 入参：空串不下发，让后端走“不过滤”分支 */
+/** GET 入参：空串不下发，让后端走"不过滤"分支 */
 function buildQuery() {
   return {
     pageNum: queryParams.pageNum,
@@ -225,6 +225,10 @@ async function handleStatusChange(row) {
   const actionText = targetStatus === 'on_shelf' ? '上架' : '下架'
   try {
     await changeBookstoreStatus({ workId: row.workId, status: targetStatus })
+    // 后端联动：下架即关闭交易，本地同步回显
+    if (targetStatus === 'off_shelf') {
+      row.tradeEnabled = '0'
+    }
     ElMessage.success(`${actionText}成功`)
   } catch {
     // 失败回滚开关，错误信息已由 request 拦截器统一提示
@@ -247,32 +251,49 @@ async function handleTradeChange(row) {
 const dialog = reactive({ visible: false })
 const submitting = ref(false)
 const SCOPE_OPTIONS = ['bookstore', 'category_page', 'search']
-const defaultForm = () => ({
+
+/** 推荐状态 → 默认展示位联动映射 */
+const RECOMMEND_DEFAULT_SCOPE = {
+  home_hot: ['bookstore'],
+  category_rec: ['category_page'],
+  none: []
+}
+
+/** 暂存 ext_json 中表单未覆盖的键，提交时合并写回，避免丢数据 */
+const extraExtKeys = ref({})
+
+const form = reactive({
   workId: null,
   recommendStatus: 'none',
   showScope: [],
   recommendWeight: 0,
-  recommendExpireAt: '',
-  extJsonRaw: ''
+  recommendExpireAt: ''
 })
-const form = reactive(defaultForm())
 
-function syncFormToRaw() {
-  const obj = {
-    recommendStatus: form.recommendStatus || 'none',
-    showScope: Array.isArray(form.showScope) ? form.showScope : [],
-    recommendWeight: form.recommendWeight ?? 0,
-    recommendExpireAt: form.recommendExpireAt || null
-  }
-  form.extJsonRaw = JSON.stringify(obj, null, 2)
+/** 重置推荐相关字段（不触碰 workId——它由 openEditExt 单独维护，误重置会导致提交丢 workId） */
+function resetRecommendFields() {
+  form.recommendStatus = 'none'
+  form.showScope = []
+  form.recommendWeight = 0
+  form.recommendExpireAt = ''
 }
 
-function parseExtJsonToForm(extJsonStr) {
-  if (!extJsonStr) {
-    Object.assign(form, defaultForm())
-    syncFormToRaw()
-    return
+/** 推荐状态切换：联动展示位，"无推荐"清空所有字段 */
+function handleRecommendChange(val) {
+  if (val === 'none') {
+    form.showScope = []
+    form.recommendWeight = 0
+    form.recommendExpireAt = ''
+  } else {
+    form.showScope = [...RECOMMEND_DEFAULT_SCOPE[val]]
   }
+}
+
+/** 从 ext_json 解析到表单字段回显，同时暂存表单未覆盖的键 */
+function parseExtJsonToForm(extJsonStr) {
+  resetRecommendFields()
+  extraExtKeys.value = {}
+  if (!extJsonStr) return
   try {
     const obj = JSON.parse(extJsonStr)
     form.recommendStatus = obj.recommendStatus || 'none'
@@ -281,36 +302,39 @@ function parseExtJsonToForm(extJsonStr) {
       : []
     form.recommendWeight = typeof obj.recommendWeight === 'number' ? obj.recommendWeight : 0
     form.recommendExpireAt = obj.recommendExpireAt || ''
-    form.extJsonRaw = JSON.stringify(obj, null, 2)
+    // 暂存表单未覆盖的键，提交时合并写回
+    const known = ['recommendStatus', 'showScope', 'recommendWeight', 'recommendExpireAt']
+    for (const [k, v] of Object.entries(obj)) {
+      if (!known.includes(k)) extraExtKeys.value[k] = v
+    }
   } catch {
-    // 既有 extJson 非合法 JSON：保留原文让用户自行修正
-    Object.assign(form, defaultForm())
-    form.extJsonRaw = extJsonStr
+    // 既有 extJson 非合法 JSON：按默认值打开，不丢数据但需重新填写
   }
 }
 
 async function openEditExt(row) {
-  Object.assign(form, defaultForm())
+  // workId 先落定；parseExtJsonToForm 只重置推荐字段，不会覆盖 workId
   form.workId = row.workId
   try {
     const res = await getBookstore(row.workId)
     const data = res?.data || res || {}
-    const rowExt = data.extJson || row.extJson || ''
-    parseExtJsonToForm(rowExt)
+    parseExtJsonToForm(data.extJson || row.extJson || '')
   } catch {
-    // 详情接口失败时回退到行内 extJson
     parseExtJsonToForm(row.extJson || '')
   }
   dialog.visible = true
 }
 
 async function handleSubmit() {
-  let extObj
-  try {
-    extObj = form.extJsonRaw ? JSON.parse(form.extJsonRaw) : {}
-  } catch (e) {
-    ElMessage.error('extJson 不是合法 JSON，请检查或点击“从表单同步到 extJson”')
-    return
+  // 表单为唯一数据源，直接序列化——不再依赖手动同步 extJsonRaw
+  const extObj = {
+    ...extraExtKeys.value,
+    recommendStatus: form.recommendStatus || 'none',
+    showScope: Array.isArray(form.showScope) ? form.showScope : [],
+    recommendWeight: form.recommendWeight ?? 0
+  }
+  if (form.recommendExpireAt) {
+    extObj.recommendExpireAt = form.recommendExpireAt
   }
   submitting.value = true
   try {
