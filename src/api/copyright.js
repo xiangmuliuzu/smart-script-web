@@ -114,3 +114,127 @@ export function getAiReviewRules(params) {
     params
   })
 }
+
+// 提现审核API
+export function getWithdrawList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/withdraw/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getWithdrawDetail(withdrawId) {
+  return request({
+    url: `/pc/copyright/withdraw/${withdrawId}`,
+    method: 'get'
+  })
+}
+
+export function approveWithdraw(withdrawId) {
+  return request({
+    url: `/pc/copyright/withdraw/${withdrawId}/approve`,
+    method: 'post'
+  })
+}
+
+export function rejectWithdraw(withdrawId, opinion) {
+  return request({
+    url: `/pc/copyright/withdraw/${withdrawId}/reject`,
+    method: 'post',
+    data: { opinion }
+  })
+}
+
+export function freezeWithdraw(withdrawId) {
+  return request({
+    url: `/pc/copyright/withdraw/${withdrawId}/freeze`,
+    method: 'post'
+  })
+}
+
+export function unfreezeWithdraw(withdrawId) {
+  return request({
+    url: `/pc/copyright/withdraw/${withdrawId}/unfreeze`,
+    method: 'post'
+  })
+}
+
+export function exportWithdrawRecords(params) {
+  return request({
+    url: '/pc/copyright/withdraw/export',
+    method: 'post',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 合同管理API
+export function getContractList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/contract/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getAvailableContractOrders() {
+  return request({
+    url: '/pc/copyright/contract/available-orders',
+    method: 'get'
+  })
+}
+
+export function getContractDetail(contractId) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}`,
+    method: 'get'
+  })
+}
+
+export function generateContract(data) {
+  return request({
+    url: '/pc/copyright/contract/generate',
+    method: 'post',
+    data
+  })
+}
+
+export function previewContract(contractId) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}/preview`,
+    method: 'get'
+  })
+}
+
+export function archiveContract(contractId) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}/archive`,
+    method: 'post'
+  })
+}
+
+export function cancelContract(contractId) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}/cancel`,
+    method: 'post'
+  })
+}
+
+export function signContract(contractId, party) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}/sign`,
+    method: 'post',
+    data: { party }
+  })
+}
+
+export function downloadContract(contractId) {
+  return request({
+    url: `/pc/copyright/contract/${contractId}/download`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
