@@ -210,7 +210,7 @@ export function changeRankNo(data) {
   })
 }
 
-/** 重算榜单（按 metric 与时间窗口；返回 newSnapshotCount/oldInvalidatedCount） */
+/** 重算榜单（指标由榜单类型唯一确定：view/favorite/sale/rating；返回 newSnapshotCount/oldRemovedCount） */
 export function recomputeRanking(params) {
   return request({
     url: `${ADMIN_PREFIX}/ranking/recompute`,

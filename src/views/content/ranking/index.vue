@@ -1,22 +1,19 @@
 <template>
   <PageContainer>
-    <PageHeader title="排行榜管理" description="查看榜单数据、调整排名、触发重算">
+    <PageHeader title="排行榜管理" description="按榜单分页签管理快照数据、调整排名、触发重算">
       <template #actions>
-        <BlackButton v-permission="['content:ranking:edit']" @click="openRecompute">触发重算</BlackButton>
+        <BlackButton v-permission="['content:ranking:edit']" @click="openRecompute">
+          重算{{ currentBoard.label }}
+        </BlackButton>
       </template>
     </PageHeader>
 
+    <!-- 四榜分页签：与 App 端榜单口径一致（view/favorite/sale/rating），指标随类型固定 -->
+    <el-tabs v-model="activeType" class="board-tabs" @tab-change="handleTabChange">
+      <el-tab-pane v-for="board in RANKING_TYPE" :key="board.value" :label="board.label" :name="board.value" />
+    </el-tabs>
+
     <FilterBar @query="handleQuery" @reset="handleReset">
-      <el-form-item>
-        <!-- 榜单类型枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.rankingType"
-          placeholder="榜单类型"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
           <el-option label="有效" value="0" />
@@ -53,9 +50,6 @@
       @page-change="loadList"
       @size-change="loadList"
     >
-      <el-table-column prop="rankingId" label="榜单ID" width="90" />
-      <el-table-column prop="rankingType" label="榜单类型" width="120" />
-      <el-table-column prop="workTitle" label="作品标题" min-width="160" show-overflow-tooltip />
       <el-table-column label="排名" width="140">
         <template #default="{ row }">
           <el-input-number
@@ -76,16 +70,13 @@
           >保存</el-button>
         </template>
       </el-table-column>
-      <el-table-column label="周期开始" width="110">
-        <template #default="{ row }">{{ row.periodStart || '—' }}</template>
+      <el-table-column prop="workTitle" label="作品标题" min-width="160" show-overflow-tooltip />
+      <el-table-column :label="currentBoard.metricLabel" width="110">
+        <template #default="{ row }">{{ row.score ?? '—' }}</template>
       </el-table-column>
-      <el-table-column label="周期结束" width="110">
-        <template #default="{ row }">{{ row.periodEnd || '—' }}</template>
+      <el-table-column label="周期" width="210">
+        <template #default="{ row }">{{ (row.periodStart || '—') + ' ~ ' + (row.periodEnd || '—') }}</template>
       </el-table-column>
-      <el-table-column prop="score" label="分数" width="100" />
-      <el-table-column prop="viewCount" label="阅读量" width="90" />
-      <el-table-column prop="bookshelfCount" label="收藏量" width="90" />
-      <el-table-column prop="growthScore" label="增长分" width="100" />
       <el-table-column label="快照时间" width="170">
         <template #default="{ row }">{{ row.snapshotTime || '—' }}</template>
       </el-table-column>
@@ -98,17 +89,13 @@
       </el-table-column>
     </TableCard>
 
-    <el-dialog v-model="recomputeDialog.visible" title="触发榜单重算" width="480px">
+    <el-dialog v-model="recomputeDialog.visible" :title="`重算${currentBoard.label}`" width="480px">
       <el-form :model="recomputeForm" label-width="100px">
         <el-form-item label="榜单类型">
-          <el-input v-model="recomputeForm.rankingType" placeholder="如 view_rank" />
+          <el-input :value="`${currentBoard.label}（${currentBoard.value}）`" disabled />
         </el-form-item>
-        <el-form-item label="指标">
-          <el-select v-model="recomputeForm.metric" placeholder="请选择" style="width: 100%">
-            <el-option label="阅读量(view_count)" value="view_count" />
-            <el-option label="收藏量(bookshelf_count)" value="bookshelf_count" />
-            <el-option label="增长分(growth_score)" value="growth_score" />
-          </el-select>
+        <el-form-item label="排序指标">
+          <el-input :value="currentBoard.metricLabel" disabled />
         </el-form-item>
         <el-form-item label="周期开始">
           <el-date-picker
@@ -138,7 +125,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -146,20 +133,31 @@ import BlackButton from '@/components/BlackButton.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { listRanking, changeRankNo, recomputeRanking } from '@/api/content'
+import { RANKING_TYPE } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentRanking' })
 
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
+
+/** 当前榜单页签（与后端 rankingType 白名单 view/favorite/sale/rating 一致） */
+const activeType = ref(RANKING_TYPE[0].value)
+const currentBoard = computed(() => RANKING_TYPE.find((b) => b.value === activeType.value) || RANKING_TYPE[0])
+
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  rankingType: '',
   status: '',
   periodStart: '',
   periodEnd: ''
 })
+
+/** Tab 切换：重置分页并按当前榜单重查 */
+function handleTabChange() {
+  queryParams.pageNum = 1
+  loadList()
+}
 
 const sortingId = ref(null)
 
@@ -168,7 +166,7 @@ function buildQuery() {
   return {
     pageNum: queryParams.pageNum,
     pageSize: queryParams.pageSize,
-    rankingType: queryParams.rankingType || undefined,
+    rankingType: activeType.value,
     status: queryParams.status || undefined,
     periodStart: queryParams.periodStart || undefined,
     periodEnd: queryParams.periodEnd || undefined
@@ -194,8 +192,8 @@ function handleQuery() {
   loadList()
 }
 
+/** 重置只清筛选条件，不切榜单页签 */
 function handleReset() {
-  queryParams.rankingType = ''
   queryParams.status = ''
   queryParams.periodStart = ''
   queryParams.periodEnd = ''
@@ -222,27 +220,17 @@ async function handleSort(row) {
 const recomputeDialog = reactive({ visible: false })
 const recomputing = ref(false)
 const recomputeForm = reactive({
-  rankingType: '',
-  metric: '',
   periodStart: '',
   periodEnd: ''
 })
+
 function openRecompute() {
-  recomputeForm.rankingType = ''
-  recomputeForm.metric = ''
   recomputeForm.periodStart = ''
   recomputeForm.periodEnd = ''
   recomputeDialog.visible = true
 }
+
 async function handleRecompute() {
-  if (!recomputeForm.rankingType) {
-    ElMessage.warning('请输入榜单类型')
-    return
-  }
-  if (!recomputeForm.metric) {
-    ElMessage.warning('请选择指标')
-    return
-  }
   if (!recomputeForm.periodStart || !recomputeForm.periodEnd) {
     ElMessage.warning('请选择周期开始与结束时间')
     return
@@ -250,16 +238,13 @@ async function handleRecompute() {
   recomputing.value = true
   try {
     const res = await recomputeRanking({
-      rankingType: recomputeForm.rankingType,
-      metric: recomputeForm.metric,
+      rankingType: activeType.value,
       periodStart: recomputeForm.periodStart,
       periodEnd: recomputeForm.periodEnd
     })
     const data = res?.data || res || {}
-    const newCount = data.newSnapshotCount
-    const oldCount = data.oldInvalidatedCount
     ElMessage.success(
-      `重算成功：新增快照 ${newCount ?? 0} 条，旧快照失效 ${oldCount ?? 0} 条`
+      `重算成功：新增快照 ${data.newSnapshotCount ?? 0} 条，移除旧快照 ${data.oldRemovedCount ?? 0} 条`
     )
     recomputeDialog.visible = false
     loadList()
@@ -272,3 +257,9 @@ async function handleRecompute() {
 
 onMounted(loadList)
 </script>
+
+<style scoped>
+.board-tabs {
+  margin-bottom: 12px;
+}
+</style>

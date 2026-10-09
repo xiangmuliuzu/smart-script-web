@@ -11,6 +11,9 @@
  *   App 端只按 parentId 取分类、不按类型筛选（见 content_providers.dart），故取值不影响 App。
  * - DRAMA_SOURCE_TYPE / DRAMA_AUTH_STATUS / DRAMA_SHELF_STATUS / BANNER_POSITION：
  *   取云端库 sys_external_drama / sys_banner 对应列实测值。
+ * - RANKING_TYPE：取 App 端榜单四类（lib/features/bookstore/data/bookstore_models.dart），
+ *   与云端 sys_ranking_snapshot.ranking_type 改名对齐（存量 view_rank/favorite_rank 由
+ *   迁移脚本 B_20261009_007__rename_ranking_type.sql 收敛为 view/favorite）。
  */
 
 /** 分类类型（sys_category.category_type） */
@@ -52,6 +55,14 @@ export const DRAMA_SHELF_STATUS = [
 export const BANNER_POSITION = [
   { value: 'home_top', label: '首页顶部' },
   { value: 'home_middle', label: '首页中部' }
+]
+
+/** 榜单类型（sys_ranking_snapshot.ranking_type）：与 App 端四榜对齐，指标随类型固定 */
+export const RANKING_TYPE = [
+  { value: 'view', label: '热门榜', metricLabel: '阅读量' },
+  { value: 'favorite', label: '收藏榜', metricLabel: '收藏量' },
+  { value: 'sale', label: '交易热度榜', metricLabel: '交易量' },
+  { value: 'rating', label: '评分榜', metricLabel: '评分' }
 ]
 
 /** 取中文名，找不到回退原值 */
