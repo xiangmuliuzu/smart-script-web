@@ -159,7 +159,7 @@ const statsData = ref([
 
 // 快捷入口数据
 const quickAccessData = ref([
-  { title: '作品审核', count: 12, label: '待审核', icon: Document, route: '/copyright/ai-review' },
+  { title: '作品审核', count: 12, label: '待审核', icon: Document, route: '/copyright/ai-review/review' },
   { title: '订单管理', count: 5, label: '待处理', icon: DocumentCopy, route: '/trade/orders' },
   { title: '用户管理', count: 3, label: '待审核', icon: User, route: '/user' },
   { title: '风控管理', count: 2, label: '待处理', icon: WarningFilled, route: '/risk' }
@@ -212,7 +212,7 @@ const getStatusType = (status) => {
 // 处理审核
 const handleReview = (row) => {
   ElMessage.success(`开始审核《${row.name}》`)
-  router.push('/copyright/ai-review')
+  router.push('/copyright/ai-review/review')
 }
 
 // 处理详情
@@ -222,7 +222,7 @@ const handleDetail = (row) => {
 
 // 查看全部
 const handleViewAll = () => {
-  router.push('/copyright/ai-review')
+  router.push('/copyright/ai-review/review')
 }
 </script>
 
