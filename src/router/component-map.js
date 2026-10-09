@@ -13,6 +13,8 @@ import WithdrawReview from '@/views/copyright/WithdrawReview.vue'
 import ContractManage from '@/views/copyright/ContractManage.vue'
 import SettlementManage from '@/views/copyright/SettlementManage.vue'
 import FinanceAbnormal from '@/views/copyright/FinanceAbnormal.vue'
+import CopyrightCertManage from '@/views/copyright/CopyrightCertManage.vue'
+import SealManage from '@/views/copyright/SealManage.vue'
 import ContentCategory from '@/views/content/category/index.vue'
 import ContentTag from '@/views/content/tag/index.vue'
 import ContentWork from '@/views/content/work/index.vue'
@@ -70,6 +72,8 @@ export const componentMap = {
   'copyright/ContractManage': ContractManage,
   'copyright/SettlementManage': SettlementManage,
   'copyright/FinanceAbnormal': FinanceAbnormal,
+  'copyright/CopyrightCertManage': CopyrightCertManage,
+  'copyright/SealManage': SealManage,
   'content/category/index': ContentCategory,
   'content/tag/index': ContentTag,
   'content/work/index': ContentWork,
