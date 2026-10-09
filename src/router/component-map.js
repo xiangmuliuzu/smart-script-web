@@ -37,12 +37,6 @@ import UserMessage from '@/views/user/message/index.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import AiOperations from '@/views/system/AiOperations.vue'
-import SystemUser from '@/views/system/user/index.vue'
-import SystemRole from '@/views/system/role/index.vue'
-import SystemMenu from '@/views/system/menu/index.vue'
-import SystemPost from '@/views/system/post/index.vue'
-import SystemDict from '@/views/system/dict/index.vue'
-import SystemConfigRuoYi from '@/views/system/config/index.vue'
 import MonitorOperlog from '@/views/monitor/operlog/index.vue'
 import MonitorLogininfor from '@/views/monitor/logininfor/index.vue'
 import ChatSessions from '@/views/chat/ChatSessions.vue'
@@ -97,12 +91,6 @@ export const componentMap = {
   'risk/RiskManage': RiskManage,
   'system/AiOperations': AiOperations,
 
-  'system/user/index': SystemUser,
-  'system/role/index': SystemRole,
-  'system/menu/index': SystemMenu,
-  'system/post/index': SystemPost,
-  'system/dict/index': SystemDict,
-  'system/config/index': SystemConfigRuoYi,
   'monitor/operlog/index': MonitorOperlog,
   'monitor/logininfor/index': MonitorLogininfor,
 

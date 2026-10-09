@@ -24,30 +24,12 @@ check('request.js uses shared unwrapRuoYiResponse', () => {
   if (!src.includes('unwrapRuoYiResponse')) throw new Error('request must call unwrapRuoYiResponse')
 })
 
-check('role page calls roleMenuTreeselect (not only getRole)', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
-  if (!src.includes('roleMenuTreeselect')) throw new Error('role page must call roleMenuTreeselect')
-  if (!src.includes('collectRolePayload')) throw new Error('role page must use collectRolePayload')
-  if (!src.includes('@/utils/ruoyi-response')) throw new Error('role page must import production helpers')
-})
-
-check('user page extracts postIds via production helper', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/user/index.vue'), 'utf8')
-  if (!src.includes('extractUserAssociations')) throw new Error('user page must use extractUserAssociations')
-  if (!src.includes('collectUserUpdatePayload')) throw new Error('user page must use collectUserUpdatePayload')
-  if (!src.includes('@/utils/ruoyi-response')) throw new Error('user page must import production helpers')
-})
-
-check('menu api exports roleMenuTreeselect', () => {
-  const src = readFileSync(join(webRoot, 'src/api/system/menu.js'), 'utf8')
-  if (!src.includes('roleMenuTreeselect')) throw new Error('missing roleMenuTreeselect export')
-  if (!src.includes('/system/menu/roleMenuTreeselect/')) throw new Error('wrong roleMenuTreeselect path')
-})
-
+// 2026-10-09 菜单精简：system/{user,role,menu,post,dict,config} 页面与 api 已随"系统管理"
+// 目录下线（数据库菜单精简见 smartscript_full_init.sql 第 7 部分），相关检查移除。
 check('component-map declares whitelist keys', () => {
   const src = readFileSync(join(webRoot, 'src/router/component-map.js'), 'utf8')
   if (!src.includes('export const componentMap')) throw new Error('missing componentMap')
-  for (const key of ['Layout', 'system/user/index', 'dashboard/Dashboard']) {
+  for (const key of ['Layout', 'dashboard/Dashboard', 'monitor/operlog/index']) {
     const quoted = src.includes(`'${key}'`) || src.includes(`"${key}"`)
     const bare = new RegExp(`(^|[\\n\\s,{])${key}\\s*:`).test(src)
     if (!quoted && !bare) throw new Error(`missing map key ${key}`)
@@ -60,11 +42,6 @@ check('login api ruoyi endpoints only', () => {
     if (!src.includes(`url: '${p}'`) && !src.includes(`url: "${p}"`)) throw new Error(`missing ${p}`)
   }
   if (/url:\s*['"]\/api\/v1\/admin/.test(src)) throw new Error('login api must not use product prefix')
-})
-
-check('menu page defines openForm', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/menu/index.vue'), 'utf8')
-  if (!src.includes('function openForm') && !src.includes('openForm =')) throw new Error('menu openForm missing')
 })
 
 check('seed sql absolute user/risk paths and safe grants', () => {
@@ -124,24 +101,6 @@ check('role payload carries appGrantable (A4 grantable marker maintenance path)'
   const src = readFileSync(join(webRoot, 'src/utils/ruoyi-response.js'), 'utf8')
   if (!src.includes('appGrantable')) {
     throw new Error('collectRolePayload must include appGrantable, otherwise the role page switch never persists')
-  }
-})
-
-check('role page exposes appGrantable switch', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
-  if (!src.includes('form.appGrantable')) {
-    throw new Error('role page must bind form.appGrantable so admins can maintain the marker')
-  }
-})
-
-check('role add form resets appGrantable to false (default deny)', () => {
-  const src = readFileSync(join(webRoot, 'src/views/system/role/index.vue'), 'utf8')
-  const openFormIdx = src.indexOf('async function openForm')
-  if (openFormIdx < 0) throw new Error('openForm not found')
-  // 取新增路径的重置块（openForm 到 row?.roleId 分支之前）
-  const addBranch = src.slice(openFormIdx, src.indexOf('if (row?.roleId)', openFormIdx))
-  if (!/appGrantable:\s*false/.test(addBranch)) {
-    throw new Error('openForm add-branch must reset appGrantable to false')
   }
 })
 
