@@ -22,24 +22,14 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <!-- 作品类型枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.workType"
-          placeholder="作品类型"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.workType" placeholder="全部作品类型" style="width: 160px" clearable>
+          <el-option v-for="t in WORK_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
-        <!-- 交易类型枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.tradeType"
-          placeholder="交易类型"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.tradeType" placeholder="全部交易类型" style="width: 160px" clearable>
+          <el-option v-for="t in TRADE_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
     </FilterBar>
 
@@ -57,7 +47,9 @@
       <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
       <el-table-column prop="authorName" label="作者" width="120" show-overflow-tooltip />
       <el-table-column prop="genreName" label="分类" width="120" show-overflow-tooltip />
-      <el-table-column prop="workType" label="作品类型" width="100" />
+      <el-table-column label="作品类型" width="100">
+        <template #default="{ row }">{{ contentEnumLabel(WORK_TYPE, row.workType) }}</template>
+      </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="statusTagType(row.status)" size="small">
@@ -92,13 +84,13 @@
         <el-descriptions-item label="作品标题" :span="2">{{ detail.title || '—' }}</el-descriptions-item>
         <el-descriptions-item label="作者">{{ detail.authorName || '—' }}</el-descriptions-item>
         <el-descriptions-item label="分类">{{ detail.genreName || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="作品类型">{{ detail.workType || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="作品类型">{{ contentEnumLabel(WORK_TYPE, detail.workType) }}</el-descriptions-item>
         <el-descriptions-item label="篇幅类型">{{ detail.lengthType || '—' }}</el-descriptions-item>
         <el-descriptions-item label="简介" :span="2">{{ detail.summary || '—' }}</el-descriptions-item>
         <el-descriptions-item label="核心设定" :span="2">{{ detail.coreSetting || '—' }}</el-descriptions-item>
         <el-descriptions-item label="人物设定" :span="2">{{ detail.characterSetting || '—' }}</el-descriptions-item>
         <el-descriptions-item label="价格">{{ detail.price ?? '—' }}</el-descriptions-item>
-        <el-descriptions-item label="交易类型">{{ detail.tradeType || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="交易类型">{{ contentEnumLabel(TRADE_TYPE, detail.tradeType) }}</el-descriptions-item>
         <el-descriptions-item label="交易状态">
           <el-tag :type="detail.tradeEnabled ? 'success' : 'info'" size="small">
             {{ detail.tradeEnabled ? '已开启' : '未开启' }}
@@ -165,6 +157,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { listWork, getWork, listWorkChapters } from '@/api/content'
+import { WORK_TYPE, TRADE_TYPE, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentWork' })
 

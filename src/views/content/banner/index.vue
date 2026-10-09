@@ -17,14 +17,9 @@
         />
       </el-form-item>
       <el-form-item>
-        <!-- 展示位置枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.position"
-          placeholder="展示位置"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.position" placeholder="全部展示位置" style="width: 160px" clearable>
+          <el-option v-for="t in BANNER_POSITION" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
@@ -59,7 +54,9 @@
           <span v-else>—</span>
         </template>
       </el-table-column>
-      <el-table-column prop="position" label="展示位置" width="100" />
+      <el-table-column label="展示位置" width="120">
+        <template #default="{ row }">{{ contentEnumLabel(BANNER_POSITION, row.position) }}</template>
+      </el-table-column>
       <el-table-column label="排序" width="140">
         <template #default="{ row }">
           <el-input-number
@@ -118,14 +115,23 @@
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" placeholder="请输入Banner标题" />
         </el-form-item>
-        <el-form-item label="封面图URL" prop="imageUrl">
-          <el-input v-model="form.imageUrl" placeholder="请输入图片URL" />
-          <el-image
-            v-if="form.imageUrl"
-            :src="form.imageUrl"
-            fit="cover"
-            style="width: 120px; height: 60px; margin-top: 8px; border-radius: 4px"
-          />
+        <el-form-item label="封面图" prop="imageUrl">
+          <el-upload
+            class="banner-uploader"
+            :show-file-list="false"
+            :before-upload="beforeImageUpload"
+            :http-request="handleImageUpload"
+            accept="image/*"
+          >
+            <div v-if="form.imageUrl" class="banner-uploader__preview">
+              <img :src="form.imageUrl" alt="封面图" />
+              <span class="banner-uploader__mask">点击更换</span>
+            </div>
+            <div v-else class="banner-uploader__placeholder" v-loading="uploading">
+              <span>点击上传封面图</span>
+            </div>
+          </el-upload>
+          <div class="banner-uploader__tip">支持 jpg/png 格式，大小不超过 2MB，建议尺寸 750×360</div>
         </el-form-item>
         <el-form-item label="链接类型" prop="linkType">
           <el-input v-model="form.linkType" placeholder="如 work / page / url" />
@@ -137,7 +143,9 @@
           <el-input v-model="form.linkUrl" placeholder="跳转URL（选填）" />
         </el-form-item>
         <el-form-item label="展示位置" prop="position">
-          <el-input v-model="form.position" placeholder="如 home_top" />
+          <el-select v-model="form.position" placeholder="请选择展示位置" style="width: 100%" clearable>
+            <el-option v-for="t in BANNER_POSITION" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="排序" prop="sortOrder">
           <el-input-number v-model="form.sortOrder" :min="0" :max="9999" />
@@ -195,8 +203,10 @@ import {
   addBanner,
   updateBanner,
   changeBannerStatus,
-  changeBannerSort
+  changeBannerSort,
+  uploadFile
 } from '@/api/content'
+import { BANNER_POSITION, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentBanner' })
 
@@ -252,6 +262,7 @@ function handleReset() {
 
 const dialog = reactive({ visible: false, mode: 'create' })
 const submitting = ref(false)
+const uploading = ref(false)
 const formRef = ref()
 const defaultForm = () => ({
   bannerId: null,
@@ -274,9 +285,41 @@ const rules = {
     { whitespace: true, message: '标题不能为空', trigger: 'blur' }
   ],
   imageUrl: [
-    { required: true, message: '请输入封面图URL', trigger: 'blur' },
-    { whitespace: true, message: '封面图URL不能为空', trigger: 'blur' }
+    { required: true, message: '请上传封面图', trigger: 'change' }
   ]
+}
+
+/** 上传前置校验：仅图片、≤2MB */
+function beforeImageUpload(file) {
+  if (!/^image\//.test(file.type)) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (file.size / 1024 / 1024 > 2) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+  return true
+}
+
+/** 自定义上传：走通用上传接口，成功后回填 imageUrl */
+async function handleImageUpload(options) {
+  uploading.value = true
+  try {
+    const res = await uploadFile(options.file)
+    const url = res?.url || res?.data?.url
+    if (!url) {
+      ElMessage.error('上传失败，未返回图片地址')
+      return
+    }
+    form.imageUrl = url
+    formRef.value?.clearValidate('imageUrl')
+    ElMessage.success('上传成功')
+  } catch {
+    // 错误信息已由 request 拦截器统一提示
+  } finally {
+    uploading.value = false
+  }
 }
 
 function openCreate() {
@@ -405,3 +448,58 @@ async function handleSort(row) {
 
 onMounted(loadList)
 </script>
+
+<style scoped>
+.banner-uploader__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 60px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.banner-uploader__placeholder:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+.banner-uploader__preview {
+  position: relative;
+  width: 120px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.banner-uploader__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.banner-uploader__mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.banner-uploader__preview:hover .banner-uploader__mask {
+  opacity: 1;
+}
+.banner-uploader__tip {
+  width: 100%;
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+</style>

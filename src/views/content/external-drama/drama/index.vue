@@ -26,32 +26,19 @@
         />
       </el-form-item>
       <el-form-item>
-        <!-- 枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.sourceType"
-          placeholder="来源类型"
-          style="width: 150px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.sourceType" placeholder="全部来源类型" style="width: 150px" clearable>
+          <el-option v-for="t in DRAMA_SOURCE_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
-        <el-input
-          v-model="queryParams.authorizationStatus"
-          placeholder="授权状态"
-          style="width: 150px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.authorizationStatus" placeholder="全部授权状态" style="width: 150px" clearable>
+          <el-option v-for="t in DRAMA_AUTH_STATUS" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
-        <el-input
-          v-model="queryParams.status"
-          placeholder="状态"
-          style="width: 140px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
+          <el-option v-for="t in DRAMA_SHELF_STATUS" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
     </FilterBar>
 
@@ -68,10 +55,16 @@
       <el-table-column prop="dramaId" label="视频ID" width="90" />
       <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
       <el-table-column prop="channelId" label="渠道ID" width="90" />
-      <el-table-column prop="sourceType" label="来源类型" width="100" />
-      <el-table-column prop="authorizationStatus" label="授权状态" width="120" />
+      <el-table-column label="来源类型" width="100">
+        <template #default="{ row }">{{ contentEnumLabel(DRAMA_SOURCE_TYPE, row.sourceType) }}</template>
+      </el-table-column>
+      <el-table-column label="授权状态" width="120">
+        <template #default="{ row }">{{ contentEnumLabel(DRAMA_AUTH_STATUS, row.authorizationStatus) }}</template>
+      </el-table-column>
       <el-table-column prop="syncStatus" label="同步状态" width="120" />
-      <el-table-column prop="status" label="状态" width="100" />
+      <el-table-column label="状态" width="100">
+        <template #default="{ row }">{{ contentEnumLabel(DRAMA_SHELF_STATUS, row.status) }}</template>
+      </el-table-column>
       <el-table-column prop="externalUrl" label="外部地址" min-width="200" show-overflow-tooltip />
       <el-table-column label="创建时间" width="170">
         <template #default="{ row }">{{ row.createTime || '—' }}</template>
@@ -103,10 +96,10 @@
         <el-descriptions-item label="渠道ID">{{ detail.channelId || '—' }}</el-descriptions-item>
         <el-descriptions-item label="标题" :span="2">{{ detail.title || '—' }}</el-descriptions-item>
         <el-descriptions-item label="外部内容ID">{{ detail.externalContentId || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="来源类型">{{ detail.sourceType || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="授权状态">{{ detail.authorizationStatus || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="来源类型">{{ contentEnumLabel(DRAMA_SOURCE_TYPE, detail.sourceType) }}</el-descriptions-item>
+        <el-descriptions-item label="授权状态">{{ contentEnumLabel(DRAMA_AUTH_STATUS, detail.authorizationStatus) }}</el-descriptions-item>
         <el-descriptions-item label="同步状态">{{ detail.syncStatus || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ detail.status || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ contentEnumLabel(DRAMA_SHELF_STATUS, detail.status) }}</el-descriptions-item>
         <el-descriptions-item label="封面文件ID">{{ detail.coverFileId ?? '—' }}</el-descriptions-item>
         <el-descriptions-item label="外部地址" :span="2">{{ detail.externalUrl || '—' }}</el-descriptions-item>
         <el-descriptions-item label="版权说明" :span="2">{{ detail.copyrightNote || '—' }}</el-descriptions-item>
@@ -152,10 +145,14 @@
           <el-input v-model="form.externalUrl" placeholder="请输入外部地址" />
         </el-form-item>
         <el-form-item label="来源类型" prop="sourceType">
-          <el-input v-model="form.sourceType" placeholder="请输入来源类型" />
+          <el-select v-model="form.sourceType" placeholder="请选择来源类型" style="width: 100%" clearable>
+            <el-option v-for="t in DRAMA_SOURCE_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="授权状态" prop="authorizationStatus">
-          <el-input v-model="form.authorizationStatus" placeholder="请输入授权状态" />
+          <el-select v-model="form.authorizationStatus" placeholder="请选择授权状态" style="width: 100%" clearable>
+            <el-option v-for="t in DRAMA_AUTH_STATUS" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="同步状态" prop="syncStatus">
           <el-input v-model="form.syncStatus" placeholder="请输入同步状态" />
@@ -164,7 +161,9 @@
           <el-input v-model="form.copyrightNote" type="textarea" :rows="3" placeholder="请输入版权说明（选填）" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-input v-model="form.status" placeholder="请输入状态" />
+          <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%" clearable>
+            <el-option v-for="t in DRAMA_SHELF_STATUS" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="封面文件ID" prop="coverFileId">
           <el-input-number v-model="form.coverFileId" :min="0" controls-position="right" style="width: 200px" />
@@ -192,6 +191,12 @@ import {
   addDrama,
   updateDrama
 } from '@/api/content'
+import {
+  DRAMA_SOURCE_TYPE,
+  DRAMA_AUTH_STATUS,
+  DRAMA_SHELF_STATUS,
+  contentEnumLabel
+} from '@/constants/contentEnum'
 
 defineOptions({ name: 'ExternalDramaContent' })
 

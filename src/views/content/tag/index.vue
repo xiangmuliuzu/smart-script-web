@@ -8,23 +8,20 @@
 
     <FilterBar @query="handleQuery" @reset="handleReset">
       <el-form-item>
-        <el-input
+        <el-select
           v-model="queryParams.tagName"
-          placeholder="标签名称"
+          placeholder="全部标签"
           style="width: 180px"
           clearable
-          @keyup.enter="handleQuery"
-        />
+          filterable
+        >
+          <el-option v-for="name in nameOptions" :key="name" :label="name" :value="name" />
+        </el-select>
       </el-form-item>
       <el-form-item>
-        <!-- 标签类型枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.tagType"
-          placeholder="标签类型"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.tagType" placeholder="全部类型" style="width: 160px" clearable>
+          <el-option v-for="t in TAG_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
@@ -69,7 +66,7 @@
       <el-table-column prop="tagId" label="标签ID" width="90" />
       <el-table-column prop="tagName" label="标签名称" min-width="160" show-overflow-tooltip />
       <el-table-column label="标签类型" width="120">
-        <template #default="{ row }">{{ row.tagType || '—' }}</template>
+        <template #default="{ row }">{{ contentEnumLabel(TAG_TYPE, row.tagType) }}</template>
       </el-table-column>
       <el-table-column prop="useCount" label="使用数量" width="100" />
       <el-table-column prop="sort" label="显示顺序" width="90" />
@@ -111,8 +108,9 @@
           <el-input v-model="form.tagName" placeholder="请输入标签名称，不可重复" />
         </el-form-item>
         <el-form-item label="标签类型" prop="tagType">
-          <!-- 标签类型枚举值暂无文档依据，先按自由文本预留，文档补齐后改下拉 -->
-          <el-input v-model="form.tagType" placeholder="请输入标签类型（选填）" />
+          <el-select v-model="form.tagType" placeholder="请选择标签类型（选填）" style="width: 100%" clearable>
+            <el-option v-for="t in TAG_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注（选填）" />
@@ -135,6 +133,7 @@ import BlackButton from '@/components/BlackButton.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { listTag, addTag, updateTag, delTag } from '@/api/content'
+import { TAG_TYPE, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentTag' })
 
@@ -148,6 +147,17 @@ const queryParams = reactive({
   tagType: '',
   status: ''
 })
+
+/** 标签名称下拉选项：从已有标签动态加载，供按名称筛选 */
+const nameOptions = ref([])
+async function loadNameOptions() {
+  try {
+    const res = await listTag({ pageNum: 1, pageSize: 200 })
+    nameOptions.value = [...new Set((res?.rows || []).map((r) => r.tagName).filter(Boolean))]
+  } catch {
+    nameOptions.value = []
+  }
+}
 
 /** 当前页勾选状态：{ [tagId]: true }，翻页/刷新后清空 */
 const checkedMap = reactive({})
@@ -261,6 +271,7 @@ async function handleSubmit() {
         ElMessage.success('编辑成功')
       }
       dialog.visible = false
+      loadNameOptions()
       loadList()
     } catch {
       // 名称重复等错误信息已由 request 拦截器统一提示
@@ -310,5 +321,8 @@ async function handleBatchRemove() {
   }
 }
 
-onMounted(loadList)
+onMounted(() => {
+  loadNameOptions()
+  loadList()
+})
 </script>

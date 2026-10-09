@@ -23,7 +23,7 @@
       </el-form-item>
       <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部上下架" style="width: 150px" clearable>
-          <el-option label="已上架" value="approved" />
+          <el-option label="已上架" value="on_shelf" />
           <el-option label="已下架" value="off_shelf" />
         </el-select>
       </el-form-item>
@@ -55,7 +55,7 @@
             <el-switch
               v-permission="['content:dramastatus:edit']"
               v-model="row.status"
-              active-value="approved"
+              active-value="on_shelf"
               inactive-value="off_shelf"
               @change="() => handleStatusChange(row)"
             />
@@ -195,7 +195,7 @@ function handleSelectionChange(rows) {
 
 async function handleStatusChange(row) {
   const targetStatus = row.status
-  const actionText = targetStatus === 'approved' ? '上架' : '下架'
+  const actionText = targetStatus === 'on_shelf' ? '上架' : '下架'
   try {
     await ElMessageBox.confirm(`确认${actionText}视频「${row.title}」？`, '提示', {
       confirmButtonText: '确定',
@@ -203,14 +203,14 @@ async function handleStatusChange(row) {
       type: 'warning'
     })
   } catch {
-    row.status = targetStatus === 'approved' ? 'off_shelf' : 'approved'
+    row.status = targetStatus === 'on_shelf' ? 'off_shelf' : 'on_shelf'
     return
   }
   try {
     await changeDramaStatus({ dramaId: row.dramaId, status: targetStatus })
     ElMessage.success(`${actionText}成功`)
   } catch {
-    row.status = targetStatus === 'approved' ? 'off_shelf' : 'approved'
+    row.status = targetStatus === 'on_shelf' ? 'off_shelf' : 'on_shelf'
   }
 }
 

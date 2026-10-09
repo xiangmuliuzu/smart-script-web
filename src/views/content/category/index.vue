@@ -8,23 +8,20 @@
 
     <FilterBar @query="handleQuery" @reset="handleReset">
       <el-form-item>
-        <el-input
+        <el-select
           v-model="queryParams.categoryName"
-          placeholder="分类名称"
+          placeholder="全部分类"
           style="width: 180px"
           clearable
-          @keyup.enter="handleQuery"
-        />
+          filterable
+        >
+          <el-option v-for="name in nameOptions" :key="name" :label="name" :value="name" />
+        </el-select>
       </el-form-item>
       <el-form-item>
-        <!-- 分类类型枚举值暂无文档依据，先按自由文本精确查询，文档补齐后改下拉 -->
-        <el-input
-          v-model="queryParams.categoryType"
-          placeholder="分类类型"
-          style="width: 160px"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-select v-model="queryParams.categoryType" placeholder="全部类型" style="width: 160px" clearable>
+          <el-option v-for="t in CATEGORY_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
@@ -47,7 +44,7 @@
       <el-table-column prop="categoryId" label="分类ID" width="90" />
       <el-table-column prop="categoryName" label="分类名称" min-width="160" show-overflow-tooltip />
       <el-table-column label="分类类型" width="120">
-        <template #default="{ row }">{{ row.categoryType || '—' }}</template>
+        <template #default="{ row }">{{ contentEnumLabel(CATEGORY_TYPE, row.categoryType) }}</template>
       </el-table-column>
       <el-table-column label="显示顺序" width="180">
         <template #default="{ row }">
@@ -105,8 +102,9 @@
           <el-input v-model="form.categoryName" placeholder="请输入分类名称，不可重复" />
         </el-form-item>
         <el-form-item label="分类类型" prop="categoryType">
-          <!-- 分类类型枚举值暂无文档依据，先按自由文本预留，文档补齐后改下拉 -->
-          <el-input v-model="form.categoryType" placeholder="请输入分类类型（选填）" />
+          <el-select v-model="form.categoryType" placeholder="请选择分类类型（选填）" style="width: 100%" clearable>
+            <el-option v-for="t in CATEGORY_TYPE" :key="t.value" :label="t.label" :value="t.value" />
+          </el-select>
         </el-form-item>
         <el-form-item label="显示顺序" prop="sort">
           <el-input-number v-model="form.sort" :min="0" :max="9999" />
@@ -147,6 +145,7 @@ import {
   changeCategoryStatus,
   changeCategorySort
 } from '@/api/content'
+import { CATEGORY_TYPE, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentCategory' })
 
@@ -162,6 +161,17 @@ const queryParams = reactive({
 })
 
 const sortingId = ref(null)
+
+/** 分类名称下拉选项：从已有分类动态加载，供按名称筛选 */
+const nameOptions = ref([])
+async function loadNameOptions() {
+  try {
+    const res = await listCategory({ pageNum: 1, pageSize: 200 })
+    nameOptions.value = [...new Set((res?.rows || []).map((r) => r.categoryName).filter(Boolean))]
+  } catch {
+    nameOptions.value = []
+  }
+}
 
 const dialog = reactive({ visible: false, mode: 'create' })
 const submitting = ref(false)
@@ -263,6 +273,7 @@ async function handleSubmit() {
         ElMessage.success('编辑成功')
       }
       dialog.visible = false
+      loadNameOptions()
       loadList()
     } catch {
       // 名称重复等错误信息已由 request 拦截器统一提示
@@ -310,5 +321,8 @@ async function handleSort(row) {
   }
 }
 
-onMounted(loadList)
+onMounted(() => {
+  loadNameOptions()
+  loadList()
+})
 </script>

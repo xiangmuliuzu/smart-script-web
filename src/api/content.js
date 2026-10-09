@@ -274,6 +274,24 @@ export function changeBannerSort(data) {
   })
 }
 
+// ---------------- 通用文件上传 ----------------
+
+/**
+ * 通用图片上传（若依通用上传 POST /common/upload，multipart/form-data）
+ * 依据：ruoyi-admin CommonController#uploadFile，返回 { url, fileName, newFileName, originalFilename }
+ * 落库至 ruoyi.profile（D:/ruoyi/uploadPath），通过 /profile/** 公开静态资源访问。
+ */
+export function uploadFile(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/common/upload',
+    method: 'post',
+    headers: { 'Content-Type': 'multipart/form-data' },
+    data: formData
+  })
+}
+
 // ---------------- 作品上传资料 ----------------
 export function listWorkFile(query) { return request({ url: `${ADMIN_PREFIX}/workfile/list`, method: 'get', params: query }) }
 export function getWorkFile(fileId) { return request({ url: `${ADMIN_PREFIX}/workfile/${fileId}`, method: 'get' }) }
