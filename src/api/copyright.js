@@ -332,3 +332,181 @@ export function downloadCopyrightCert(certId) {
 // 印章管理API - 统一使用 getCopyrightSealList
 export { getCopyrightSealList as getPersonalSealList }
 
+// 版权申请管理API
+export function getCopyrightApplicationList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/application/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightApplicationDetail(applyId) {
+  return request({
+    url: `/pc/copyright/application/${applyId}`,
+    method: 'get'
+  })
+}
+
+export function addCopyrightApplication(data) {
+  return request({
+    url: '/pc/copyright/application',
+    method: 'post',
+    data
+  })
+}
+
+export function updateCopyrightApplication(data) {
+  return request({
+    url: '/pc/copyright/application',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteCopyrightApplication(applyIds) {
+  return request({
+    url: `/pc/copyright/application/${applyIds}`,
+    method: 'delete'
+  })
+}
+
+export function syncCopyrightApplication(applyId) {
+  return request({
+    url: `/pc/copyright/application/${applyId}/sync`,
+    method: 'post'
+  })
+}
+
+export function reviewCopyrightApplication(applyId, data) {
+  return request({
+    url: `/pc/copyright/application/${applyId}/review`,
+    method: 'post',
+    data
+  })
+}
+
+export function submitCopyrightApplicationToCenter(applyId) {
+  return request({
+    url: `/pc/copyright/application/${applyId}/submit`,
+    method: 'post'
+  })
+}
+
+export function batchSubmitCopyrightApplicationToCenter(applyIds) {
+  return request({
+    url: '/pc/copyright/application/batch/submit',
+    method: 'post',
+    data: applyIds
+  })
+}
+
+export function exportCopyrightApplication(params) {
+  return request({
+    url: '/pc/copyright/application/export',
+    method: 'post',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 版权中心配置API
+export function getCopyrightCenterConfigList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/centerConfig/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightCenterConfigDetail(configId) {
+  return request({
+    url: `/pc/copyright/centerConfig/${configId}`,
+    method: 'get'
+  })
+}
+
+export function addCopyrightCenterConfig(data) {
+  return request({
+    url: '/pc/copyright/centerConfig',
+    method: 'post',
+    data
+  })
+}
+
+export function updateCopyrightCenterConfig(data) {
+  return request({
+    url: '/pc/copyright/centerConfig',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteCopyrightCenterConfig(configIds) {
+  return request({
+    url: `/pc/copyright/centerConfig/${configIds}`,
+    method: 'delete'
+  })
+}
+
+export function exportCopyrightCenterConfig(params) {
+  return request({
+    url: '/pc/copyright/centerConfig/export',
+    method: 'post',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 测试版权中心连接
+export function testCopyrightCenterConnection(configId) {
+  return request({
+    url: `/pc/copyright/centerConfig/testConnection/${configId}`,
+    method: 'post'
+  })
+}
+
+// 修改版权中心状态
+export function changeCopyrightCenterStatus(data) {
+  return request({
+    url: '/pc/copyright/centerConfig/changeStatus',
+    method: 'put',
+    data
+  })
+}
+
+// 获取可用的版权中心列表
+export function getAvailableCopyrightCenters() {
+  return request({
+    url: '/pc/copyright/centerConfig/available',
+    method: 'get'
+  })
+}
+
+// 批量同步版权申请状态
+export function batchSyncCopyrightStatus(applyIds) {
+  return request({
+    url: '/pc/copyright/application/batch/sync',
+    method: 'post',
+    data: applyIds
+  })
+}
+
+// 重新提交版权申请
+export function resubmitCopyrightApplication(applyId) {
+  return request({
+    url: `/pc/copyright/application/${applyId}/resubmit`,
+    method: 'post'
+  })
+}
+
+// 同步单个申请状态
+export function syncCopyrightApplicationStatus(applyId) {
+  return request({
+    url: `/pc/copyright/application/${applyId}/sync`,
+    method: 'post'
+  })
+}
+
