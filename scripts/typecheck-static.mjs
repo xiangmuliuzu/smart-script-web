@@ -44,20 +44,19 @@ check('login api ruoyi endpoints only', () => {
   if (/url:\s*['"]\/api\/v1\/admin/.test(src)) throw new Error('login api must not use product prefix')
 })
 
-check('seed sql absolute user/risk paths and safe grants', () => {
+check('seed sql risk path, no duplicate user entry and safe grants', () => {
   const seedPath = join(webRoot, '../shared/sql/a1-p5-menu-seed.sql')
   const rollbackPath = join(webRoot, '../shared/sql/a1-p5-menu-rollback.sql')
   if (!existsSync(seedPath) || !existsSync(rollbackPath)) {
     return { skip: 'shared SQL fixtures are not present in this workspace' }
   }
   const sql = readFileSync(seedPath, 'utf8')
-  // P0: /user /risk 以根级 path（user/risk）或绝对 path '/user' 表达，RuoYi 生成 /user
-  const hasUser = sql.includes("'/user'") || /parent_id,0|parent_id, 0|,0,'user'|SELECT 5142[^\n]*user'\/UserManage|,'user','user\/UserManage'/.test(sql) || sql.includes(",'user','user/UserManage'")
+  // 用户页面统一由用户中心3001维护，A1产品菜单不再重复种入5142。
+  if (/SELECT\s+5142\b/.test(sql) || sql.includes('smartscript:ops:creatorUser')) {
+    throw new Error('seed must not recreate the duplicate operations user entry')
+  }
   const hasRisk = sql.includes("'/risk'") || sql.includes(",'risk','risk/RiskManage'")
-  if (!hasUser && !sql.includes("user/UserManage")) throw new Error("seed must map product page user/UserManage at root path user")
   if (!hasRisk && !sql.includes("risk/RiskManage")) throw new Error("seed must map product page risk/RiskManage")
-  // 根级 user 路径
-  if (!sql.includes("user/UserManage")) throw new Error('seed missing user/UserManage component mapping')
   if (!sql.includes('WHERE t.parent_id IS NOT NULL')) {
     throw new Error('children must skip when resolved parent is NULL')
   }
