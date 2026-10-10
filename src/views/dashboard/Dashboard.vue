@@ -176,7 +176,10 @@ const statusData = ref([])
 // 状态中文映射
 const STATUS_TEXT = {
   pending: '待审核',
+  manual_review: '待人工复核',
+  ai_reviewing: 'AI审核中',
   approved: '已通过',
+  rejected: '已驳回',
   on_shelf: '已上架',
   off_shelf: '已下架',
   draft: '草稿'
@@ -253,7 +256,10 @@ const handleQuickAccess = (route) => {
 const getStatusType = (status) => {
   const typeMap = {
     '待审核': 'warning',
+    '待人工复核': 'warning',
+    'AI审核中': 'info',
     '已通过': 'success',
+    '已驳回': 'danger',
     '已上架': 'info',
     '已下架': 'info',
     '草稿': 'danger'

@@ -57,6 +57,7 @@
             <div class="action-buttons">
               <el-button size="small" @click="handleEdit(row)">编辑</el-button>
               <el-button size="small" @click="handleQuota(row)">调整配额</el-button>
+              <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -206,6 +207,32 @@ const handleEdit = (row) => {
     reservedQuota: row.reservedQuota
   })
   dialogVisible.value = true
+}
+
+// 删除AI配额账户
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认删除用户 "${row.nickname || row.userId}" 的AI次数配置吗？`, '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+  try {
+    const res = await adminFetch(`/api/v1/admin/ai/quota/${row.accountId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.code === 200) {
+      ElMessage.success('删除成功')
+      configList.value = configList.value.filter(item => item.accountId !== row.accountId)
+      await loadStats()
+    } else {
+      ElMessage.error(data.msg || '删除失败')
+    }
+  } catch (e) {
+    ElMessage.error('删除失败，请检查后端服务')
+  }
 }
 
 // 提交配置

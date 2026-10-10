@@ -3,7 +3,12 @@ import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from '@/utils/auth'
 import { unwrapRuoYiResponse } from '@/utils/ruoyi-response'
 
-const BASE_API = import.meta.env.VITE_APP_BASE_API || ''
+/**
+ * 管理端旧接口（/getInfo、/getRouters、/system、/monitor 等若依原生接口）统一入口。
+ * 生产/服务器按运维规范走 /prod-api（Caddy 转发时去掉该前缀）；
+ * 本地开发走 /dev-api 由 Vite 代理转发。
+ */
+const BASE_API = import.meta.env.VITE_APP_ADMIN_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 const request = axios.create({
   baseURL: BASE_API,

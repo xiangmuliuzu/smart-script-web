@@ -53,18 +53,13 @@
         <el-form-item>
           <el-select v-model="filterForm.type" placeholder="全部类型" style="width: 140px">
             <el-option label="全部类型" value="" />
-            <el-option label="电影剧本" value="movie" />
-            <el-option label="电视剧剧本" value="tv" />
-            <el-option label="短剧剧本" value="short" />
+            <el-option label="剧本" value="script" />
           </el-select>
         </el-form-item>
         <el-form-item>
           <el-select v-model="filterForm.genre" placeholder="全部题材" style="width: 140px">
             <el-option label="全部题材" value="" />
-            <el-option label="都市" value="urban" />
-            <el-option label="古装" value="ancient" />
-            <el-option label="科幻" value="scifi" />
-            <el-option label="悬疑" value="suspense" />
+            <el-option v-for="g in genreOptions" :key="g" :label="g" :value="g" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -99,7 +94,11 @@
         <el-table-column type="selection" width="50" />
         <el-table-column prop="reviewId" label="编号" width="100" />
         <el-table-column prop="workTitle" label="作品名称" min-width="180" />
-        <el-table-column prop="workType" label="类型" width="120" />
+        <el-table-column label="类型" width="120">
+          <template #default="{ row }">
+            {{ getTypeText(row.workType) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="genreName" label="题材" width="100" />
         <el-table-column prop="authorName" label="作者" width="120" />
         <el-table-column prop="createTime" label="提交时间" width="160" />
@@ -165,7 +164,7 @@
       <el-descriptions :column="2" border>
         <el-descriptions-item label="作品名称">{{ currentReview.workTitle }}</el-descriptions-item>
         <el-descriptions-item label="作者">{{ currentReview.authorName }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentReview.workType }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ getTypeText(currentReview.workType) }}</el-descriptions-item>
         <el-descriptions-item label="题材">{{ currentReview.genreName }}</el-descriptions-item>
         <el-descriptions-item label="AI评分">{{ currentReview.aiScore != null ? currentReview.aiScore + '分' : '-' }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ currentReview.createTime }}</el-descriptions-item>
@@ -201,7 +200,7 @@
       <el-descriptions :column="2" border>
         <el-descriptions-item label="作品名称">{{ currentDetail.workTitle }}</el-descriptions-item>
         <el-descriptions-item label="作者">{{ currentDetail.authorName }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentDetail.workType }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ getTypeText(currentDetail.workType) }}</el-descriptions-item>
         <el-descriptions-item label="题材">{{ currentDetail.genreName }}</el-descriptions-item>
         <el-descriptions-item label="AI评分">{{ currentDetail.aiScore != null ? currentDetail.aiScore + '分' : '-' }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ currentDetail.createTime }}</el-descriptions-item>
@@ -262,7 +261,7 @@ const { handleContactUser } = useContactUser({
   businessType: 'WORK',
   extractUserId: (row) => row.userId,
   extractBusinessId: (row) => row.workId || row.reviewId,
-  extractBusinessName: (row) => row.name || row.workName,
+  extractBusinessName: (row) => row.workTitle || row.workName || row.name,
   emptyMessage: '该作品暂未关联用户，无法发起沟通'
 })
 
@@ -274,6 +273,21 @@ const filterForm = ref({
   startDate: '',
   endDate: ''
 })
+
+// 题材选项（与 sys_category theme 分类对齐）
+const genreOptions = ['玄幻', '仙侠', '武侠', '都市', '悬疑', '历史', '科幻', '言情', '游戏', '二次元', '军事', '体育']
+
+// 类型映射（sys_work.work_type 枚举）
+const getTypeText = (type) => {
+  const typeMap = {
+    script: '剧本',
+    novel: '小说',
+    movie: '电影剧本',
+    tv: '电视剧剧本',
+    short: '短剧剧本'
+  }
+  return typeMap[type] || type || '-'
+}
 
 // 加载状态
 const loading = ref(false)
@@ -343,7 +357,7 @@ const getStatusType = (status) => {
   const typeMap = {
     pending: 'warning',
     manual_review: 'warning',
-    ai_reviewing: '',
+    ai_reviewing: 'info',
     approved: 'success',
     rejected: 'danger'
   }
@@ -371,7 +385,18 @@ const getActionType = (action) => {
 
 // 处理搜索
 const handleSearch = () => {
-  ElMessage.success('搜索条件已应用')
+  loadWorks(buildQuery())
+}
+
+// 构建筛选参数
+const buildQuery = () => {
+  const q = {}
+  if (filterForm.value.status) q.status = filterForm.value.status
+  if (filterForm.value.type) q.workType = filterForm.value.type
+  if (filterForm.value.genre) q.genreName = filterForm.value.genre
+  if (filterForm.value.startDate) q.beginTime = filterForm.value.startDate
+  if (filterForm.value.endDate) q.endTime = filterForm.value.endDate
+  return q
 }
 
 // 处理选择变化
@@ -444,7 +469,7 @@ const handleBatchAssign = () => {
 // 提交批量分配
 const handleSubmitAssign = async () => {
   try {
-    const ids = selectedWorks.value.map(item => item.id)
+    const ids = selectedWorks.value.map(item => item.reviewId)
     const res = await adminFetch('/api/v1/admin/review/batch-assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -502,9 +527,11 @@ const handleExportLogs = async () => {
 }
 
 // 加载作品列表
-const loadWorks = async () => {
+const loadWorks = async (query = {}) => {
   try {
-    const res = await adminFetch('/api/v1/admin/review/list?page=1&pageSize=10')
+    const params = new URLSearchParams(query).toString()
+    const url = '/api/v1/admin/review/list?page=1&pageSize=100' + (params ? '&' + params : '')
+    const res = await adminFetch(url)
     const data = await res.json()
     if (data.code === 200) {
       worksList.value = data.rows || []

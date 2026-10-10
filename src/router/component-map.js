@@ -36,7 +36,6 @@ import DemandTags from '@/views/trade/DemandTags.vue'
 import FollowUp from '@/views/trade/FollowUp.vue'
 import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
-import UserProfileRec from '@/views/operation/UserProfileRec.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
 import UserRealName from '@/views/user/realname/index.vue'
 import MessagesAnnouncements from '@/views/support/MessagesAnnouncements.vue'
@@ -97,7 +96,6 @@ export const componentMap = {
   'trade/FollowUp': FollowUp,
   'trade/Demand': Demand,
   'operation/AdConfig': AdConfig,
-  'operation/UserProfileRec': UserProfileRec,
   'user/UserManage': UserManageProduct,
   'user/realname/index': UserRealName,
   'user/message/index': MessagesAnnouncements,

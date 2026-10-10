@@ -11,7 +11,12 @@ import { getUserToken, removeUserToken, removeUserRefreshToken, removeAccountTyp
  *   - 并发失效只触发一次跳转与一次提示；普通业务错误不按令牌失效处理。
  * 不做 silent refresh：刷新令牌仅落盘备用，过期即要求重新登录，避免跨域凭据复杂化。
  */
-const BASE_API = import.meta.env.VITE_APP_BASE_API || ''
+/**
+ * PC 用户端（App 凭证域）新接口统一入口，路径形如 /api/v1/...
+ * 生产/服务器按运维规范走 /api/v1（Caddy 原样转发到后端）；
+ * 本地开发走 /dev-api 由 Vite 代理转发。
+ */
+const BASE_API = import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 const request = axios.create({
   baseURL: BASE_API,

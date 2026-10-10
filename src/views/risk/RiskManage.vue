@@ -25,7 +25,11 @@
           </template>
           <el-table :data="violationList" style="width: 100%">
             <el-table-column prop="description" label="内容" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="targetType" label="类型" width="140" />
+            <el-table-column label="类型" width="140">
+              <template #default="{ row }">
+                {{ getTargetTypeText(row.targetType) }}
+              </template>
+            </el-table-column>
             <el-table-column label="举报原因" width="120">
               <template #default="{ row }">
                 <el-tag :type="getSeverityType(row.reason)" size="small">
@@ -72,6 +76,11 @@
                 </el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="操作" width="100">
+              <template #default="{ row }">
+                <el-button size="small" type="danger" @click="handleDeleteRule(row)">删除</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
       </div>
@@ -90,7 +99,7 @@
         <el-table-column label="类型" width="140">
           <template #default="{ row }">
             <el-tag type="danger" size="small">
-              {{ row.targetType }}
+              {{ getTargetTypeText(row.targetType) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -104,6 +113,35 @@
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button size="small" @click="handleRemove(row)">移除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 异常账号处理 -->
+    <el-card class="table-card full-width abnormal-card">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">异常账号处理</span>
+        </div>
+      </template>
+      <el-table :data="abnormalList" style="width: 100%">
+        <el-table-column prop="account" label="账号" min-width="160" />
+        <el-table-column prop="targetType" label="类型" width="120">
+          <template #default="{ row }">
+            {{ getTargetTypeText(row.targetType) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="reason" label="拉黑原因" min-width="200" />
+        <el-table-column prop="createTime" label="加入时间" width="160" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag type="danger" size="small">异常</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button size="small" @click="handleReleaseAbnormal(row)">解除拉黑</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -204,6 +242,23 @@ const ruleList = ref([])
 // 黑名单数据
 const blacklistData = ref([])
 
+// 异常账号数据
+const abnormalList = ref([])
+
+// 违规类型映射
+const getTargetTypeText = (type) => {
+  const typeMap = {
+    work: '作品',
+    user: '用户',
+    comment: '评论',
+    chapter: '章节',
+    ip: 'IP地址',
+    device: '设备',
+    user: '用户'
+  }
+  return typeMap[type] || type || '-'
+}
+
 // 页面加载时获取数据
 import { onMounted } from 'vue'
 import adminFetch from '@/utils/adminFetch'
@@ -230,10 +285,48 @@ onMounted(async () => {
     if (blData.code === 200) {
       blacklistData.value = blData.rows || []
     }
+
+    // 获取异常账号列表
+    await loadAbnormal()
   } catch (e) {
     console.error('获取风控数据失败:', e)
   }
 })
+
+// 加载异常账号列表
+const loadAbnormal = async () => {
+  try {
+    const res = await adminFetch('/api/v1/admin/review/abnormal/list')
+    const data = await res.json()
+    if (data.code === 200) {
+      abnormalList.value = data.rows || []
+    }
+  } catch (e) {
+    console.error('获取异常账号失败:', e)
+  }
+}
+
+// 解除异常账号拉黑
+const handleReleaseAbnormal = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认解除账号 "${row.account}" 的黑名单吗？`, '解除确认', {
+      confirmButtonText: '确认解除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await adminFetch('/api/v1/admin/review/abnormal/handle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: row.id, action: 'release' })
+    })
+    ElMessage.success(`已解除：${row.account}`)
+    await loadAbnormal()
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error('操作失败，请重试')
+    }
+  }
+}
 
 // 获取严重度标签类型
 const getSeverityType = (severity) => {
@@ -304,6 +397,31 @@ const handleRemove = async (row) => {
     }
   } catch {
     // 用户取消操作
+  }
+}
+
+// 删除风控规则
+const handleDeleteRule = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认删除风控规则 "${row.ruleName || row.rule_name}" 吗？`, '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+  try {
+    const res = await adminFetch(`/api/v1/admin/review/risk-rule/${row.ruleId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.code === 200) {
+      ElMessage.success('删除成功')
+      ruleList.value = ruleList.value.filter(item => item.ruleId !== row.ruleId)
+    } else {
+      ElMessage.error(data.msg || '删除失败')
+    }
+  } catch (e) {
+    ElMessage.error('删除失败，请检查后端服务')
   }
 }
 
@@ -454,6 +572,10 @@ const handleSubmitBlacklist = async () => {
 
 .table-card.full-width {
   margin-bottom: 0;
+}
+
+.abnormal-card {
+  margin-top: 20px;
 }
 
 .table-card :deep(.el-card__header) {
