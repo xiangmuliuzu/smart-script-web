@@ -46,6 +46,7 @@
             <el-option label="待审核" value="pending" />
             <el-option label="AI审核中" value="ai_reviewing" />
             <el-option label="待人工复核" value="manual_review" />
+            <el-option label="待人工审核" value="pending_review" />
             <el-option label="已通过" value="approved" />
             <el-option label="已驳回" value="rejected" />
           </el-select>
@@ -66,7 +67,9 @@
           <el-date-picker
             v-model="filterForm.startDate"
             type="date"
+            value-format="YYYY-MM-DD"
             placeholder="开始日期"
+            :disabled-date="disabledStartDate"
             style="width: 160px"
           />
         </el-form-item>
@@ -74,7 +77,9 @@
           <el-date-picker
             v-model="filterForm.endDate"
             type="date"
+            value-format="YYYY-MM-DD"
             placeholder="结束日期"
+            :disabled-date="disabledEndDate"
             style="width: 160px"
           />
         </el-form-item>
@@ -101,6 +106,11 @@
         </el-table-column>
         <el-table-column prop="genreName" label="题材" width="100" />
         <el-table-column prop="authorName" label="作者" width="120" />
+        <el-table-column label="审核员" width="100">
+          <template #default="{ row }">
+            {{ row.reviewerName || '待分配' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="提交时间" width="160" />
         <el-table-column label="AI评分" width="100">
           <template #default="{ row }">
@@ -117,7 +127,7 @@
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button
-              v-if="row.status === 'pending' || row.status === 'manual_review'"
+              v-if="row.status === 'pending' || row.status === 'manual_review' || row.status === 'pending_review'"
               type="primary"
               size="small"
               link
@@ -237,10 +247,8 @@
         </el-form-item>
         <el-form-item label="分配审核人">
           <el-select v-model="assignForm.reviewerId" placeholder="请选择审核人" style="width: 100%">
-            <el-option label="审核员一" :value="1" />
-            <el-option label="审核员二" :value="2" />
-            <el-option label="审核员三" :value="3" />
-          </el-select>
+              <el-option v-for="rv in reviewerOptions" :key="rv.userId" :label="rv.nickName" :value="rv.userId" />
+            </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -294,6 +302,15 @@ const loading = ref(false)
 
 // 选中的作品
 const selectedWorks = ref([])
+const reviewerOptions = ref([])
+// 加载可分配审核员
+const loadReviewers = async () => {
+  try {
+    const res = await adminFetch('/api/v1/admin/review/reviewers')
+    const data = await res.json()
+    if (data.code === 200) reviewerOptions.value = data.rows || []
+  } catch (e) { console.error('获取审核员失败:', e) }
+}
 
 // 统计数据
 const statistics = ref({
@@ -323,6 +340,9 @@ import adminFetch from '@/utils/adminFetch'
 
 onMounted(async () => {
   try {
+    // 获取可分配审核员
+    await loadReviewers()
+
     // 获取审核统计
     const statsRes = await adminFetch('/api/v1/admin/review/statistics')
     const statsData = await statsRes.json()
@@ -356,6 +376,7 @@ const getScoreClass = (score) => {
 const getStatusType = (status) => {
   const typeMap = {
     pending: 'warning',
+    pending_review: 'warning',
     manual_review: 'warning',
     ai_reviewing: 'info',
     approved: 'success',
@@ -368,6 +389,7 @@ const getStatusType = (status) => {
 const getStatusText = (status) => {
   const textMap = {
     pending: '待审核',
+    pending_review: '待人工审核',
     manual_review: '待人工复核',
     ai_reviewing: 'AI审核中',
     approved: '已通过',
@@ -395,8 +417,33 @@ const buildQuery = () => {
   if (filterForm.value.type) q.workType = filterForm.value.type
   if (filterForm.value.genre) q.genreName = filterForm.value.genre
   if (filterForm.value.startDate) q.beginTime = filterForm.value.startDate
-  if (filterForm.value.endDate) q.endTime = filterForm.value.endDate
+  if (filterForm.value.endDate) q.endTime = filterForm.value.endDate + ' 23:59:59'
   return q
+}
+
+// 日期归一到本地零点（el-date-picker 传入的 date 可能是 UTC，直接比较会错 8 小时）
+const dayZero = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+const todayZeroMs = () => {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
+// 开始日期：不能晚于结束日期，不能选未来
+const disabledStartDate = (date) => {
+  const t = dayZero(date)
+  if (filterForm.value.endDate) {
+    return t > dayZero(new Date(filterForm.value.endDate)) || t > todayZeroMs()
+  }
+  return t > todayZeroMs()
+}
+
+// 结束日期：不能早于开始日期，不能选未来
+const disabledEndDate = (date) => {
+  const t = dayZero(date)
+  if (filterForm.value.startDate) {
+    return t < dayZero(new Date(filterForm.value.startDate)) || t > todayZeroMs()
+  }
+  return t > todayZeroMs()
 }
 
 // 处理选择变化
@@ -453,7 +500,7 @@ const handleDetail = (row) => {
 // 批量分配弹窗
 const assignDialogVisible = ref(false)
 const assignForm = ref({
-  reviewerId: 1
+  reviewerId: null
 })
 
 // 打开批量分配弹窗
@@ -462,12 +509,16 @@ const handleBatchAssign = () => {
     ElMessage.warning('请先勾选需要分配的作品')
     return
   }
-  assignForm.value.reviewerId = 1
+  assignForm.value.reviewerId = null
   assignDialogVisible.value = true
 }
 
 // 提交批量分配
 const handleSubmitAssign = async () => {
+  if (!assignForm.value.reviewerId) {
+    ElMessage.warning('请选择审核人')
+    return
+  }
   try {
     const ids = selectedWorks.value.map(item => item.reviewId)
     const res = await adminFetch('/api/v1/admin/review/batch-assign', {
