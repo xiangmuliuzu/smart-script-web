@@ -110,6 +110,7 @@ async function openDetail(id) {
   catch (e) { if (generation === detailGeneration) detailError.value = e?.message || '详情加载失败' }
   finally { if (generation === detailGeneration) detailLoading.value = false }
 }
+defineExpose({ refresh: load })
 onMounted(load)
 onBeforeUnmount(() => { listGeneration++; receiverGeneration++; detailGeneration++ })
 </script>

@@ -39,7 +39,6 @@ import AdConfig from '@/views/operation/AdConfig.vue'
 import UserProfileRec from '@/views/operation/UserProfileRec.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
 import UserRealName from '@/views/user/realname/index.vue'
-import UserMessage from '@/views/user/message/index.vue'
 import MessagesAnnouncements from '@/views/support/MessagesAnnouncements.vue'
 import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
@@ -101,7 +100,7 @@ export const componentMap = {
   'operation/UserProfileRec': UserProfileRec,
   'user/UserManage': UserManageProduct,
   'user/realname/index': UserRealName,
-  'user/message/index': UserMessage,
+  'user/message/index': MessagesAnnouncements,
   'support/MessagesAnnouncements': MessagesAnnouncements,
   'support/ReceivedAnnouncements': ReceivedAnnouncements,
   'user/feedback/index': UserFeedback,

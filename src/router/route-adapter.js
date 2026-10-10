@@ -10,6 +10,10 @@ const PATH_COMPONENT_OVERRIDES = {
   '/copyright/seals': 'copyright/SealReview'
 }
 
+function messageRedirect(to) {
+  return { path: '/support/messages', query: { ...to.query, tab: 'messages' }, hash: to.hash }
+}
+
 function isExternal(path) {
   return typeof path === 'string' && /^(https?:|mailto:|tel:)/i.test(path)
 }
@@ -77,17 +81,19 @@ export function adaptRuoYiRoutes(routers) {
         continue
       }
 
+      const isLegacyMessages = componentId === 'user/message/index'
+      if (isLegacyMessages) meta.hidden = true
       const leaf = {
         path,
         // name 必须全局唯一：避免 product /user 与 system /system/user 都叫 User
         name: (item.name ? `${item.name}` : String(componentId).replace(/[^\w]+/g, '_')) +
           '__' + path.replace(/[^\w]+/g, '_'),
-        component: comp,
+        ...(isLegacyMessages ? { redirect: messageRedirect } : { component: comp }),
         meta,
-        hidden: !!item.hidden
+        hidden: meta.hidden
       }
       leaves.push(leaf)
-      if (!item.hidden) {
+      if (!meta.hidden) {
         localSidebar.push({
           path,
           name: leaf.name,
@@ -102,6 +108,26 @@ export function adaptRuoYiRoutes(routers) {
 
   const topSidebar = walk(routers, '')
   sidebar.push(...topSidebar)
+
+  // 旧菜单和收藏地址统一进入消息页；旧菜单不再出现在用户中心。
+  const hasLegacyMessages = leaves.some(leaf => leaf.redirect === messageRedirect)
+  let hasMessagesPage = leaves.some(leaf => leaf.path === '/support/messages')
+  if (hasLegacyMessages && !hasMessagesPage) {
+    const messagesComp = resolveComponent('support/MessagesAnnouncements')
+    if (messagesComp) {
+      leaves.push({ path: '/support/messages', name: 'LegacyMessagesPage', component: messagesComp,
+        meta: { title: '消息与公告', hidden: true }, hidden: true })
+      hasMessagesPage = true
+    }
+  }
+  if (hasMessagesPage) {
+    for (const path of ['/appuser/message', '/user/message']) {
+      if (!leaves.some(leaf => leaf.path === path)) {
+        leaves.push({ path, name: `LegacyMessages_${path.replace(/\W+/g, '_')}`, redirect: messageRedirect,
+          meta: { title: '用户消息', hidden: true }, hidden: true })
+      }
+    }
+  }
 
   const layoutComp = resolveComponent('Layout')
   // 接收者阅读只依赖后台身份。没有业务菜单的管理员也需要布局和阅读入口。
