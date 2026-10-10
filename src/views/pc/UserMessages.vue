@@ -209,6 +209,7 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
 let noticeGeneration = 0
+let disposed = false
 
 function typeLabel(type) { return types.find(item => item.value === type)?.label || type || '消息' }
 function changeType() { pageNum.value = 1; loadMessages() }
@@ -220,12 +221,12 @@ async function loadMessages(silent = false) {
   if (!silent) { loading.value = true; loadError.value = false }
   try {
     const data = await listMessages({ pageNum: pageNum.value, pageSize, type: filterType.value || undefined, includeAnnouncements: true }, { silent })
-    if (generation !== noticeGeneration) return
+    if (disposed || generation !== noticeGeneration) return
     messages.value = Array.isArray(data?.list) ? data.list : []
     total.value = Number(data?.total || 0)
     loadError.value = false
   } catch {
-    if (generation !== noticeGeneration || silent) return
+    if (disposed || generation !== noticeGeneration || silent) return
     messages.value = []
     total.value = 0
     loadError.value = true
@@ -274,6 +275,8 @@ const chatDraft = ref('')
 const sending = ref(false)
 const creating = ref(false)
 const convScrollRef = ref()
+let sessionsGeneration = 0
+let chatGeneration = 0
 
 const chatUnreadTotal = computed(() => sessions.value.reduce((sum, s) => sum + (Number(s.unread) || 0), 0))
 const isSessionClosed = computed(() => Number(activeSession.value?.status) === 2)
@@ -310,37 +313,54 @@ function shortTime(value) {
 const myUserId = computed(() => pcUserStore.user?.userId)
 function isMine(m) { return String(m.senderId) === String(myUserId.value) }
 
-async function scrollConvToBottom() {
+async function scrollConvToBottom(sessionId, generation) {
   await nextTick()
+  if (disposed || generation !== chatGeneration || activeSession.value?.sessionId !== sessionId) return
   const wrap = convScrollRef.value?.wrapRef
   if (wrap) wrap.scrollTop = wrap.scrollHeight
 }
 
-async function loadSessions() {
-  sessionsLoading.value = true
+async function loadSessions(silent = false) {
+  silent = silent === true
+  if (disposed || (silent && sessionsLoading.value)) return
+  const generation = ++sessionsGeneration
+  if (!silent) sessionsLoading.value = true
   try {
-    const data = await listChatSessions()
-    sessions.value = Array.isArray(data?.list) ? data.list : []
+    const data = await listChatSessions(undefined, { silent })
+    if (disposed || generation !== sessionsGeneration) return
+    const list = Array.isArray(data?.list) ? data.list : []
+    if (JSON.stringify(list) !== JSON.stringify(sessions.value)) sessions.value = list
     // 保持当前选中会话的最新状态
     if (activeSession.value) {
       const hit = sessions.value.find(s => s.sessionId === activeSession.value.sessionId)
       if (hit) activeSession.value = hit
     }
   } catch {
+    if (disposed || generation !== sessionsGeneration || silent) return
     sessions.value = []
-  } finally { sessionsLoading.value = false }
+  } finally { if (generation === sessionsGeneration) sessionsLoading.value = false }
 }
 
-async function loadChatMessages() {
-  if (!activeSession.value) return
-  messagesLoading.value = true
+async function loadChatMessages(silent = false) {
+  silent = silent === true
+  if (disposed || !activeSession.value || (silent && messagesLoading.value)) return
+  const sessionId = activeSession.value.sessionId
+  const generation = ++chatGeneration
+  if (!silent) messagesLoading.value = true
   try {
-    const data = await listChatMessages(activeSession.value.sessionId)
-    chatMessages.value = Array.isArray(data?.list) ? data.list : []
-    await scrollConvToBottom()
+    const data = await listChatMessages(sessionId, { silent })
+    if (disposed || generation !== chatGeneration || activeSession.value?.sessionId !== sessionId) return
+    const list = Array.isArray(data?.list) ? data.list : []
+    const changed = JSON.stringify(list) !== JSON.stringify(chatMessages.value)
+    const wrap = convScrollRef.value?.wrapRef
+    // 静默同步仅在用户停留于底部时跟随新消息，阅读历史时保持位置。
+    const nearBottom = wrap && wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 80
+    if (changed) chatMessages.value = list
+    if (!silent || (changed && nearBottom)) await scrollConvToBottom(sessionId, generation)
   } catch {
+    if (disposed || generation !== chatGeneration || activeSession.value?.sessionId !== sessionId || silent) return
     chatMessages.value = []
-  } finally { messagesLoading.value = false }
+  } finally { if (generation === chatGeneration) messagesLoading.value = false }
 }
 
 async function openSession(s) {
@@ -470,25 +490,34 @@ function onTabChange(name) {
 /* ==================== 轮询与生命周期 ==================== */
 const POLL_INTERVAL_MS = 5000
 let timer = null
-function poll() {
-  if (document.hidden) return
-  if (activeTab.value === 'chat') {
-    loadSessions()
-    if (activeSession.value && !isSessionClosed.value) loadChatMessages()
-  }
-  if (activeTab.value === 'notice') loadMessages(true)
-  pcUnreadStore.refresh()
+let pollInFlight = false
+async function poll() {
+  if (disposed || document.hidden || pollInFlight) return
+  pollInFlight = true
+  try {
+    const requests = [pcUnreadStore.refresh()]
+    if (activeTab.value === 'chat') {
+      requests.push(loadSessions(true))
+      if (activeSession.value && !isSessionClosed.value) requests.push(loadChatMessages(true))
+    }
+    if (activeTab.value === 'notice') requests.push(loadMessages(true))
+    await Promise.allSettled(requests)
+  } finally { pollInFlight = false }
 }
 
 onMounted(async () => {
   await loadSessions()
+  if (disposed) return
   pcUnreadStore.refresh()
   timer = setInterval(poll, POLL_INTERVAL_MS)
   document.addEventListener('visibilitychange', poll)
 })
 
 onUnmounted(() => {
+  disposed = true
   noticeGeneration++
+  sessionsGeneration++
+  chatGeneration++
   if (timer) clearInterval(timer)
   document.removeEventListener('visibilitychange', poll)
 })
