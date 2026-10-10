@@ -104,9 +104,10 @@ async function handleLogout() {
 .portal-layout{display:flex;min-height:100vh;background:#f5f6f8}
 .portal-sidebar{position:sticky;top:0;align-self:flex-start;width:240px;min-width:240px;height:100vh;height:100dvh;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:#1f2329;color:#fff}
 .portal-brand{height:64px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 24px;color:#fff;text-decoration:none;font-size:18px;font-weight:600;letter-spacing:2px}
-.portal-caption{height:40px;flex-shrink:0;display:flex;align-items:center;margin:8px 8px 4px;padding:0 17px;border-left:3px solid #4a4d52;background:rgba(255,255,255,.03);font-size:11px;font-weight:700;letter-spacing:1.5px;color:#909399}
+.portal-caption{height:40px;flex-shrink:0;display:flex;align-items:center;margin:8px 8px 4px;padding:0 17px;border-left:3px solid #4a4d52;background:rgba(255,255,255,.03);font-size:15px;font-weight:700;letter-spacing:1.5px;color:#909399}
 .portal-menu-scroll{flex:1;min-height:0}.portal-menu{border:0;background:transparent}
-.portal-menu :deep(.el-menu-item),.portal-menu :deep(.el-sub-menu__title){color:#c0c4cc;background:transparent;height:40px;line-height:40px;margin:2px 8px;border-radius:4px}
+.portal-menu :deep(.el-menu-item),.portal-menu :deep(.el-sub-menu__title){color:#c0c4cc;background:transparent;height:40px;line-height:40px;margin:2px 8px;border-radius:4px;font-size:15px}
+.portal-menu :deep(.el-menu-item span),.portal-menu :deep(.el-sub-menu__title span){font-size:15px}
 .portal-menu :deep(.el-sub-menu .el-menu){background:#1f2329}
 .portal-menu :deep(.el-menu-item:hover),.portal-menu :deep(.el-sub-menu__title:hover){background:rgba(255,255,255,.05);color:#fff}
 .portal-menu :deep(.el-menu-item.is-active){background:rgba(255,255,255,.08);color:#fff;position:relative}

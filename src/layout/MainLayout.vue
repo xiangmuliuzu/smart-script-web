@@ -229,7 +229,7 @@ const handleCommand = async (command) => {
 .sidebar-menu :deep(.el-menu-item span),
 .sidebar-menu :deep(.el-sub-menu__title span) {
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* 一级分组标题：参考设计里它是无图标的小节标题 */
@@ -241,7 +241,7 @@ const handleCommand = async (command) => {
 }
 
 .sidebar-menu :deep(.menu-depth-0.el-sub-menu > .el-sub-menu__title > span) {
-  font-size: 11px;
+  font-size: 15px;
   color: #909399;
   font-weight: 700;
   letter-spacing: 1.5px;
@@ -303,7 +303,7 @@ const handleCommand = async (command) => {
 .sidebar-menu :deep(.el-sub-menu .el-sub-menu .el-menu-item) {
   height: 36px;
   line-height: 36px;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .sidebar-menu :deep(.el-sub-menu .el-menu-item .el-icon) {
@@ -312,7 +312,7 @@ const handleCommand = async (command) => {
 }
 
 .sidebar-menu :deep(.el-sub-menu .el-menu-item span) {
-  font-size: 13px;
+  font-size: 15px;
 }
 
 /* 子菜单展开箭头 */
