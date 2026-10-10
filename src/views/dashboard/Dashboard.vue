@@ -50,12 +50,12 @@
           </template>
           <div class="trend-chart">
             <div class="trend-axis">
-              <span v-for="item in trendData" :key="item.label">{{ item.label }}</span>
+              <span v-for="(item, idx) in trendData" :key="item.label" :class="{ 'axis-hidden': shouldHideLabel(idx) }">{{ item.label }}</span>
             </div>
-            <div class="trend-bars">
+            <div class="trend-bars" :style="{ gap: trendPeriod === 'month' ? '4px' : '14px' }">
               <div v-for="item in trendData" :key="item.label" class="trend-column">
-                <div class="trend-bar" :style="{ height: `${item.value}%` }">
-                  <span>{{ item.amount }}</span>
+                <div class="trend-bar" :style="{ height: `${item.value}%`, width: trendPeriod === 'month' ? '55%' : 'min(44px, 70%)' }">
+                  <span v-if="item.value > 0">{{ item.amount }}</span>
                 </div>
               </div>
             </div>
@@ -211,13 +211,20 @@ const fetchTrend = async () => {
       const max = Math.max(...rows.map(r => Number(r.value) || 0), 1)
       trendData.value = rows.map(r => ({
         label: r.label,
-        value: Math.round((Number(r.value) || 0) / max * 100),
+        // 柱高上限 88%，给顶部金额标签留出空间，避免超出图表
+        value: Math.min(Math.round((Number(r.value) || 0) / max * 100), 88),
         amount: (Number(r.value) || 0) + '万'
       }))
     }
   } catch (e) {
     ElMessage.error('获取交易趋势失败')
   }
+}
+
+// 月视图 30 个日期标签间隔显示（每 5 个显示 1 个），避免粘连
+const shouldHideLabel = (idx) => {
+  if (trendPeriod.value !== 'month') return false
+  return idx % 5 !== 0
 }
 
 const fetchRecent = async () => {
@@ -436,6 +443,7 @@ onMounted(() => {
   border-radius: 4px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .trend-bars {
@@ -444,7 +452,7 @@ onMounted(() => {
   align-items: flex-end;
   justify-content: space-around;
   gap: 14px;
-  padding: 0 10px 12px;
+  padding: 26px 10px 12px;
   border-bottom: 1px solid #e4e7ed;
 }
 
@@ -481,6 +489,19 @@ onMounted(() => {
   padding: 10px 8px 0;
   color: #909399;
   font-size: 11px;
+}
+
+.trend-axis span {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.axis-hidden {
+  display: none;
 }
 
 .chart-caption {
