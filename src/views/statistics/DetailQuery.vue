@@ -1,235 +1,129 @@
 <template>
   <div class="detail-query-container">
-    <!-- 页面标题 -->
     <div class="page-header">
       <h2 class="page-title">明细数据查询</h2>
-      <el-button type="primary" class="black-button">数据导出</el-button>
     </div>
 
-    <!-- 标签页区域 -->
-    <el-card class="tabs-card">
-      <el-tabs v-model="activeTab" class="detail-tabs">
-        <!-- 标签页一：内容数据 -->
+    <el-card class="table-card">
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+        <!-- 内容数据：作品明细 -->
         <el-tab-pane label="内容数据" name="content">
-          <!-- 筛选与时间栏 -->
           <div class="filter-row">
-            <div class="date-filters">
-              <el-date-picker
-                v-model="filterForm.startDate"
-                type="date"
-                placeholder="开始日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-date-picker
-                v-model="filterForm.endDate"
-                type="date"
-                placeholder="结束日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-button type="primary" class="black-button" @click="handleQuery">查询</el-button>
-            </div>
-            <div class="time-tabs">
-              <span 
-                v-for="tab in timeTabs" 
-                :key="tab.value"
-                :class="['time-tab', { active: activeTimeTab === tab.value }]"
-                @click="activeTimeTab = tab.value"
-              >
-                {{ tab.label }}
-              </span>
-            </div>
+            <el-input v-model="workQuery.keyword" placeholder="作品标题/作者昵称" clearable style="width: 200px" @keyup.enter="handleWorkQuery" />
+            <el-select v-model="workQuery.status" placeholder="审核状态" clearable style="width: 140px">
+              <el-option label="草稿" value="draft" />
+              <el-option label="待审核" value="pending" />
+              <el-option label="已通过" value="approved" />
+              <el-option label="已上架" value="on_shelf" />
+              <el-option label="已下架" value="off_shelf" />
+            </el-select>
+            <el-date-picker
+              v-model="workDateRange"
+              type="daterange"
+              range-separator="~"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              style="width: 260px"
+            />
+            <el-button type="primary" class="black-button" @click="handleWorkQuery">查询</el-button>
+            <el-button type="primary" class="black-button" @click="handleExport('works')">数据导出</el-button>
           </div>
-
-          <!-- 内容数据表格 -->
-          <el-table :data="contentData" style="width: 100%">
-            <el-table-column prop="date" label="日期" width="140" />
-            <el-table-column prop="works" label="作品数" width="120" />
-            <el-table-column prop="visits" label="访问量" width="140" />
-            <el-table-column prop="amount" label="交易额" width="140" />
-            <el-table-column prop="newUsers" label="新增用户" width="140" />
-            <el-table-column prop="conversion" label="转化率" width="120" />
-            <el-table-column prop="adRevenue" label="广告收入" width="140" />
+          <el-table :data="workList" v-loading="loading" style="width: 100%">
+            <el-table-column prop="workId" label="作品ID" width="90" />
+            <el-table-column prop="title" label="作品标题" min-width="160" />
+            <el-table-column prop="authorName" label="作者" width="120" />
+            <el-table-column label="类型" width="100">
+              <template #default="{ row }">{{ workTypeLabel(row.workType) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="statusTag(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="浏览量" width="100" align="center">
+              <template #default="{ row }">{{ row.viewCount }}</template>
+            </el-table-column>
+            <el-table-column label="收藏量" width="100" align="center">
+              <template #default="{ row }">{{ row.favoriteCount }}</template>
+            </el-table-column>
+            <el-table-column label="销量" width="90" align="center">
+              <template #default="{ row }">{{ row.saleCount }}</template>
+            </el-table-column>
+            <el-table-column label="价格" width="100" align="center">
+              <template #default="{ row }">¥{{ row.price }}</template>
+            </el-table-column>
+            <el-table-column label="创建时间" width="170">
+              <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+            </el-table-column>
           </el-table>
-
-          <!-- 分页 -->
           <div class="pagination-row">
-            <div class="pagination-info">共7条，第1/2页</div>
-            <div class="pagination-buttons">
-              <el-button size="default">上一页</el-button>
-              <el-button size="default">下一页</el-button>
-            </div>
+            <el-pagination
+              v-model:current-page="workQuery.page"
+              v-model:page-size="workQuery.pageSize"
+              :total="workTotal"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next"
+              @size-change="fetchWorks"
+              @current-change="fetchWorks"
+            />
           </div>
         </el-tab-pane>
 
-        <!-- 标签页二：用户数据 -->
+        <!-- 用户数据：用户明细 -->
         <el-tab-pane label="用户数据" name="user">
-          <!-- 筛选与时间栏 -->
           <div class="filter-row">
-            <div class="date-filters">
-              <el-date-picker
-                v-model="filterForm.startDate"
-                type="date"
-                placeholder="开始日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-date-picker
-                v-model="filterForm.endDate"
-                type="date"
-                placeholder="结束日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-button type="primary" class="black-button" @click="handleQuery">查询</el-button>
-            </div>
-            <div class="time-tabs">
-              <span 
-                v-for="tab in timeTabs" 
-                :key="tab.value"
-                :class="['time-tab', { active: activeTimeTab === tab.value }]"
-                @click="activeTimeTab = tab.value"
-              >
-                {{ tab.label }}
-              </span>
-            </div>
+            <el-input v-model="userQuery.keyword" placeholder="用户名/昵称/手机号" clearable style="width: 200px" @keyup.enter="handleUserQuery" />
+            <el-select v-model="userQuery.userType" placeholder="用户类型" clearable style="width: 140px">
+              <el-option label="平台用户" value="00" />
+              <el-option label="创作者" value="01" />
+            </el-select>
+            <el-date-picker
+              v-model="userDateRange"
+              type="daterange"
+              range-separator="~"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              style="width: 260px"
+            />
+            <el-button type="primary" class="black-button" @click="handleUserQuery">查询</el-button>
+            <el-button type="primary" class="black-button" @click="handleExport('users')">数据导出</el-button>
           </div>
-
-          <!-- 用户数据表格 -->
-          <el-table :data="userData" style="width: 100%">
-            <el-table-column prop="date" label="日期" width="140" />
-            <el-table-column prop="newUsers" label="新增用户" width="140" />
-            <el-table-column prop="activeUsers" label="活跃用户" width="140" />
-            <el-table-column prop="paidUsers" label="付费用户" width="140" />
-            <el-table-column prop="payRate" label="付费率" width="120" />
-            <el-table-column prop="avgDuration" label="平均停留时长" width="160" />
-            <el-table-column prop="arpu" label="ARPU" width="120" />
+          <el-table :data="userList" v-loading="loading" style="width: 100%">
+            <el-table-column prop="userId" label="用户ID" width="90" />
+            <el-table-column prop="userName" label="用户名" width="130" />
+            <el-table-column prop="nickName" label="昵称" min-width="130" />
+            <el-table-column label="类型" width="110">
+              <template #default="{ row }">
+                <el-tag :type="row.userType === '01' ? 'success' : 'info'" size="small">
+                  {{ row.userType === '01' ? '创作者' : '平台用户' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="phonenumber" label="手机号" width="130" />
+            <el-table-column prop="email" label="邮箱" min-width="150" />
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
+                  {{ row.status === '0' ? '正常' : '停用' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="注册时间" width="170">
+              <template #default="{ row }">{{ formatDate(row.createTime) }}</template>
+            </el-table-column>
           </el-table>
-
-          <!-- 分页 -->
           <div class="pagination-row">
-            <div class="pagination-info">共7条，第1/2页</div>
-            <div class="pagination-buttons">
-              <el-button size="default">上一页</el-button>
-              <el-button size="default">下一页</el-button>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <!-- 标签页三：交易数据 -->
-        <el-tab-pane label="交易数据" name="trade">
-          <!-- 筛选与时间栏 -->
-          <div class="filter-row">
-            <div class="date-filters">
-              <el-date-picker
-                v-model="filterForm.startDate"
-                type="date"
-                placeholder="开始日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-date-picker
-                v-model="filterForm.endDate"
-                type="date"
-                placeholder="结束日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-button type="primary" class="black-button" @click="handleQuery">查询</el-button>
-            </div>
-            <div class="time-tabs">
-              <span 
-                v-for="tab in timeTabs" 
-                :key="tab.value"
-                :class="['time-tab', { active: activeTimeTab === tab.value }]"
-                @click="activeTimeTab = tab.value"
-              >
-                {{ tab.label }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 交易数据表格 -->
-          <el-table :data="tradeData" style="width: 100%">
-            <el-table-column prop="date" label="日期" width="140" />
-            <el-table-column prop="orders" label="订单数" width="140" />
-            <el-table-column prop="amount" label="交易额" width="140" />
-            <el-table-column prop="refund" label="退款额" width="140" />
-            <el-table-column prop="avgOrder" label="客单价" width="140" />
-            <el-table-column prop="payRate" label="支付成功率" width="140" />
-            <el-table-column prop="commission" label="平台佣金" width="140" />
-          </el-table>
-
-          <!-- 分页 -->
-          <div class="pagination-row">
-            <div class="pagination-info">共7条，第1/2页</div>
-            <div class="pagination-buttons">
-              <el-button size="default">上一页</el-button>
-              <el-button size="default">下一页</el-button>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <!-- 标签页四：广告数据 -->
-        <el-tab-pane label="广告数据" name="ad">
-          <!-- 筛选与时间栏 -->
-          <div class="filter-row">
-            <div class="date-filters">
-              <el-date-picker
-                v-model="filterForm.startDate"
-                type="date"
-                placeholder="开始日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-date-picker
-                v-model="filterForm.endDate"
-                type="date"
-                placeholder="结束日期"
-                format="YYYY/MM/DD"
-                value-format="YYYY-MM-DD"
-                style="width: 160px"
-              />
-              <el-button type="primary" class="black-button" @click="handleQuery">查询</el-button>
-            </div>
-            <div class="time-tabs">
-              <span 
-                v-for="tab in timeTabs" 
-                :key="tab.value"
-                :class="['time-tab', { active: activeTimeTab === tab.value }]"
-                @click="activeTimeTab = tab.value"
-              >
-                {{ tab.label }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 广告数据表格 -->
-          <el-table :data="adData" style="width: 100%">
-            <el-table-column prop="date" label="日期" width="140" />
-            <el-table-column prop="impressions" label="曝光量" width="160" />
-            <el-table-column prop="clicks" label="点击量" width="140" />
-            <el-table-column prop="ctr" label="点击率" width="120" />
-            <el-table-column prop="revenue" label="广告收入" width="140" />
-            <el-table-column prop="conversions" label="转化数" width="140" />
-            <el-table-column prop="cpc" label="转化成本" width="140" />
-          </el-table>
-
-          <!-- 分页 -->
-          <div class="pagination-row">
-            <div class="pagination-info">共7条，第1/2页</div>
-            <div class="pagination-buttons">
-              <el-button size="default">上一页</el-button>
-              <el-button size="default">下一页</el-button>
-            </div>
+            <el-pagination
+              v-model:current-page="userQuery.page"
+              v-model:page-size="userQuery.pageSize"
+              :total="userTotal"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next"
+              @size-change="fetchUsers"
+              @current-change="fetchUsers"
+            />
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -238,272 +132,115 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import adminFetch from '@/utils/adminFetch'
 
-// 标签页状态
+const DETAIL_PREFIX = '/api/v1/admin/statistics/detail'
+
 const activeTab = ref('content')
-const activeTimeTab = ref('month')
+const loading = ref(false)
 
-// 时间粒度标签
-const timeTabs = ref([
-  { label: '日', value: 'day' },
-  { label: '周', value: 'week' },
-  { label: '月', value: 'month' },
-  { label: '自定义', value: 'custom' }
-])
+// 作品明细
+const workQuery = reactive({ keyword: '', status: '', page: 1, pageSize: 10 })
+const workTotal = ref(0)
+const workList = ref([])
+const workDateRange = ref(null)
 
-// 筛选表单
-const filterForm = ref({
-  startDate: '2026-09-01',
-  endDate: '2026-09-07'
-})
+// 用户明细
+const userQuery = reactive({ keyword: '', userType: '', page: 1, pageSize: 10 })
+const userTotal = ref(0)
+const userList = ref([])
+const userDateRange = ref(null)
 
-// 内容数据
-const contentData = ref([
-  { date: '2026-09-07', works: '89', visits: '52,341', amount: '¥89,234', newUsers: '1,234', conversion: '3.2%', adRevenue: '¥12,567' },
-  { date: '2026-09-06', works: '76', visits: '48,123', amount: '¥76,543', newUsers: '1,102', conversion: '2.8%', adRevenue: '¥11,234' },
-  { date: '2026-09-05', works: '92', visits: '55,678', amount: '¥95,432', newUsers: '1,345', conversion: '3.5%', adRevenue: '¥13,890' },
-  { date: '2026-09-04', works: '68', visits: '43,210', amount: '¥68,901', newUsers: '987', conversion: '2.9%', adRevenue: '¥10,456' },
-  { date: '2026-09-03', works: '81', visits: '46,789', amount: '¥72,345', newUsers: '1,056', conversion: '3.1%', adRevenue: '¥11,890' }
-])
+const workTypeLabel = (t) => ({ NOVEL: '小说', DRAMA: '短剧', SCRIPT: '剧本', COMIC: '漫画' }[t] || t)
+const statusLabel = (s) => ({ draft: '草稿', pending: '待审核', approved: '已通过', on_shelf: '已上架', off_shelf: '已下架' }[s] || s)
+const statusTag = (s) => ({ draft: 'info', pending: 'warning', approved: 'primary', on_shelf: 'success', off_shelf: 'danger' }[s] || 'info')
+const formatDate = (d) => (d ? String(d).replace('T', ' ').slice(0, 19) : '')
 
-// 用户数据
-const userData = ref([
-  { date: '2026-09-07', newUsers: '1,234', activeUsers: '18,456', paidUsers: '892', payRate: '4.8%', avgDuration: '26.5分钟', arpu: '¥38.2' },
-  { date: '2026-09-06', newUsers: '1,102', activeUsers: '17,890', paidUsers: '810', payRate: '4.5%', avgDuration: '25.1分钟', arpu: '¥36.4' },
-  { date: '2026-09-05', newUsers: '1,345', activeUsers: '19,234', paidUsers: '945', payRate: '4.9%', avgDuration: '27.2分钟', arpu: '¥39.6' },
-  { date: '2026-09-04', newUsers: '987', activeUsers: '16,543', paidUsers: '721', payRate: '4.4%', avgDuration: '24.8分钟', arpu: '¥35.1' },
-  { date: '2026-09-03', newUsers: '1,056', activeUsers: '17,120', paidUsers: '768', payRate: '4.5%', avgDuration: '25.4分钟', arpu: '¥36.8' }
-])
-
-// 交易数据
-const tradeData = ref([
-  { date: '2026-09-07', orders: '3,215', amount: '¥89,234', refund: '¥2,140', avgOrder: '¥27.8', payRate: '98.2%', commission: '¥4,461' },
-  { date: '2026-09-06', orders: '2,876', amount: '¥76,543', refund: '¥1,980', avgOrder: '¥26.6', payRate: '97.8%', commission: '¥3,827' },
-  { date: '2026-09-05', orders: '3,420', amount: '¥95,432', refund: '¥2,310', avgOrder: '¥27.9', payRate: '98.5%', commission: '¥4,771' },
-  { date: '2026-09-04', orders: '2,540', amount: '¥68,901', refund: '¥1,650', avgOrder: '¥27.1', payRate: '97.5%', commission: '¥3,445' },
-  { date: '2026-09-03', orders: '2,690', amount: '¥72,345', refund: '¥1,780', avgOrder: '¥26.9', payRate: '98.0%', commission: '¥3,617' }
-])
-
-// 广告数据
-const adData = ref([
-  { date: '2026-09-07', impressions: '1,254,300', clicks: '38,420', ctr: '3.1%', revenue: '¥12,567', conversions: '1,842', cpc: '¥6.8' },
-  { date: '2026-09-06', impressions: '1,120,450', clicks: '33,610', ctr: '3.0%', revenue: '¥11,234', conversions: '1,654', cpc: '¥6.8' },
-  { date: '2026-09-05', impressions: '1,342,890', clicks: '42,180', ctr: '3.1%', revenue: '¥13,890', conversions: '2,012', cpc: '¥6.9' },
-  { date: '2026-09-04', impressions: '1,032,120', clicks: '29,870', ctr: '2.9%', revenue: '¥10,456', conversions: '1,480', cpc: '¥7.1' },
-  { date: '2026-09-03', impressions: '1,128,760', clicks: '33,050', ctr: '2.9%', revenue: '¥11,890', conversions: '1,712', cpc: '¥6.9' }
-])
-
-// 处理查询
-const handleQuery = () => {
-  ElMessage.success('查询成功')
+const fetchWorks = async () => {
+  loading.value = true
+  try {
+    let url = `${DETAIL_PREFIX}/works?page=${workQuery.page}&pageSize=${workQuery.pageSize}`
+    if (workQuery.keyword) url += `&keyword=${encodeURIComponent(workQuery.keyword)}`
+    if (workQuery.status) url += `&status=${workQuery.status}`
+    if (workDateRange.value) url += `&startDate=${workDateRange.value[0]}&endDate=${workDateRange.value[1]}`
+    const res = await adminFetch(url)
+    const data = await res.json()
+    if (data.code === 200) {
+      workList.value = data.rows || []
+      workTotal.value = data.total || 0
+    }
+  } catch (e) {
+    ElMessage.error('获取内容明细失败')
+  } finally {
+    loading.value = false
+  }
 }
+
+const fetchUsers = async () => {
+  loading.value = true
+  try {
+    let url = `${DETAIL_PREFIX}/users?page=${userQuery.page}&pageSize=${userQuery.pageSize}`
+    if (userQuery.keyword) url += `&keyword=${encodeURIComponent(userQuery.keyword)}`
+    if (userQuery.userType) url += `&userType=${userQuery.userType}`
+    if (userDateRange.value) url += `&startDate=${userDateRange.value[0]}&endDate=${userDateRange.value[1]}`
+    const res = await adminFetch(url)
+    const data = await res.json()
+    if (data.code === 200) {
+      userList.value = data.rows || []
+      userTotal.value = data.total || 0
+    }
+  } catch (e) {
+    ElMessage.error('获取用户明细失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleWorkQuery = () => { workQuery.page = 1; fetchWorks() }
+const handleUserQuery = () => { userQuery.page = 1; fetchUsers() }
+const handleTabChange = (name) => {
+  if (name === 'content') fetchWorks()
+  else if (name === 'user') fetchUsers()
+}
+
+// 数据导出：调用后端接口下载CSV
+const handleExport = async (type) => {
+  try {
+    let url = `${DETAIL_PREFIX}/export?type=${type}`
+    if (type === 'works') {
+      if (workQuery.keyword) url += `&keyword=${encodeURIComponent(workQuery.keyword)}`
+      if (workQuery.status) url += `&status=${workQuery.status}`
+      if (workDateRange.value) url += `&startDate=${workDateRange.value[0]}&endDate=${workDateRange.value[1]}`
+    } else {
+      if (userQuery.keyword) url += `&keyword=${encodeURIComponent(userQuery.keyword)}`
+      if (userQuery.userType) url += `&userType=${userQuery.userType}`
+      if (userDateRange.value) url += `&startDate=${userDateRange.value[0]}&endDate=${userDateRange.value[1]}`
+    }
+    const res = await adminFetch(url)
+    if (!res.ok) throw new Error('export failed')
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = (type === 'works' ? '作品明细' : '用户明细') + '_' + new Date().toISOString().slice(0, 10) + '.csv'
+    a.click()
+    URL.revokeObjectURL(a.href)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
+}
+
+onMounted(() => {
+  fetchWorks()
+})
 </script>
 
 <style scoped>
-.detail-query-container {
-  padding: 20px;
-  background-color: #f7f8fa;
-  min-height: calc(100vh - 60px);
-}
-
-/* 页面标题 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f2329;
-  margin: 0;
-}
-
-/* 标签页卡片 */
-.tabs-card {
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-  background: #ffffff;
-}
-
-.tabs-card :deep(.el-card__body) {
-  padding: 0;
-}
-
-/* 标签页样式 */
-.detail-tabs :deep(.el-tabs__header) {
-  margin: 0;
-  padding: 0 20px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.detail-tabs :deep(.el-tabs__nav-wrap) {
-  padding: 8px 0;
-}
-
-.detail-tabs :deep(.el-tabs__item) {
-  font-size: 14px;
-  color: #595959;
-  padding: 0 20px;
-  height: 40px;
-  line-height: 40px;
-}
-
-.detail-tabs :deep(.el-tabs__item.is-active) {
-  color: #1f2329;
-  font-weight: 600;
-}
-
-.detail-tabs :deep(.el-tabs__active-bar) {
-  background-color: #1f2329;
-  height: 3px;
-}
-
-.detail-tabs :deep(.el-tabs__content) {
-  padding: 20px;
-}
-
-/* 筛选与时间栏 */
-.filter-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.date-filters {
-  display: flex;
-  gap: 12px;
-}
-
-/* 时间粒度标签 */
-.time-tabs {
-  display: flex;
-  gap: 4px;
-  background: #ffffff;
-  padding: 4px;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
-}
-
-.time-tab {
-  padding: 6px 16px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.time-tab:hover {
-  color: #1f2329;
-}
-
-.time-tab.active {
-  background: #1f2329;
-  color: #ffffff;
-}
-
-/* 黑色主按钮 */
-.black-button {
-  background-color: #1f2329;
-  border-color: #1f2329;
-  color: #ffffff;
-}
-
-.black-button:hover {
-  background-color: #000000;
-  border-color: #000000;
-}
-
-.black-button:active {
-  background-color: #000000;
-  border-color: #000000;
-}
-
-/* 表格样式 */
-:deep(.el-table) {
-  font-size: 13px;
-  color: #262626;
-}
-
-:deep(.el-table th) {
-  background-color: #fafafa;
-  color: #595959;
-  font-weight: 500;
-  font-size: 12px;
-  padding: 12px 0;
-}
-
-:deep(.el-table td) {
-  padding: 16px 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-:deep(.el-table tr:hover > td) {
-  background-color: #fafafa !important;
-}
-
-:deep(.el-table .cell) {
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-/* 分页区域 */
-.pagination-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.pagination-info {
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-.pagination-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-/* 按钮样式 */
-:deep(.el-button) {
-  font-size: 13px;
-  border-radius: 4px;
-  padding: 7px 15px;
-}
-
-:deep(.el-button--default) {
-  color: #595959;
-  border-color: #d9d9d9;
-  background: #ffffff;
-}
-
-:deep(.el-button--default:hover) {
-  color: #1f2329;
-  border-color: #1f2329;
-}
-
-/* 日期选择器样式 */
-:deep(.el-date-editor .el-input__wrapper) {
-  border-radius: 4px;
-  border-color: #d9d9d9;
-}
-
-:deep(.el-input__inner) {
-  font-size: 13px;
-  color: #262626;
-}
-
-:deep(.el-input__inner::placeholder) {
-  color: #bfbfbf;
-}
+.detail-query-container { padding: 16px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.page-title { margin: 0; font-size: 20px; font-weight: 600; }
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.pagination-row { display: flex; justify-content: flex-end; margin-top: 14px; }
 </style>
