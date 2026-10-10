@@ -41,7 +41,7 @@
           <template #header>
             <div class="chart-header">
               <span class="chart-title">交易趋势</span>
-              <el-radio-group v-model="trendPeriod" size="small">
+              <el-radio-group v-model="trendPeriod" size="small" @change="fetchTrend">
                 <el-radio-button label="week">周</el-radio-button>
                 <el-radio-button label="month">月</el-radio-button>
                 <el-radio-button label="year">年</el-radio-button>
@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Document, 
@@ -146,52 +146,96 @@ import {
   TrendCharts
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import adminFetch from '@/utils/adminFetch'
 
 const router = useRouter()
+const DASHBOARD_PREFIX = '/api/v1/admin/dashboard'
 
-// 统计数据
-const statsData = ref([
-  { title: '待审核作品', value: '1,284', trend: 12.5 },
-  { title: '已授权作品', value: '3,567', trend: 8.2 },
-  { title: '本月交易额', value: '¥892万', trend: 15.3 },
-  { title: '活跃用户数', value: '25,891', trend: -2.1 }
-])
+// 统计数据（真实接口）
+const statsData = ref([])
 
-// 快捷入口数据
-const quickAccessData = ref([
-  { title: '作品审核', count: 12, label: '待审核', icon: Document, route: '/copyright/ai-review/review' },
-  { title: '订单管理', count: 5, label: '待处理', icon: DocumentCopy, route: '/trade/orders' },
-  { title: '用户管理', count: 3, label: '待审核', icon: User, route: '/user' },
-  { title: '风控管理', count: 2, label: '待处理', icon: WarningFilled, route: '/risk' }
-])
+// 快捷入口数据（真实接口）
+const quickAccessData = ref([])
+
+// 图标映射：后端只返回路由，图标由前端匹配
+const ICON_MAP = {
+  '/copyright/ai-review/review': Document,
+  '/trade/orders': DocumentCopy,
+  '/user': User,
+  '/risk': WarningFilled
+}
 
 // 图表周期
 const trendPeriod = ref('week')
 
-const trendData = ref([
-  { label: '09/14', value: 42, amount: '42万' },
-  { label: '09/15', value: 58, amount: '58万' },
-  { label: '09/16', value: 48, amount: '48万' },
-  { label: '09/17', value: 72, amount: '72万' },
-  { label: '09/18', value: 64, amount: '64万' },
-  { label: '09/19', value: 84, amount: '84万' },
-  { label: '09/20', value: 76, amount: '76万' }
-])
+const trendData = ref([])
 
-// 作品状态分布数据
-const statusData = ref([
-  { name: '待审核', value: 1284, percent: 27, color: '#E6A23C' },
-  { name: '审核中', value: 456, percent: 10, color: '#303133' },
-  { name: '已通过', value: 2890, percent: 60, color: '#67C23A' },
-  { name: '已驳回', value: 231, percent: 5, color: '#F56C6C' }
-])
+// 作品状态分布数据（真实接口）
+const statusData = ref([])
 
-// 最近审核数据
-const recentReviews = ref([
-  { name: '《都市迷途》', author: '张编剧', submitTime: '2024-03-14 10:23', status: '待审核' },
-  { name: '《山河故人》', author: '李创作', submitTime: '2024-03-14 09:15', status: 'AI审核中' },
-  { name: '《末日黎明》', author: '王大锤', submitTime: '2024-03-13 16:42', status: '已通过' }
-])
+// 状态中文映射
+const STATUS_TEXT = {
+  pending: '待审核',
+  approved: '已通过',
+  on_shelf: '已上架',
+  off_shelf: '已下架',
+  draft: '草稿'
+}
+
+// 最近审核数据（真实接口）
+const recentReviews = ref([])
+
+const fetchOverview = async () => {
+  try {
+    const res = await adminFetch(`${DASHBOARD_PREFIX}/overview`)
+    const data = await res.json()
+    if (data.code === 200 && data.data) {
+      statsData.value = data.data.stats || []
+      quickAccessData.value = (data.data.quick || []).map(item => ({
+        ...item,
+        icon: ICON_MAP[item.route] || Document
+      }))
+      statusData.value = data.data.statusDist || []
+    }
+  } catch (e) {
+    ElMessage.error('获取数据总览失败')
+  }
+}
+
+const fetchTrend = async () => {
+  try {
+    const res = await adminFetch(`${DASHBOARD_PREFIX}/trend?period=${trendPeriod.value}`)
+    const data = await res.json()
+    if (data.code === 200) {
+      const rows = data.rows || []
+      const max = Math.max(...rows.map(r => Number(r.value) || 0), 1)
+      trendData.value = rows.map(r => ({
+        label: r.label,
+        value: Math.round((Number(r.value) || 0) / max * 100),
+        amount: (Number(r.value) || 0) + '万'
+      }))
+    }
+  } catch (e) {
+    ElMessage.error('获取交易趋势失败')
+  }
+}
+
+const fetchRecent = async () => {
+  try {
+    const res = await adminFetch(`${DASHBOARD_PREFIX}/recent-reviews?limit=10`)
+    const data = await res.json()
+    if (data.code === 200) {
+      recentReviews.value = (data.rows || []).map(r => ({
+        name: r.name,
+        author: r.author,
+        submitTime: r.submitTime,
+        status: STATUS_TEXT[r.status] || r.status
+      }))
+    }
+  } catch (e) {
+    ElMessage.error('获取最近审核失败')
+  }
+}
 
 // 处理快捷入口点击
 const handleQuickAccess = (route) => {
@@ -202,28 +246,34 @@ const handleQuickAccess = (route) => {
 const getStatusType = (status) => {
   const typeMap = {
     '待审核': 'warning',
-    'AI审核中': '',
     '已通过': 'success',
-    '已驳回': 'danger'
+    '已上架': 'info',
+    '已下架': 'info',
+    '草稿': 'danger'
   }
-  return typeMap[status] || ''
+  return typeMap[status] || 'info'
 }
 
 // 处理审核
 const handleReview = (row) => {
-  ElMessage.success(`开始审核《${row.name}》`)
   router.push('/copyright/ai-review/review')
 }
 
 // 处理详情
 const handleDetail = (row) => {
-  ElMessage.info(`查看《${row.name}》详情`)
+  router.push('/copyright/ai-review/review')
 }
 
 // 查看全部
 const handleViewAll = () => {
   router.push('/copyright/ai-review/review')
 }
+
+onMounted(() => {
+  fetchOverview()
+  fetchTrend()
+  fetchRecent()
+})
 </script>
 
 <style scoped>

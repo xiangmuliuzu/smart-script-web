@@ -45,6 +45,7 @@ import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import AiOperations from '@/views/system/AiOperations.vue'
+import WelfarePoints from '@/views/welfare/WelfarePoints.vue'
 import MonitorOperlog from '@/views/monitor/operlog/index.vue'
 import MonitorLogininfor from '@/views/monitor/logininfor/index.vue'
 import ChatSessions from '@/views/chat/ChatSessions.vue'
@@ -106,6 +107,7 @@ export const componentMap = {
   'user/feedback/index': UserFeedback,
   'risk/RiskManage': RiskManage,
   'system/AiOperations': AiOperations,
+  'welfare/WelfarePoints': WelfarePoints,
 
   // 系统管理下的用户/角色/菜单/岗位/字典/参数页面已不再需要（2026-10-09 菜单精简，
   // 数据库菜单见 smartscript_full_init.sql 第 7 部分）：用户管理由用户中心覆盖，
