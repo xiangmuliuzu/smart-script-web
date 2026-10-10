@@ -85,7 +85,7 @@ export function adaptRuoYiRoutes(routers) {
       if (isLegacyMessages) meta.hidden = true
       const leaf = {
         path,
-        // name 必须全局唯一：避免 product /user 与 system /system/user 都叫 User
+        // name 必须全局唯一：同一组件可能用于多个菜单入口。
         name: (item.name ? `${item.name}` : String(componentId).replace(/[^\w]+/g, '_')) +
           '__' + path.replace(/[^\w]+/g, '_'),
         ...(isLegacyMessages ? { redirect: messageRedirect } : { component: comp }),
@@ -138,12 +138,12 @@ export function adaptRuoYiRoutes(routers) {
       meta: { title: '后台公告', hidden: true }, hidden: true })
   }
   const visibleLeaves = leaves.filter((l) => !l.meta?.hidden)
-  // 首页优先：数据总览(/workspace/dashboard) > 旧 /dashboard > /user > 首个可见叶子。
+  // 首页优先：数据总览(/workspace/dashboard) > 旧 /dashboard > App用户与创作者 > 首个可见叶子。
   // 根路由 '/' 的 redirect 据此解析，登录后即落到工作台数据总览。
   const preferred =
     visibleLeaves.find((l) => l.path === '/workspace/dashboard') ||
     visibleLeaves.find((l) => l.path === '/dashboard') ||
-    visibleLeaves.find((l) => l.path === '/user') ||
+    visibleLeaves.find((l) => l.path === '/appuser/users') ||
     visibleLeaves[0] ||
     leaves[0]
 

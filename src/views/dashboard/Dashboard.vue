@@ -161,7 +161,7 @@ const quickAccessData = ref([])
 const ICON_MAP = {
   '/copyright/ai-review/review': Document,
   '/trade/orders': DocumentCopy,
-  '/user': User,
+  '/appuser/users': User,
   '/risk': WarningFilled
 }
 
