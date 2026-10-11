@@ -7,7 +7,8 @@
         <el-select v-model="query.status" placeholder="申请状态" clearable style="width: 160px">
           <el-option label="待审核" value="pending" />
           <el-option label="待提交" value="approved" />
-          <el-option label="已提交" value="submitted" />
+          <el-option label="待提交到第三方" value="submitted" />
+          <el-option label="审核中" value="reviewing" />
           <el-option label="已驳回" value="rejected" />
           <el-option label="已发证" value="certificated" />
         </el-select>
@@ -52,11 +53,11 @@
       </template>
       <el-table-column type="selection" width="55" />
       <el-table-column prop="applyNo" label="申请编号" width="180" show-overflow-tooltip />
-      <el-table-column prop="workId" label="作品ID" width="100" />
-      <el-table-column prop="copyrightCenter" label="版权中心" width="140">
+      <el-table-column prop="workName" label="作品名称" width="200" show-overflow-tooltip />
+      <el-table-column prop="centerName" label="版权中心" width="160" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-tooltip v-if="row.copyrightCenter" :content="`配置ID: ${row.configId || '未关联'}`" placement="top">
-            <span>{{ centerLabel(row.copyrightCenter) }}</span>
+          <el-tooltip v-if="row.centerName" :content="`中心代码: ${row.copyrightCenter || '未知'}`" placement="top">
+            <span>{{ row.centerName }}</span>
           </el-tooltip>
           <span v-else>—</span>
         </template>
@@ -72,13 +73,16 @@
       <el-table-column label="申请状态" width="110">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light" size="small">
-            {{ statusLabel(row.status) }}
+            {{ row.statusText || statusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="submitTime" label="提交时间" width="170" />
       <el-table-column prop="certNo" label="证书编号" width="160" show-overflow-tooltip>
         <template #default="{ row }">{{ row.certNo || '—' }}</template>
+      </el-table-column>
+      <el-table-column prop="remark" label="备注" width="200" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.remark || '—' }}</template>
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
@@ -124,16 +128,6 @@
             </template>
             
             <!-- rejected状态：显示重新提交按钮 -->
-            <template v-if="row.status === 'rejected'">
-              <el-button
-                v-permission="'smartscript:copyright:application:submit'"
-                size="small"
-                type="primary"
-                @click="handleResubmit(row)"
-              >
-                重新提交
-              </el-button>
-            </template>
           </div>
         </template>
       </el-table-column>
@@ -224,6 +218,94 @@
       </template>
     </el-dialog>
 
+    <!-- 提交到版权中心对话框 -->
+    <el-dialog v-model="submitDialogVisible" title="选择版权中心" width="500px">
+      <el-form :model="submitForm" label-width="100px">
+        <el-form-item label="选择版权中心" required>
+          <el-select
+            v-model="submitForm.configId"
+            placeholder="请选择版权中心"
+            style="width: 100%"
+            :loading="loadingCenters"
+          >
+            <el-option
+              v-for="center in availableCenters"
+              :key="center.configId"
+              :label="center.centerName"
+              :value="center.configId"
+            >
+              <div style="display: flex; justify-content: space-between">
+                <span>{{ center.centerName }}</span>
+                <el-tag size="small" type="success">可用</el-tag>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-alert
+          title="提示"
+          type="info"
+          :closable="false"
+          style="margin-top: 10px"
+        >
+          <template #default>
+            <div style="font-size: 13px">
+              选择版权中心后，申请将被分配到该版权中心的待处理列表，您可以在版权中心配置页进一步提交到第三方API。
+            </div>
+          </template>
+        </el-alert>
+      </el-form>
+      <template #footer>
+        <el-button @click="submitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="confirmSubmitToCenter">
+          确定提交
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量提交到版权中心对话框 -->
+    <el-dialog v-model="batchSubmitDialogVisible" title="批量提交到版权中心" width="500px">
+      <el-form label-width="100px">
+        <el-form-item label="选择版权中心" required>
+          <el-select
+            v-model="batchSubmitConfigId"
+            placeholder="请选择版权中心"
+            style="width: 100%"
+            :loading="loadingCenters"
+          >
+            <el-option
+              v-for="center in availableCenters"
+              :key="center.configId"
+              :label="center.centerName"
+              :value="center.configId"
+            >
+              <div style="display: flex; justify-content: space-between">
+                <span>{{ center.centerName }}</span>
+                <el-tag size="small" type="success">可用</el-tag>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-alert
+          :title="`即将提交 ${selectedRows.filter(row => row.status === 'approved').length} 条申请`"
+          type="info"
+          :closable="false"
+          style="margin-top: 10px"
+        >
+          <template #default>
+            <div style="font-size: 13px">
+              所有选中的已审核通过申请将被分配到该版权中心的待处理列表
+            </div>
+          </template>
+        </el-alert>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchSubmitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="batchSubmitting" @click="confirmBatchSubmit">
+          确定提交
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 新增/编辑对话框 -->
     
     <!-- 版权中心配置信息对话框 -->
@@ -246,8 +328,8 @@
           <el-table-column prop="priority" label="优先级" width="80" align="center" />
           <el-table-column label="状态" width="80" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-                {{ row.status === 'active' ? '启用' : '停用' }}
+              <el-tag :type="row.status === 'enabled' ? 'success' : 'info'" size="small">
+                {{ row.status === 'enabled' ? '启用' : '停用' }}
               </el-tag>
             </template>
           </el-table-column>
@@ -277,7 +359,6 @@ import {
   submitCopyrightApplicationToCenter,
   batchSubmitCopyrightApplicationToCenter,
   batchSyncCopyrightStatus,
-  resubmitCopyrightApplication,
   syncCopyrightApplicationStatus,
   getAvailableCopyrightCenters
 } from '@/api/copyright'
@@ -401,11 +482,11 @@ const handleSync = async (row) => {
 // 获取状态描述
 const getStatusDescription = (status) => {
   const map = {
-    pending: '待审核',
-    approved: '待提交',
-    submitted: '已提交到配置页，等待管理员提交到第三方',
-    reviewing: '第三方审核中',
-    certificated: '已发证',
+    pending: '待审核 - 等待管理员审核',
+    approved: '待提交 - 等待提交到版权中心配置页',
+    submitted: '待提交到第三方 - 已分配到版权中心配置页，需在配置页提交到第三方API',
+    reviewing: '审核中 - 已提交到第三方版权中心，等待审核',
+    certificated: '已发证 - 版权登记成功',
     rejected: '已驳回'
   }
   return map[status] || status
@@ -413,15 +494,22 @@ const getStatusDescription = (status) => {
 
 // 获取进度描述
 const getProgressDescription = (status, externalApplyNo) => {
-  if (!externalApplyNo) {
-    return '已提交到配置页，等待管理员提交到第三方版权中心'
+  if (status === 'pending') {
+    return '申请已创建，等待管理员审核'
+  }
+  
+  if (status === 'approved') {
+    return '管理员已审核通过，请提交到版权中心配置页'
+  }
+  
+  if (status === 'submitted' && !externalApplyNo) {
+    return '已分配到版权中心配置页，需在配置页提交到第三方API后才能查询审核进度'
   }
   
   const map = {
-    submitted: '已提交到第三方版权中心，等待审核',
-    reviewing: '第三方版权中心审核中，请耐心等待',
+    reviewing: '已提交到第三方版权中心，正在审核中，请耐心等待',
     certificated: '版权证书已发放，可在详情中查看证书信息',
-    rejected: '申请被驳回，请查看驳回原因'
+    rejected: '申请被第三方驳回，请查看驳回原因'
   }
   return map[status] || '处理中'
 }
@@ -477,24 +565,65 @@ const confirmReview = async () => {
 }
 
 // 提交到版权中心
-const handleSubmitToCenter = (row) => {
-  ElMessageBox.confirm(`确认将申请提交到${centerLabel(row.copyrightCenter)}？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      await submitCopyrightApplicationToCenter(row.applyId)
-      ElMessage.success('提交成功')
-      loadApplications()
-    } catch (error) {
-      ElMessage.error('提交失败')
+const submitDialogVisible = ref(false)
+const submitForm = reactive({
+  applyId: null,
+  configId: null
+})
+const submitting = ref(false)
+
+const handleSubmitToCenter = async (row) => {
+  // 加载可用的版权中心列表
+  loadingCenters.value = true
+  try {
+    const res = await getAvailableCopyrightCenters()
+    // unwrapRuoYiResponse 已经解包，res 直接就是数组
+    availableCenters.value = Array.isArray(res) ? res : []
+    
+    if (availableCenters.value.length === 0) {
+      ElMessage.warning('暂无可用的版权中心，请先在版权中心配置页启用版权中心')
+      return
     }
-  }).catch(() => {})
+    
+    // 打开选择对话框
+    submitForm.applyId = row.applyId
+    submitForm.configId = null
+    submitDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取版权中心列表失败')
+  } finally {
+    loadingCenters.value = false
+  }
+}
+
+// 确认提交到版权中心
+const confirmSubmitToCenter = async () => {
+  if (!submitForm.configId) {
+    ElMessage.warning('请选择版权中心')
+    return
+  }
+  
+  submitting.value = true
+  try {
+    await submitCopyrightApplicationToCenter(submitForm.applyId, submitForm.configId)
+    ElMessage.success('提交成功')
+    submitDialogVisible.value = false
+    loadApplications()
+  } catch (error) {
+    console.error('提交失败:', error)
+    const errorMsg = error.response?.data?.msg || error.message || '提交失败'
+    ElMessage.error(errorMsg)
+  } finally {
+    submitting.value = false
+  }
 }
 
 // 批量提交
-const handleBatchSubmit = () => {
+const batchSubmitDialogVisible = ref(false)
+const batchSubmitConfigId = ref(null)
+const batchSubmitting = ref(false)
+
+const handleBatchSubmit = async () => {
   if (selectedRows.value.length === 0) {
     ElMessage.warning('请选择要提交的申请')
     return
@@ -506,20 +635,53 @@ const handleBatchSubmit = () => {
     return
   }
   
-  ElMessageBox.confirm(`确认批量提交 ${approvedRows.length} 条申请到版权中心？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const applyIds = approvedRows.map(row => row.applyId)
-      await batchSubmitCopyrightApplicationToCenter(applyIds)
-      ElMessage.success(`成功提交 ${approvedRows.length} 条申请`)
-      loadApplications()
-    } catch (error) {
-      ElMessage.error('批量提交失败')
+  // 加载可用的版权中心列表
+  loadingCenters.value = true
+  try {
+    const res = await getAvailableCopyrightCenters()
+    // unwrapRuoYiResponse 已经解包，res 直接就是数组
+    availableCenters.value = Array.isArray(res) ? res : []
+    
+    if (availableCenters.value.length === 0) {
+      ElMessage.warning('暂无可用的版权中心，请先在版权中心配置页启用版权中心')
+      return
     }
-  }).catch(() => {})
+    
+    // 打开批量提交对话框
+    batchSubmitConfigId.value = null
+    batchSubmitDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取版权中心列表失败')
+  } finally {
+    loadingCenters.value = false
+  }
+}
+
+// 确认批量提交
+const confirmBatchSubmit = async () => {
+  if (!batchSubmitConfigId.value) {
+    ElMessage.warning('请选择版权中心')
+    return
+  }
+  
+  const approvedRows = selectedRows.value.filter(row => row.status === 'approved')
+  
+  batchSubmitting.value = true
+  try {
+    // 逐个提交到选中的版权中心
+    for (const row of approvedRows) {
+      await submitCopyrightApplicationToCenter(row.applyId, batchSubmitConfigId.value)
+    }
+    ElMessage.success(`成功提交 ${approvedRows.length} 条申请`)
+    batchSubmitDialogVisible.value = false
+    loadApplications()
+  } catch (error) {
+    console.error('批量提交失败:', error)
+    const errorMsg = error.response?.data?.msg || error.message || '批量提交失败'
+    ElMessage.error(errorMsg)
+  } finally {
+    batchSubmitting.value = false
+  }
 }
 
 const centerLabel = (center) => {
@@ -534,7 +696,8 @@ const statusLabel = (status) => {
   const map = {
     pending: '待审核',
     approved: '待提交',
-    submitted: '已提交',
+    submitted: '待提交到第三方',  // 已从申请页提交到配置页，等待配置页提交到第三方
+    reviewing: '审核中',  // 已从配置页提交到第三方
     rejected: '已驳回',
     certificated: '已发证'
   }
@@ -545,11 +708,12 @@ const statusType = (status) => {
   const map = {
     pending: 'info',
     approved: 'warning',
-    submitted: 'primary',
+    submitted: 'warning',   // 待审核状态 - 黄色
+    reviewing: 'primary',   // 审核中状态 - 蓝色
     rejected: 'danger',
     certificated: 'success'
   }
-  return map[status] || ''
+  return map[status] || 'info'
 }
 
 const handleBatchSync = async () => {
@@ -576,24 +740,6 @@ const handleBatchSync = async () => {
   }
 }
 
-const handleResubmit = async (row) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定重新提交申请"${row.applyNo}"吗？`,
-      '重新提交确认',
-      { type: 'warning' }
-    )
-    
-    await resubmitCopyrightApplication(row.applyId)
-    ElMessage.success('重新提交成功')
-    loadApplications()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('重新提交失败')
-    }
-  }
-}
-
 const centerInfoVisible = ref(false)
 const availableCenters = ref([])
 const loadingCenters = ref(false)
@@ -604,7 +750,8 @@ const showCenterInfo = async () => {
   
   try {
     const res = await getAvailableCopyrightCenters()
-    availableCenters.value = res.data || []
+    // unwrapRuoYiResponse 已经解包，res 直接就是数组
+    availableCenters.value = Array.isArray(res) ? res : []
   } catch (error) {
     ElMessage.error('获取版权中心信息失败')
   } finally {

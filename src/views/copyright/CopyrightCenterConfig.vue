@@ -44,8 +44,8 @@
         <template #default="{ row }">
           <el-switch
             v-model="row.status"
-            active-value="active"
-            inactive-value="inactive"
+            active-value="enabled"
+            inactive-value="disabled"
             @change="handleStatusChange(row)"
           />
         </template>
@@ -115,8 +115,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="formData.status">
-            <el-radio value="active">启用</el-radio>
-            <el-radio value="inactive">停用</el-radio>
+            <el-radio value="enabled">启用</el-radio>
+            <el-radio value="disabled">停用</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -137,7 +137,7 @@
     >
       <el-alert type="info" :closable="false" style="margin-bottom: 16px;">
         <template #title>
-          显示提交到此版权中心的所有申请及其处理状态
+          当前显示 <strong>{{ currentCenter?.centerName }}</strong> 的所有申请及其处理状态
         </template>
       </el-alert>
       
@@ -148,18 +148,21 @@
         max-height="500"
       >
         <el-table-column prop="applyNo" label="申请编号" width="180" />
-        <el-table-column prop="workId" label="作品ID" width="100" />
+        <el-table-column prop="workName" label="作品名称" width="200" show-overflow-tooltip />
         <el-table-column prop="externalApplyNo" label="外部申请号" width="180" show-overflow-tooltip />
         <el-table-column label="状态" width="120">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
-              {{ getStatusLabel(row.status) }}
+              {{ row.statusText || getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="submitTime" label="提交时间" width="170" />
         <el-table-column prop="certNo" label="证书编号" width="140" show-overflow-tooltip>
           <template #default="{ row }">{{ row.certNo || '—' }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" width="200" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.remark || '—' }}</template>
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
@@ -249,7 +252,7 @@ import {
   changeCopyrightCenterStatus,
   getCopyrightApplicationList,
   syncCopyrightApplicationStatus,
-  submitCopyrightApplicationToCenter
+  submitApplicationToThirdParty
 } from '@/api/copyright'
 
 const loading = ref(false)
@@ -277,7 +280,7 @@ const formData = reactive({
   apiUrl: '',
   apiKey: '',
   appId: '',
-  status: 'active',
+  status: 'enabled',
   priority: 0,
   remark: ''
 })
@@ -395,7 +398,7 @@ const handleDialogClose = () => {
     apiUrl: '',
     apiKey: '',
     appId: '',
-    status: 'active',
+    status: 'enabled',
     priority: 0,
     remark: ''
   })
@@ -422,7 +425,7 @@ const handleExport = async () => {
  */
 const handleTestConnection = async (row) => {
   // 检查配置状态
-  if (row.status !== 'active') {
+  if (row.status !== 'enabled') {
     ElMessage.warning('该版权中心配置已停用，无法测试连接')
     return
   }
@@ -449,8 +452,8 @@ const handleTestConnection = async (row) => {
  */
 const handleStatusChange = async (row) => {
   const newStatus = row.status
-  const oldStatus = newStatus === 'active' ? 'inactive' : 'active'
-  const statusText = newStatus === 'active' ? '启用' : '停用'
+  const oldStatus = newStatus === 'enabled' ? 'disabled' : 'enabled'
+  const statusText = newStatus === 'enabled' ? '启用' : '停用'
   
   try {
     await changeCopyrightCenterStatus({
@@ -468,7 +471,7 @@ const handleStatusChange = async (row) => {
 
 const viewApplications = async (row) => {
   // 检查配置状态
-  if (row.status !== 'active') {
+  if (row.status !== 'enabled') {
     ElMessage.warning('该版权中心配置已停用，无法查看申请')
     return
   }
@@ -482,7 +485,7 @@ const viewApplications = async (row) => {
     // 注意：approved 状态表示申请页本地审核通过，但用户还未点击"提交"按钮
     // 只有用户在申请页点击"提交"后，状态才变为 submitted，此时才会进入配置页视野
     const res = await getCopyrightApplicationList({
-      copyrightCenter: row.centerCode,
+      configId: row.configId,  // 使用configId查询该版权中心的申请
       // submitted: 已提交到配置页（等待配置页提交到第三方）
       // reviewing: 第三方审核中
       // certificated: 已发证, rejected: 已驳回
@@ -561,7 +564,9 @@ const submitToThirdParty = async (application) => {
     viewApplications(currentCenter.value)
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(error.msg || '提交失败')
+      console.error('提交到第三方失败:', error)
+      const errorMsg = error.response?.data?.msg || error.message || '提交失败'
+      ElMessage.error(errorMsg)
     }
   }
 }

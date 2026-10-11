@@ -336,7 +336,7 @@ export { getCopyrightSealList as getPersonalSealList }
 export function getCopyrightApplicationList(params) {
   const { pageNo, ...filters } = params || {}
   return request({
-    url: '/pc/copyright/application/list',
+    url: '/content/copyright/application/list',
     method: 'get',
     params: { ...filters, pageNum: pageNo }
   })
@@ -344,14 +344,14 @@ export function getCopyrightApplicationList(params) {
 
 export function getCopyrightApplicationDetail(applyId) {
   return request({
-    url: `/pc/copyright/application/${applyId}`,
+    url: `/content/copyright/application/${applyId}`,
     method: 'get'
   })
 }
 
 export function addCopyrightApplication(data) {
   return request({
-    url: '/pc/copyright/application',
+    url: '/content/copyright/application',
     method: 'post',
     data
   })
@@ -359,7 +359,7 @@ export function addCopyrightApplication(data) {
 
 export function updateCopyrightApplication(data) {
   return request({
-    url: '/pc/copyright/application',
+    url: '/content/copyright/application',
     method: 'put',
     data
   })
@@ -367,36 +367,36 @@ export function updateCopyrightApplication(data) {
 
 export function deleteCopyrightApplication(applyIds) {
   return request({
-    url: `/pc/copyright/application/${applyIds}`,
+    url: `/content/copyright/application/${applyIds}`,
     method: 'delete'
   })
 }
 
 export function syncCopyrightApplication(applyId) {
   return request({
-    url: `/pc/copyright/application/${applyId}/sync`,
+    url: `/content/copyright/application/queryStatus/${applyId}`,
+    method: 'get'
+  })
+}
+
+export function submitCopyrightApplicationToCenter(applyId, configId) {
+  return request({
+    url: `/content/copyright/application/submit/${applyId}/to/${configId}`,
     method: 'post'
   })
 }
 
-export function reviewCopyrightApplication(applyId, data) {
+// 从配置页提交到第三方API
+export function submitApplicationToThirdParty(applyId) {
   return request({
-    url: `/pc/copyright/application/${applyId}/review`,
-    method: 'post',
-    data
-  })
-}
-
-export function submitCopyrightApplicationToCenter(applyId) {
-  return request({
-    url: `/pc/copyright/application/${applyId}/submit`,
+    url: `/content/copyright/application/submitToApi/${applyId}`,
     method: 'post'
   })
 }
 
 export function batchSubmitCopyrightApplicationToCenter(applyIds) {
   return request({
-    url: '/pc/copyright/application/batch/submit',
+    url: '/content/copyright/application/batch/submit',
     method: 'post',
     data: applyIds
   })
@@ -404,7 +404,7 @@ export function batchSubmitCopyrightApplicationToCenter(applyIds) {
 
 export function exportCopyrightApplication(params) {
   return request({
-    url: '/pc/copyright/application/export',
+    url: '/content/copyright/application/export',
     method: 'post',
     params,
     responseType: 'blob'
@@ -415,7 +415,7 @@ export function exportCopyrightApplication(params) {
 export function getCopyrightCenterConfigList(params) {
   const { pageNo, ...filters } = params || {}
   return request({
-    url: '/pc/copyright/centerConfig/list',
+    url: '/content/copyright/config/list',
     method: 'get',
     params: { ...filters, pageNum: pageNo }
   })
@@ -423,14 +423,14 @@ export function getCopyrightCenterConfigList(params) {
 
 export function getCopyrightCenterConfigDetail(configId) {
   return request({
-    url: `/pc/copyright/centerConfig/${configId}`,
+    url: `/content/copyright/config/${configId}`,
     method: 'get'
   })
 }
 
 export function addCopyrightCenterConfig(data) {
   return request({
-    url: '/pc/copyright/centerConfig',
+    url: '/content/copyright/config',
     method: 'post',
     data
   })
@@ -438,7 +438,7 @@ export function addCopyrightCenterConfig(data) {
 
 export function updateCopyrightCenterConfig(data) {
   return request({
-    url: '/pc/copyright/centerConfig',
+    url: '/content/copyright/config',
     method: 'put',
     data
   })
@@ -446,14 +446,14 @@ export function updateCopyrightCenterConfig(data) {
 
 export function deleteCopyrightCenterConfig(configIds) {
   return request({
-    url: `/pc/copyright/centerConfig/${configIds}`,
+    url: `/content/copyright/config/${configIds}`,
     method: 'delete'
   })
 }
 
 export function exportCopyrightCenterConfig(params) {
   return request({
-    url: '/pc/copyright/centerConfig/export',
+    url: '/content/copyright/config/export',
     method: 'post',
     params,
     responseType: 'blob'
@@ -463,15 +463,15 @@ export function exportCopyrightCenterConfig(params) {
 // 测试版权中心连接
 export function testCopyrightCenterConnection(configId) {
   return request({
-    url: `/pc/copyright/centerConfig/testConnection/${configId}`,
-    method: 'post'
+    url: `/content/copyright/config/testConnection/${configId}`,
+    method: 'get'
   })
 }
 
 // 修改版权中心状态
 export function changeCopyrightCenterStatus(data) {
   return request({
-    url: '/pc/copyright/centerConfig/changeStatus',
+    url: '/content/copyright/config/changeStatus',
     method: 'put',
     data
   })
@@ -480,7 +480,7 @@ export function changeCopyrightCenterStatus(data) {
 // 获取可用的版权中心列表
 export function getAvailableCopyrightCenters() {
   return request({
-    url: '/pc/copyright/centerConfig/available',
+    url: '/content/copyright/config/active',
     method: 'get'
   })
 }
@@ -488,25 +488,32 @@ export function getAvailableCopyrightCenters() {
 // 批量同步版权申请状态
 export function batchSyncCopyrightStatus(applyIds) {
   return request({
-    url: '/pc/copyright/application/batch/sync',
+    url: '/content/copyright/application/batch/sync',
     method: 'post',
     data: applyIds
-  })
-}
-
-// 重新提交版权申请
-export function resubmitCopyrightApplication(applyId) {
-  return request({
-    url: `/pc/copyright/application/${applyId}/resubmit`,
-    method: 'post'
   })
 }
 
 // 同步单个申请状态
 export function syncCopyrightApplicationStatus(applyId) {
   return request({
-    url: `/pc/copyright/application/${applyId}/sync`,
-    method: 'post'
+    url: `/content/copyright/application/queryStatus/${applyId}`,
+    method: 'get'
+  })
+}
+
+// 审核版权申请
+export function reviewCopyrightApplication(applyId, data) {
+  // data格式: { action: 'approve'|'reject', rejectReason: string }
+  // 转换为后端需要的格式: { status: 'approved'|'rejected', rejectReason: string }
+  const reviewData = {
+    status: data.action === 'approve' ? 'approved' : 'rejected',
+    rejectReason: data.rejectReason || ''
+  }
+  return request({
+    url: `/content/copyright/application/${applyId}/review`,
+    method: 'post',
+    data: reviewData
   })
 }
 
