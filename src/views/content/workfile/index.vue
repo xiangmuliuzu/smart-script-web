@@ -4,8 +4,8 @@
       <template #actions>
         <el-input
           v-model="workId"
-          placeholder="请输入作品ID"
-          style="width: 220px"
+          placeholder="请输入作品ID（留空查看全部）"
+          style="width: 240px"
           clearable
           @keyup.enter="handleWorkQuery"
         />
@@ -128,7 +128,7 @@
         <el-descriptions-item label="文件地址" :span="2">
           <el-link
             v-if="versionDetail.fileUrl"
-            :href="versionDetail.fileUrl"
+            :href="resolveMediaUrl(versionDetail.fileUrl)"
             target="_blank"
             type="primary"
             :underline="false"
@@ -150,14 +150,14 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { reactive, ref, watch, onMounted } from 'vue'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import BlackButton from '@/components/BlackButton.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { listWorkFile, listWorkVersions, getWorkVersion } from '@/api/content'
+import { resolveMediaUrl } from '@/utils/request'
 
 defineOptions({ name: 'ContentWorkfile' })
 
@@ -184,19 +184,16 @@ const versionTotal = ref(0)
 const versionLoading = ref(false)
 const versionLoaded = ref(false)
 
-function hasWorkId() {
+/** 作品ID 为可选过滤：留空时不下发该参数，由后端走「不过滤」分支列出全部 */
+function currentWorkId() {
   const id = String(workId.value ?? '').trim()
-  if (!id) {
-    ElMessage.warning('请先输入作品ID')
-    return false
-  }
-  return true
+  return id || undefined
 }
 
-/** GET 入参：空串不下发，让后端走“不过滤”分支 */
+/** GET 入参：空值不下发，让后端走“不过滤”分支 */
 function buildFileQuery() {
   return {
-    workId: String(workId.value).trim(),
+    workId: currentWorkId(),
     pageNum: fileQuery.pageNum,
     pageSize: fileQuery.pageSize,
     fileType: fileQuery.fileType || undefined,
@@ -205,7 +202,6 @@ function buildFileQuery() {
 }
 
 async function loadFileList() {
-  if (!hasWorkId()) return
   fileLoading.value = true
   try {
     const res = await listWorkFile(buildFileQuery())
@@ -221,11 +217,10 @@ async function loadFileList() {
 }
 
 async function loadVersions() {
-  if (!hasWorkId()) return
   versionLoading.value = true
   try {
     const res = await listWorkVersions({
-      workId: String(workId.value).trim(),
+      workId: currentWorkId(),
       pageNum: versionQuery.pageNum,
       pageSize: versionQuery.pageSize
     })
@@ -242,7 +237,6 @@ async function loadVersions() {
 
 /** 顶部查询：重置两个 tab 的分页与已加载标记，按当前激活 tab 拉取 */
 function handleWorkQuery() {
-  if (!hasWorkId()) return
   fileQuery.pageNum = 1
   versionQuery.pageNum = 1
   fileList.value = []
@@ -266,12 +260,14 @@ function handleFileReset() {
   handleFileQuery()
 }
 
-/** 切换 tab 时按需懒加载，仅当该 tab 尚未加载过且 workId 已填 */
+/** 切换 tab 时按需懒加载，仅当该 tab 尚未加载过时拉取 */
 watch(activeTab, (val) => {
-  if (!String(workId.value ?? '').trim()) return
   if (val === 'file' && !fileLoaded.value) loadFileList()
   else if (val === 'version' && !versionLoaded.value) loadVersions()
 })
+
+// 进页面即加载文件列表（不填作品ID 时列出全部），避免页面一直为空
+onMounted(loadFileList)
 
 const versionDialog = reactive({ visible: false, loading: false })
 const versionDetail = reactive({})

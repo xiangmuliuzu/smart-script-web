@@ -20,7 +20,7 @@
       <!-- ① 作品基本信息 -->
       <section class="work-panel">
         <div class="work-head">
-          <el-avatar :size="96" shape="square" :src="work.cover || undefined">
+          <el-avatar :size="96" shape="square" :src="resolveMediaUrl(work.cover) || undefined">
             <el-icon :size="40"><Document /></el-icon>
           </el-avatar>
           <div class="work-head-main">
@@ -152,6 +152,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document } from '@element-plus/icons-vue'
 import { getWorkDetail, updateWork, submitWork, addChapter, updateChapter, deleteChapter, getReviewRecords } from '@/api/pcWork'
+import { resolveMediaUrl } from '@/utils/request'
 
 const route = useRoute()
 const router = useRouter()

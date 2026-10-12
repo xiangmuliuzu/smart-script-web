@@ -88,6 +88,12 @@
           />
         </template>
       </el-table-column>
+      <el-table-column label="可见性" width="110">
+        <template #default="{ row }">
+          <!-- 真实可见性 = 状态为上架 且 当前在展示时间窗内，与 App 端口径一致 -->
+          <el-tag :type="visibleState(row).type" size="small">{{ visibleState(row).text }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="开始时间" width="170">
         <template #default="{ row }">{{ row.startTime || '—' }}</template>
       </el-table-column>
@@ -163,19 +169,24 @@
           <el-date-picker
             v-model="form.startTime"
             type="datetime"
-            placeholder="选择开始时间"
+            placeholder="选择开始时间（留空即不限制）"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
+            @change="handleTimeChange"
           />
         </el-form-item>
         <el-form-item label="结束时间" prop="endTime">
           <el-date-picker
             v-model="form.endTime"
             type="datetime"
-            placeholder="选择结束时间"
+            placeholder="选择结束时间（留空即不限制）"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
+            @change="handleTimeChange"
           />
+        </el-form-item>
+        <el-form-item v-if="windowHint">
+          <span class="banner-time-hint">{{ windowHint }}</span>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注（选填）" />
@@ -190,7 +201,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -222,6 +233,24 @@ const queryParams = reactive({
 })
 
 const sortingId = ref(null)
+
+/** 时间字符串解析（"yyyy-MM-dd HH:mm:ss"：连字符形式 Safari 不支持，统一转斜杠） */
+function toDate(value) {
+  if (!value) return null
+  const d = new Date(String(value).replace(/-/g, '/'))
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** 真实可见性：状态上架 且 当前在展示时间窗内（与 App 端 selectAppBannerList 口径一致） */
+function visibleState(row) {
+  if (row.status !== 'on') return { text: '已下架', type: 'info' }
+  const now = Date.now()
+  const start = toDate(row.startTime)
+  const end = toDate(row.endTime)
+  if (start && now < start.getTime()) return { text: '待展示', type: 'warning' }
+  if (end && now > end.getTime()) return { text: '已过期', type: 'danger' }
+  return { text: '展示中', type: 'success' }
+}
 
 /** GET 入参：空串不下发，让后端走“不过滤”分支 */
 function buildQuery() {
@@ -279,6 +308,35 @@ const defaultForm = () => ({
   remark: ''
 })
 const form = reactive(defaultForm())
+
+/** 时间窗校验：起止同时填写时，结束必须晚于开始（否则 App 端恒不展示） */
+function validateTimeWindow(rule, value, callback) {
+  const start = toDate(form.startTime)
+  const end = toDate(form.endTime)
+  if (start && end && end.getTime() <= start.getTime()) {
+    callback(new Error('结束时间必须晚于开始时间'))
+    return
+  }
+  callback()
+}
+
+/** 状态为上架、但当前不在时间窗内时的提示 */
+const windowHint = computed(() => {
+  if (form.status !== 'on') return ''
+  const start = toDate(form.startTime)
+  const end = toDate(form.endTime)
+  if (!start && !end) return ''
+  const now = Date.now()
+  if (start && now < start.getTime()) return '当前未到开始时间，Banner 在 App 端不会显示'
+  if (end && now > end.getTime()) return '当前已过结束时间，Banner 在 App 端不会显示'
+  return ''
+})
+
+/** 起止任一变更后同时复校验两项，避免只提示一侧 */
+function handleTimeChange() {
+  formRef.value?.validateField(['startTime', 'endTime']).catch(() => {})
+}
+
 const rules = {
   title: [
     { required: true, message: '请输入Banner标题', trigger: 'blur' },
@@ -286,7 +344,9 @@ const rules = {
   ],
   imageUrl: [
     { required: true, message: '请上传封面图', trigger: 'change' }
-  ]
+  ],
+  startTime: [{ validator: validateTimeWindow, trigger: 'change' }],
+  endTime: [{ validator: validateTimeWindow, trigger: 'change' }]
 }
 
 /** 上传前置校验：仅图片、≤2MB */
@@ -499,6 +559,11 @@ onMounted(loadList)
   width: 100%;
   margin-top: 4px;
   color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.banner-time-hint {
+  color: var(--el-color-warning);
   font-size: 12px;
   line-height: 1.4;
 }

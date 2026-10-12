@@ -1,7 +1,6 @@
 import MainLayout from '@/layout/MainLayout.vue'
 import Dashboard from '@/views/dashboard/Dashboard.vue'
 import ModuleScaffold from '@/views/common/ModuleScaffold.vue'
-import ShortDrama from '@/views/operation/ShortDrama.vue'
 import OperationOverview from '@/views/statistics/OperationOverview.vue'
 import DetailQuery from '@/views/statistics/DetailQuery.vue'
 import ReviewWorkbench from '@/views/copyright/ReviewWorkbench.vue'
@@ -54,7 +53,6 @@ export const componentMap = {
 
   'dashboard/Dashboard': Dashboard,
   'common/ModuleScaffold': ModuleScaffold,
-  'operation/ShortDrama': ShortDrama,
   'statistics/OperationOverview': OperationOverview,
   'statistics/DetailQuery': DetailQuery,
   'copyright/ReviewWorkbench': ReviewWorkbench,
