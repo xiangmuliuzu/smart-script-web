@@ -30,8 +30,9 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true
         },
-        // PC端管理API（提现审核、合同管理、结算管理、财务异常等）
-        '/pc': {
+        // PC端管理API（版权提现审核、合同管理、结算管理、财务异常、证书等，前缀 /pc/copyright）
+        // 注意：不可用 '/pc' 宽前缀，会与 PC 用户端 SPA 路由（/pc/user/**）冲突，导致页面被代理到后端 401
+        '/pc/copyright': {
           target,
           changeOrigin: true
         }
