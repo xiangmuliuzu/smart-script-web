@@ -32,7 +32,6 @@ import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
 import Quote from '@/views/trade/Quote.vue'
-import FollowUp from '@/views/trade/FollowUp.vue'
 import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
@@ -91,7 +90,6 @@ export const componentMap = {
   'trade/AuthOrders': AuthOrders,
   'trade/Inquiry': Inquiry,
   'trade/Quote': Quote,
-  'trade/FollowUp': FollowUp,
   'trade/Demand': Demand,
   'operation/AdConfig': AdConfig,
   'user/UserManage': UserManageProduct,
