@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { adminV1Request as request } from '@/utils/request'
 
 /**
  * B 模块（内容与作品）PC 后台 API

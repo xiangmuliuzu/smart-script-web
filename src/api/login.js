@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { adminV1Request } from '@/utils/request'
 
 /** 若依原生认证接口，不使用 /api/v1/admin 自建路径 */
 
@@ -25,7 +25,7 @@ export function login(data) {
  * 返回 { accountType, token }（00，若依管理端令牌）或 { accountType, session }（01/02/03，App 凭证域令牌）。
  */
 export function unifiedLogin(data) {
-  return request({
+  return adminV1Request({
     url: '/api/v1/pc-auth/login',
     method: 'post',
     headers: { isToken: false },

@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { adminV1Request as request } from '@/utils/request'
 
 const PRODUCT_PREFIX = '/api/v1/admin'
 
