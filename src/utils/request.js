@@ -12,10 +12,13 @@ const BASE_API = import.meta.env.VITE_APP_ADMIN_BASE_API || import.meta.env.VITE
 
 /**
  * 管理端新接口（/api/v1/admin/*、/api/v1/pc-auth/* 等自建路径）统一入口。
- * 生产/服务器按运维规范走 /api/v1（Caddy 原样转发到后端），
- * 本地开发走 /dev-api 由 Vite 代理转发。
+ * 生产/服务器：baseURL 为空，API 文件 url 保留完整 /api/v1 前缀，
+ *   最终请求形如 /api/v1/admin/...，由 Caddy 原样转发到后端（避免 /api/v1/api/v1 双前缀）；
+ * 本地开发走 /dev-api 由 Vite 代理转发（剥前缀后落到 /api/v1/...）。
  */
-const V1_BASE_API = import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
+const V1_BASE_API = import.meta.env.PROD
+  ? ''
+  : import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 /**
  * 把后端下发的相对媒体地址（如 `/profile/upload/2026/10/12/xxx.jpg`）补上 API 前缀，

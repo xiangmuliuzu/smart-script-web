@@ -13,10 +13,13 @@ import { getUserToken, removeUserToken, removeUserRefreshToken, removeAccountTyp
  */
 /**
  * PC 用户端（App 凭证域）新接口统一入口，路径形如 /api/v1/...
- * 生产/服务器按运维规范走 /api/v1（Caddy 原样转发到后端）；
- * 本地开发走 /dev-api 由 Vite 代理转发。
+ * 生产/服务器：baseURL 为空，url 保留完整 /api/v1 前缀，
+ *   最终请求形如 /api/v1/...，由 Caddy 原样转发到后端（避免 /api/v1/api/v1 双前缀）；
+ * 本地开发走 /dev-api 由 Vite 代理转发（剥前缀后落到 /api/v1/...）。
  */
-const BASE_API = import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
+const BASE_API = import.meta.env.PROD
+  ? ''
+  : import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 const request = axios.create({
   baseURL: BASE_API,
