@@ -11,7 +11,12 @@ import { getUserToken, removeUserToken, removeUserRefreshToken, removeAccountTyp
  *   - 并发失效只触发一次跳转与一次提示；普通业务错误不按令牌失效处理。
  * 不做 silent refresh：刷新令牌仅落盘备用，过期即要求重新登录，避免跨域凭据复杂化。
  */
-const BASE_API = import.meta.env.VITE_APP_BASE_API || ''
+/**
+ * PC 用户端（App 凭证域）新接口统一入口，路径形如 /api/v1/...
+ * 生产/服务器按运维规范走 /api/v1（Caddy 原样转发到后端）；
+ * 本地开发走 /dev-api 由 Vite 代理转发。
+ */
+const BASE_API = import.meta.env.VITE_APP_PC_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 const request = axios.create({
   baseURL: BASE_API,
@@ -61,6 +66,9 @@ request.interceptors.response.use(
   response => {
     const res = response.data
     if (res?.code === AUTH_BUSINESS_CODE || res?.code === LEGACY_AUTH_CODE) {
+      if (response.config?.silent) {
+        return Promise.reject(new Error(res?.message || res?.msg || 'Unauthorized'))
+      }
       toLogin(res?.message || '登录状态已过期，请重新登录')
       return Promise.reject(new Error(res?.message || 'Unauthorized'))
     }
@@ -83,7 +91,9 @@ request.interceptors.response.use(
     // silent 请求（如角标轮询）静默失败：由调用方进入失败策略，不反复弹窗
     const quiet = error.config?.silent
     if (status === 401) {
-      toLogin(msg || '未授权，请重新登录')
+      if (!quiet) {
+        toLogin(msg || '未授权，请重新登录')
+      }
     } else if (status === 403 && bodyCode === ACCOUNT_DISABLED_CODE) {
       // 账号停用：清理用户会话后要求重新登录；不暴露资料内容
       toLogin(msg || '账号已停用，请联系管理员')

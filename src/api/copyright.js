@@ -238,3 +238,282 @@ export function downloadContract(contractId) {
     responseType: 'blob'
   })
 }
+
+// 结算管理API
+export function getSettlementList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/settlement/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getSettlementDetail(settlementId) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}`,
+    method: 'get'
+  })
+}
+
+export function batchCalculateSettlement(data) {
+  return request({
+    url: '/pc/copyright/settlement/calculate',
+    method: 'post',
+    data
+  })
+}
+
+export function handleSettlementAbnormal(settlementId, data) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}/handle`,
+    method: 'post',
+    data
+  })
+}
+
+export function confirmSettlement(settlementId) {
+  return request({
+    url: `/pc/copyright/settlement/${settlementId}/settle`,
+    method: 'post'
+  })
+}
+
+// 财务异常API
+export function getFinanceAbnormalList(params) {
+  const { pageNo, type, ...filters } = params || {}
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/list`,
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getFinanceAbnormalDetail(type, recordId) {
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/${recordId}`,
+    method: 'get'
+  })
+}
+
+export function handleFinanceAbnormal(type, recordId, data) {
+  return request({
+    url: `/pc/copyright/finance-abnormal/${type}/${recordId}/handle`,
+    method: 'post',
+    data
+  })
+}
+
+// 电子证书管理API
+export function getCopyrightCertList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/pc/copyright/cert/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightCertDetail(certId) {
+  return request({
+    url: `/pc/copyright/cert/${certId}`,
+    method: 'get'
+  })
+}
+
+export function downloadCopyrightCert(certId) {
+  return request({
+    url: `/pc/copyright/cert/${certId}/download`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+// 印章管理API - 统一使用 getCopyrightSealList
+export { getCopyrightSealList as getPersonalSealList }
+
+// 版权申请管理API
+export function getCopyrightApplicationList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/content/copyright/application/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightApplicationDetail(applyId) {
+  return request({
+    url: `/content/copyright/application/${applyId}`,
+    method: 'get'
+  })
+}
+
+export function addCopyrightApplication(data) {
+  return request({
+    url: '/content/copyright/application',
+    method: 'post',
+    data
+  })
+}
+
+export function updateCopyrightApplication(data) {
+  return request({
+    url: '/content/copyright/application',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteCopyrightApplication(applyIds) {
+  return request({
+    url: `/content/copyright/application/${applyIds}`,
+    method: 'delete'
+  })
+}
+
+export function syncCopyrightApplication(applyId) {
+  return request({
+    url: `/content/copyright/application/queryStatus/${applyId}`,
+    method: 'get'
+  })
+}
+
+export function submitCopyrightApplicationToCenter(applyId, configId) {
+  return request({
+    url: `/content/copyright/application/submit/${applyId}/to/${configId}`,
+    method: 'post'
+  })
+}
+
+// 从配置页提交到第三方API
+export function submitApplicationToThirdParty(applyId) {
+  return request({
+    url: `/content/copyright/application/submitToApi/${applyId}`,
+    method: 'post'
+  })
+}
+
+export function batchSubmitCopyrightApplicationToCenter(applyIds) {
+  return request({
+    url: '/content/copyright/application/batch/submit',
+    method: 'post',
+    data: applyIds
+  })
+}
+
+export function exportCopyrightApplication(params) {
+  return request({
+    url: '/content/copyright/application/export',
+    method: 'post',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 版权中心配置API
+export function getCopyrightCenterConfigList(params) {
+  const { pageNo, ...filters } = params || {}
+  return request({
+    url: '/content/copyright/config/list',
+    method: 'get',
+    params: { ...filters, pageNum: pageNo }
+  })
+}
+
+export function getCopyrightCenterConfigDetail(configId) {
+  return request({
+    url: `/content/copyright/config/${configId}`,
+    method: 'get'
+  })
+}
+
+export function addCopyrightCenterConfig(data) {
+  return request({
+    url: '/content/copyright/config',
+    method: 'post',
+    data
+  })
+}
+
+export function updateCopyrightCenterConfig(data) {
+  return request({
+    url: '/content/copyright/config',
+    method: 'put',
+    data
+  })
+}
+
+export function deleteCopyrightCenterConfig(configIds) {
+  return request({
+    url: `/content/copyright/config/${configIds}`,
+    method: 'delete'
+  })
+}
+
+export function exportCopyrightCenterConfig(params) {
+  return request({
+    url: '/content/copyright/config/export',
+    method: 'post',
+    params,
+    responseType: 'blob'
+  })
+}
+
+// 测试版权中心连接
+export function testCopyrightCenterConnection(configId) {
+  return request({
+    url: `/content/copyright/config/testConnection/${configId}`,
+    method: 'get'
+  })
+}
+
+// 修改版权中心状态
+export function changeCopyrightCenterStatus(data) {
+  return request({
+    url: '/content/copyright/config/changeStatus',
+    method: 'put',
+    data
+  })
+}
+
+// 获取可用的版权中心列表
+export function getAvailableCopyrightCenters() {
+  return request({
+    url: '/content/copyright/config/active',
+    method: 'get'
+  })
+}
+
+// 批量同步版权申请状态
+export function batchSyncCopyrightStatus(applyIds) {
+  return request({
+    url: '/content/copyright/application/batch/sync',
+    method: 'post',
+    data: applyIds
+  })
+}
+
+// 同步单个申请状态
+export function syncCopyrightApplicationStatus(applyId) {
+  return request({
+    url: `/content/copyright/application/queryStatus/${applyId}`,
+    method: 'get'
+  })
+}
+
+// 审核版权申请
+export function reviewCopyrightApplication(applyId, data) {
+  // data格式: { action: 'approve'|'reject', rejectReason: string }
+  // 转换为后端需要的格式: { status: 'approved'|'rejected', rejectReason: string }
+  const reviewData = {
+    status: data.action === 'approve' ? 'approved' : 'rejected',
+    rejectReason: data.rejectReason || ''
+  }
+  return request({
+    url: `/content/copyright/application/${applyId}/review`,
+    method: 'post',
+    data: reviewData
+  })
+}
+

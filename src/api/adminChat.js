@@ -10,13 +10,23 @@ import request from '@/utils/request'
 const PREFIX = '/api/v1/admin/chat'
 
 /** 全部会话列表（分页 + 筛选）：params = { status?, businessType?, keyword?, pageNum, pageSize } */
-export function listSessions(params) {
-  return request({ url: `${PREFIX}/sessions`, method: 'get', params })
+export function listSessions(params, options) {
+  return request({ url: `${PREFIX}/sessions`, method: 'get', params, ...options })
+}
+
+/** 当前管理员作为会话参与方收到的未读总数，不受列表分页限制。 */
+export function getChatUnreadCount(options) {
+  return request({ url: `${PREFIX}/unread-count`, method: 'get', ...options })
 }
 
 /** 会话详情（含双方用户信息），返回会话 VO */
 export function getSession(sessionId) {
   return request({ url: `${PREFIX}/sessions/${sessionId}`, method: 'get' })
+}
+
+/** 显式打开详情，当前管理员接手，只将已展示的消息标为已读。 */
+export function openSession(sessionId, throughMessageId) {
+  return request({ url: `${PREFIX}/sessions/${sessionId}/open`, method: 'put', params: { throughMessageId } })
 }
 
 /** 会话内历史消息（时间正序），返回 { total, list } */
@@ -42,8 +52,8 @@ export function sendMessage(sessionId, data) {
 }
 
 /** 管理员标记会话已读 */
-export function markSessionRead(sessionId) {
-  return request({ url: `${PREFIX}/sessions/${sessionId}/read`, method: 'put' })
+export function markSessionRead(sessionId, throughMessageId) {
+  return request({ url: `${PREFIX}/sessions/${sessionId}/read`, method: 'put', params: { throughMessageId } })
 }
 
 /** 可分配的管理员候选列表（管理域账号且挂有有效角色），返回 [{ userId, userName, nickName, avatar }] */
@@ -56,7 +66,7 @@ export function assignAdmin(sessionId, adminId) {
   return request({ url: `${PREFIX}/sessions/${sessionId}/assign`, method: 'put', params: { adminId } })
 }
 
-/** 变更会话状态：action = 'processing' | 'close' | 'reopen' */
+/** 变更会话状态：action = 'close' | 'reopen' */
 export function changeStatus(sessionId, action) {
   return request({ url: `${PREFIX}/sessions/${sessionId}/status`, method: 'put', params: { action } })
 }

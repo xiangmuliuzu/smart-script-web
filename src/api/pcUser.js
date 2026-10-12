@@ -45,8 +45,8 @@ export function getUnreadCount(options) {
   return request({ url: '/api/v1/messages/unread-count', method: 'get', ...options })
 }
 
-export function listMessages(params) {
-  return request({ url: '/api/v1/messages', method: 'get', params })
+export function listMessages(params, options) {
+  return request({ url: '/api/v1/messages', method: 'get', params, ...options })
 }
 
 export function getMessage(messageId) {
@@ -57,6 +57,6 @@ export function markMessageRead(messageId) {
   return request({ url: `/api/v1/messages/${messageId}/read`, method: 'put' })
 }
 
-export function markAllMessagesRead() {
-  return request({ url: '/api/v1/messages/read-all', method: 'put' })
+export function markAllMessagesRead(params) {
+  return request({ url: '/api/v1/messages/read-all', method: 'put', params })
 }

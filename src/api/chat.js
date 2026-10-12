@@ -13,13 +13,13 @@ export function createSession(data) {
 }
 
 /** 我的会话列表：params = { status? }，返回 { total, list } */
-export function listSessions(params) {
-  return request({ url: `${PREFIX}/sessions`, method: 'get', params })
+export function listSessions(params, options) {
+  return request({ url: `${PREFIX}/sessions`, method: 'get', params, ...options })
 }
 
 /** 会话内历史消息（时间正序），返回 { total, list } */
-export function listMessages(sessionId) {
-  return request({ url: `${PREFIX}/sessions/${sessionId}/messages`, method: 'get' })
+export function listMessages(sessionId, options) {
+  return request({ url: `${PREFIX}/sessions/${sessionId}/messages`, method: 'get', ...options })
 }
 
 /** 发送文字消息：data = { content, msgType? }，返回消息 VO */

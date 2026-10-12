@@ -3,7 +3,12 @@ import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from '@/utils/auth'
 import { unwrapRuoYiResponse } from '@/utils/ruoyi-response'
 
-const BASE_API = import.meta.env.VITE_APP_BASE_API || ''
+/**
+ * 管理端旧接口（/getInfo、/getRouters、/system、/monitor 等若依原生接口）统一入口。
+ * 生产/服务器按运维规范走 /prod-api（Caddy 转发时去掉该前缀）；
+ * 本地开发走 /dev-api 由 Vite 代理转发。
+ */
+const BASE_API = import.meta.env.VITE_APP_ADMIN_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
 /**
  * 把后端下发的相对媒体地址（如 `/profile/upload/2026/10/12/xxx.jpg`）补上 API 前缀，
@@ -72,9 +77,7 @@ request.interceptors.response.use(
     }
     if (code !== undefined && code !== 200 && code !== 0) {
       const message = res.msg || res.message || '请求失败'
-      if (code === 403) {
-        ElMessage.error(message || '权限不足')
-      } else {
+      if (!response.config?.silent) {
         ElMessage.error(message)
       }
       return Promise.reject(new Error(message))
@@ -88,6 +91,8 @@ request.interceptors.response.use(
     const msg = error.response?.data?.msg || error.response?.data?.message
     if (status === 401) {
       toLogin(msg || '未授权，请重新登录')
+    } else if (error.config?.silent) {
+      // 静默角标轮询失败由调用方恢复，认证失效仍按上面的逻辑处理。
     } else if (status === 403) {
       ElMessage.error(msg || '权限不足')
     } else if (status === 404) {

@@ -38,7 +38,7 @@ export function useContactUser(opts) {
         businessName: extractBusinessName(row) || null
       })
       if (res?.sessionId) {
-        router.push({ path: '/chat/chat-detail', query: { sessionId: res.sessionId } })
+        router.push({ path: '/appuser/chat-detail', query: { sessionId: res.sessionId } })
       }
     } catch {
       ElMessage.error('创建沟通会话失败')

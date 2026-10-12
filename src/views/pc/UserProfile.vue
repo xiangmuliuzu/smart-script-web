@@ -14,7 +14,7 @@
 
       <template v-else-if="profileLoaded">
         <div class="profile-identity">
-          <el-avatar :size="88" :src="form.avatar || undefined"><el-icon :size="36"><UserFilled /></el-icon></el-avatar>
+          <el-avatar :size="88" :src="avatarUrl(form.avatar) || undefined"><el-icon :size="36"><UserFilled /></el-icon></el-avatar>
           <div class="identity-copy">
             <h2>{{ profile.nickname }}</h2>
             <div class="identity-meta">
@@ -136,6 +136,7 @@ import { ElMessage } from 'element-plus'
 import { UserFilled, Upload, Lock, Stamp } from '@element-plus/icons-vue'
 import { getProfile, updateProfile, uploadAvatar, changePassword, setPassword } from '@/api/pcUser'
 import { usePcUserStore } from '@/stores/pcUser'
+import { avatarUrl } from '@/utils/avatarUrl'
 import {
   userTypeLabel as userTypeTextOf,
   realNameStatusLabel,
@@ -198,7 +199,7 @@ async function loadProfile() {
 async function handleAvatar(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
-  if (!file) return
+  if (!file || uploading.value || saving.value) return
   if (!/\.(jpe?g|png|gif|bmp)$/i.test(file.name) || !file.type.startsWith('image/')) {
     ElMessage.warning('请选择 JPG、PNG、GIF 或 BMP 图片')
     return
@@ -211,10 +212,13 @@ async function handleAvatar(event) {
   try {
     const result = await uploadAvatar(file)
     // 上传成功只更新待保存头像，点击「保存修改」后才绑定资料；失败保留原头像
-    if (result?.url) {
-      form.avatar = result.url
-      ElMessage.success('头像已上传，请点击保存修改生效')
+    const avatar = result?.path || result?.url
+    if (!avatar) {
+      ElMessage.error('头像上传失败，请重试')
+      return
     }
+    form.avatar = avatar
+    ElMessage.success('头像已上传，请点击保存修改生效')
   } catch {
     // 请求封装已提示错误；保留原待保存头像，不发送资料保存请求
   } finally {
@@ -235,7 +239,7 @@ function applyProfileResult(result) {
 }
 
 async function saveProfile() {
-  if (saving.value) return
+  if (saving.value || uploading.value) return
   const nickname = form.nickname.trim()
   if (!nickname) {
     ElMessage.warning('请输入昵称')

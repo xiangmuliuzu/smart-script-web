@@ -13,7 +13,7 @@
           </el-sub-menu>
           <el-menu-item index="/pc/user/messages">
             <el-icon><ChatLineSquare /></el-icon><span>消息与沟通</span>
-            <!-- A3 会话未读已接入：两来源（通知+会话）均成功时显示数字合计，任一失败降级为圆点 -->
+            <!-- 通知、会话、公告三个来源均成功时显示数字合计，任一失败降级为圆点 -->
             <el-badge v-if="unreadBadge" :value="unreadBadge" class="menu-badge" />
             <el-badge v-else-if="pcUnreadStore.showPartialDot" is-dot class="menu-badge" title="有未读消息" />
           </el-menu-item>
@@ -21,7 +21,7 @@
         </el-menu>
       </el-scrollbar>
       <div class="portal-account">
-        <el-avatar :size="34" :src="pcUserStore.user?.avatar || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
+        <el-avatar :size="34" :src="avatarUrl(pcUserStore.user?.avatar) || undefined"><el-icon><UserFilled /></el-icon></el-avatar>
         <div class="account-copy"><strong>{{ pcUserStore.displayName }}</strong><small>{{ userTypeLabel }}</small></div>
         <el-button text class="logout-button" title="退出登录" aria-label="退出登录" @click="handleLogout"><el-icon><Right /></el-icon></el-button>
       </div>
@@ -45,6 +45,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Files, House, Document, ChatLineSquare, User, UserFilled, Right, Avatar } from '@element-plus/icons-vue'
 import { usePcUserStore } from '@/stores/pcUser'
+import { avatarUrl } from '@/utils/avatarUrl'
 import { usePcUnreadStore } from '@/stores/pcUnread'
 import { userTypeLabel as userTypeText } from '@/utils/pcFormat'
 
@@ -103,9 +104,10 @@ async function handleLogout() {
 .portal-layout{display:flex;min-height:100vh;background:#f5f6f8}
 .portal-sidebar{position:sticky;top:0;align-self:flex-start;width:240px;min-width:240px;height:100vh;height:100dvh;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:#1f2329;color:#fff}
 .portal-brand{height:64px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 24px;color:#fff;text-decoration:none;font-size:18px;font-weight:600;letter-spacing:2px}
-.portal-caption{height:40px;flex-shrink:0;display:flex;align-items:center;margin:8px 8px 4px;padding:0 17px;border-left:3px solid #4a4d52;background:rgba(255,255,255,.03);font-size:11px;font-weight:700;letter-spacing:1.5px;color:#909399}
+.portal-caption{height:40px;flex-shrink:0;display:flex;align-items:center;margin:8px 8px 4px;padding:0 17px;border-left:3px solid #4a4d52;background:rgba(255,255,255,.03);font-size:15px;font-weight:700;letter-spacing:1.5px;color:#909399}
 .portal-menu-scroll{flex:1;min-height:0}.portal-menu{border:0;background:transparent}
-.portal-menu :deep(.el-menu-item),.portal-menu :deep(.el-sub-menu__title){color:#c0c4cc;background:transparent;height:40px;line-height:40px;margin:2px 8px;border-radius:4px}
+.portal-menu :deep(.el-menu-item),.portal-menu :deep(.el-sub-menu__title){color:#c0c4cc;background:transparent;height:40px;line-height:40px;margin:2px 8px;border-radius:4px;font-size:15px}
+.portal-menu :deep(.el-menu-item span),.portal-menu :deep(.el-sub-menu__title span){font-size:15px}
 .portal-menu :deep(.el-sub-menu .el-menu){background:#1f2329}
 .portal-menu :deep(.el-menu-item:hover),.portal-menu :deep(.el-sub-menu__title:hover){background:rgba(255,255,255,.05);color:#fff}
 .portal-menu :deep(.el-menu-item.is-active){background:rgba(255,255,255,.08);color:#fff;position:relative}

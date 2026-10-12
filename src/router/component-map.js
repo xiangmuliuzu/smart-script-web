@@ -10,6 +10,12 @@ import CopyrightAssets from '@/views/copyright/CopyrightAssets.vue'
 import CopyrightSealReview from '@/views/copyright/SealReview.vue'
 import WithdrawReview from '@/views/copyright/WithdrawReview.vue'
 import ContractManage from '@/views/copyright/ContractManage.vue'
+import SettlementManage from '@/views/copyright/SettlementManage.vue'
+import FinanceAbnormal from '@/views/copyright/FinanceAbnormal.vue'
+import CopyrightCertManage from '@/views/copyright/CopyrightCertManage.vue'
+import SealManage from '@/views/copyright/SealManage.vue'
+import CopyrightApplicationManage from '@/views/copyright/CopyrightApplicationManage.vue'
+import CopyrightCenterConfig from '@/views/copyright/CopyrightCenterConfig.vue'
 import ContentCategory from '@/views/content/category/index.vue'
 import ContentTag from '@/views/content/tag/index.vue'
 import ContentWork from '@/views/content/work/index.vue'
@@ -31,13 +37,14 @@ import DemandTags from '@/views/trade/DemandTags.vue'
 import FollowUp from '@/views/trade/FollowUp.vue'
 import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
-import UserProfileRec from '@/views/operation/UserProfileRec.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
 import UserRealName from '@/views/user/realname/index.vue'
-import UserMessage from '@/views/user/message/index.vue'
+import MessagesAnnouncements from '@/views/support/MessagesAnnouncements.vue'
+import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import AiOperations from '@/views/system/AiOperations.vue'
+import WelfarePoints from '@/views/welfare/WelfarePoints.vue'
 import MonitorOperlog from '@/views/monitor/operlog/index.vue'
 import MonitorLogininfor from '@/views/monitor/logininfor/index.vue'
 import ChatSessions from '@/views/chat/ChatSessions.vue'
@@ -64,6 +71,12 @@ export const componentMap = {
   'copyright/SealReview': CopyrightSealReview,
   'copyright/WithdrawReview': WithdrawReview,
   'copyright/ContractManage': ContractManage,
+  'copyright/SettlementManage': SettlementManage,
+  'copyright/FinanceAbnormal': FinanceAbnormal,
+  'copyright/CopyrightCertManage': CopyrightCertManage,
+  'copyright/SealManage': SealManage,
+  'copyright/CopyrightApplicationManage': CopyrightApplicationManage,
+  'copyright/CopyrightCenterConfig': CopyrightCenterConfig,
   'content/category/index': ContentCategory,
   'content/tag/index': ContentTag,
   'content/work/index': ContentWork,
@@ -85,13 +98,15 @@ export const componentMap = {
   'trade/FollowUp': FollowUp,
   'trade/Demand': Demand,
   'operation/AdConfig': AdConfig,
-  'operation/UserProfileRec': UserProfileRec,
   'user/UserManage': UserManageProduct,
   'user/realname/index': UserRealName,
-  'user/message/index': UserMessage,
+  'user/message/index': MessagesAnnouncements,
+  'support/MessagesAnnouncements': MessagesAnnouncements,
+  'support/ReceivedAnnouncements': ReceivedAnnouncements,
   'user/feedback/index': UserFeedback,
   'risk/RiskManage': RiskManage,
   'system/AiOperations': AiOperations,
+  'welfare/WelfarePoints': WelfarePoints,
 
   // 系统管理下的用户/角色/菜单/岗位/字典/参数页面已不再需要（2026-10-09 菜单精简，
   // 数据库菜单见 smartscript_full_init.sql 第 7 部分）：用户管理由用户中心覆盖，
