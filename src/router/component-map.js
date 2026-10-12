@@ -30,10 +30,8 @@ import ExternalDramaStatus from '@/views/content/external-drama/status/index.vue
 import ExternalDramaStats from '@/views/content/external-drama/stats/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
-import Partners from '@/views/trade/Partners.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
 import Quote from '@/views/trade/Quote.vue'
-import DemandTags from '@/views/trade/DemandTags.vue'
 import FollowUp from '@/views/trade/FollowUp.vue'
 import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
@@ -91,10 +89,8 @@ export const componentMap = {
   'content/external-drama/stats/index': ExternalDramaStats,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
-  'trade/Partners': Partners,
   'trade/Inquiry': Inquiry,
   'trade/Quote': Quote,
-  'trade/DemandTags': DemandTags,
   'trade/FollowUp': FollowUp,
   'trade/Demand': Demand,
   'operation/AdConfig': AdConfig,
