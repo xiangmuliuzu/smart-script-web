@@ -85,7 +85,7 @@ request.interceptors.response.use(
       error.businessCode = res.code
       return Promise.reject(error)
     }
-    return res?.data
+    return res?.data ?? res?.user
   },
   error => {
     const status = error.response?.status

@@ -3,18 +3,17 @@ import { getMe, appLogout } from '@/api/pcUser'
 import { usePcUnreadStore } from '@/stores/pcUnread'
 import {
   getUserToken, setUserToken, removeUserToken,
-  getUserRefreshToken, setUserRefreshToken, removeUserRefreshToken,
+  removeUserRefreshToken,
   setAccountType, removeAccountType
 } from '@/utils/auth'
 
 /**
- * PC 用户端会话（01/02/03 共用）：持有 App 凭证域 access/refresh 令牌，
+ * PC 用户端会话（01/02/03 共用）：持有若依签发的 App 域单令牌，
  * 与管理员 user store 完全隔离，两类令牌互不混用。
  */
 export const usePcUserStore = defineStore('pcUser', {
   state: () => ({
     token: getUserToken(),
-    refreshToken: getUserRefreshToken(),
     user: null,
     infoLoaded: false
   }),
@@ -36,14 +35,11 @@ export const usePcUserStore = defineStore('pcUser', {
   actions: {
     /** 统一登录成功后写入会话；accountType 为服务端确认的 01/02/03 */
     setSession(session, accountType) {
-      this.token = session?.accessToken || ''
-      this.refreshToken = session?.refreshToken || ''
+      this.token = session?.token || ''
       this.user = session?.user || null
       this.infoLoaded = !!this.token
       setUserToken(this.token)
-      if (this.refreshToken) {
-        setUserRefreshToken(this.refreshToken)
-      }
+      removeUserRefreshToken()
       setAccountType(accountType)
     },
 
@@ -71,7 +67,6 @@ export const usePcUserStore = defineStore('pcUser', {
 
     resetSession() {
       this.token = ''
-      this.refreshToken = ''
       this.user = null
       this.infoLoaded = false
       removeUserToken()

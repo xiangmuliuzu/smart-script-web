@@ -4,7 +4,7 @@ import request from '@/utils/pcRequest'
 
 export function getMe() {
   return request({
-    url: '/api/v1/auth/me',
+    url: '/api/v1/auth/getInfo',
     method: 'get'
   })
 }
