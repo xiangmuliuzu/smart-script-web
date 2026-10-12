@@ -14,6 +14,10 @@ function messageRedirect(to) {
   return { path: '/support/messages', query: { ...to.query, tab: 'messages' }, hash: to.hash }
 }
 
+function chatRedirect(to) {
+  return { path: '/support/messages', query: { ...to.query, tab: 'chat' }, hash: to.hash }
+}
+
 function isExternal(path) {
   return typeof path === 'string' && /^(https?:|mailto:|tel:)/i.test(path)
 }
@@ -82,13 +86,15 @@ export function adaptRuoYiRoutes(routers) {
       }
 
       const isLegacyMessages = componentId === 'user/message/index'
-      if (isLegacyMessages) meta.hidden = true
+      const isLegacyChat = componentId === 'chat/ChatSessions'
+      const legacyRedirect = isLegacyMessages ? messageRedirect : isLegacyChat ? chatRedirect : null
+      if (legacyRedirect) meta.hidden = true
       const leaf = {
         path,
         // name 必须全局唯一：同一组件可能用于多个菜单入口。
         name: (item.name ? `${item.name}` : String(componentId).replace(/[^\w]+/g, '_')) +
           '__' + path.replace(/[^\w]+/g, '_'),
-        ...(isLegacyMessages ? { redirect: messageRedirect } : { component: comp }),
+        ...(legacyRedirect ? { redirect: legacyRedirect } : { component: comp }),
         meta,
         hidden: meta.hidden
       }
@@ -110,7 +116,7 @@ export function adaptRuoYiRoutes(routers) {
   sidebar.push(...topSidebar)
 
   // 旧菜单和收藏地址统一进入消息页；旧菜单不再出现在用户中心。
-  const hasLegacyMessages = leaves.some(leaf => leaf.redirect === messageRedirect)
+  const hasLegacyMessages = leaves.some(leaf => leaf.redirect === messageRedirect || leaf.redirect === chatRedirect)
   let hasMessagesPage = leaves.some(leaf => leaf.path === '/support/messages')
   if (hasLegacyMessages && !hasMessagesPage) {
     const messagesComp = resolveComponent('support/MessagesAnnouncements')
@@ -125,6 +131,12 @@ export function adaptRuoYiRoutes(routers) {
       if (!leaves.some(leaf => leaf.path === path)) {
         leaves.push({ path, name: `LegacyMessages_${path.replace(/\W+/g, '_')}`, redirect: messageRedirect,
           meta: { title: '用户消息', hidden: true }, hidden: true })
+      }
+    }
+    for (const path of ['/appuser/chat-sessions']) {
+      if (!leaves.some(leaf => leaf.path === path)) {
+        leaves.push({ path, name: `LegacyChat_${path.replace(/\W+/g, '_')}`, redirect: chatRedirect,
+          meta: { title: '用户沟通', hidden: true }, hidden: true })
       }
     }
   }

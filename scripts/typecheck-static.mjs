@@ -24,12 +24,12 @@ check('request.js uses shared unwrapRuoYiResponse', () => {
   if (!src.includes('unwrapRuoYiResponse')) throw new Error('request must call unwrapRuoYiResponse')
 })
 
-// 2026-10-09 菜单精简：system/{user,role,menu,post,dict,config} 页面与 api 已随"系统管理"
-// 目录下线（数据库菜单精简见 smartscript_full_init.sql 第 7 部分），相关检查移除。
+// 系统管理恢复为独立目录，必须登记全部七个页面。
 check('component-map declares whitelist keys', () => {
   const src = readFileSync(join(webRoot, 'src/router/component-map.js'), 'utf8')
   if (!src.includes('export const componentMap')) throw new Error('missing componentMap')
-  for (const key of ['Layout', 'dashboard/Dashboard', 'monitor/operlog/index']) {
+  for (const key of ['Layout', 'dashboard/Dashboard', 'monitor/operlog/index',
+    ...['user', 'role', 'menu', 'dept', 'post', 'dict', 'config'].map(name => `system/${name}/index`)]) {
     const quoted = src.includes(`'${key}'`) || src.includes(`"${key}"`)
     const bare = new RegExp(`(^|[\\n\\s,{])${key}\\s*:`).test(src)
     if (!quoted && !bare) throw new Error(`missing map key ${key}`)

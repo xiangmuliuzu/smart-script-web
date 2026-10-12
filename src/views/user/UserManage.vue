@@ -53,6 +53,13 @@
       <el-table :data="userList" style="width: 100%" v-loading="loading">
         <el-table-column prop="userId" label="ID" width="90" />
         <el-table-column prop="nickname" label="昵称" min-width="150" show-overflow-tooltip />
+        <el-table-column label="用户角色" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.authorCapability ? 'success' : 'info'" size="small">
+              {{ row.authorCapability ? '创作者' : '收购方' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="phoneMasked" label="手机号" width="130">
           <template #default="{ row }">{{ row.phoneMasked || '—' }}</template>
         </el-table-column>
@@ -64,22 +71,12 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="作者能力" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.authorCapability ? 'success' : 'info'" size="small">
-              {{ row.authorCapability ? '已开通' : '未开通' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
               {{ row.status === '0' ? '正常' : '停用' }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="reason" label="变更原因" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.reason || '—' }}</template>
         </el-table-column>
         <el-table-column prop="operatorName" label="操作人" width="120">
           <template #default="{ row }">{{ row.operatorName || '—' }}</template>
@@ -137,6 +134,7 @@
       <el-descriptions v-if="detail" :column="1" border>
         <el-descriptions-item label="用户 ID">{{ detail.userId }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ detail.nickname }}</el-descriptions-item>
+        <el-descriptions-item label="用户角色">{{ detail.authorCapability ? '创作者' : '收购方' }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ detail.phoneMasked || '—' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           {{ detail.status === '0' ? '正常' : '停用' }}

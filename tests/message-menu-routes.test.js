@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
 // Run the production adapter with a component resolver stub: Node cannot import Vue SFCs.
 const source = await readFile(new URL('../src/router/route-adapter.js', import.meta.url), 'utf8')
 const code = source.replace("import { resolveComponent } from '@/router/component-map'", `
-const known = new Set(['Layout', 'user/message/index', 'support/MessagesAnnouncements', 'support/ReceivedAnnouncements', 'user/feedback/index'])
+const known = new Set(['Layout', 'user/message/index', 'chat/ChatSessions', 'support/MessagesAnnouncements', 'support/ReceivedAnnouncements', 'user/feedback/index'])
 const resolveComponent = id => known.has(id) ? { id } : undefined
 `)
 const { adaptRuoYiRoutes } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
@@ -53,4 +53,24 @@ test('legacy backend menu remains usable while awaiting the database migration',
 test('accounts with no message menu get no message management routes or aliases', () => {
   const result = adaptRuoYiRoutes([])
   assert.deepEqual(result.routes[0].children.map(item => item.path), ['/support/announcements'])
+})
+
+test('retired session list redirects to user communication and leaves other menus visible', () => {
+  const chatMenu = { path: 'chat-sessions', component: 'chat/ChatSessions', meta: { title: '会话列表' } }
+  for (const menus of [
+    [{ ...oldMenu, children: [chatMenu, oldMenu.children[1]] }, operations],
+    [{ ...oldMenu, children: [chatMenu] }],
+    [operations]
+  ]) {
+    const result = adaptRuoYiRoutes(menus)
+    const leaves = result.routes[0].children
+    const legacy = leaves.find(item => item.path === '/appuser/chat-sessions')
+    assert.equal(legacy.hidden, true)
+    assert.deepEqual(legacy.redirect({ query: { keyword: '用户', tab: 'messages' }, hash: '#session' }), {
+      path: '/support/messages', query: { keyword: '用户', tab: 'chat' }, hash: '#session'
+    })
+    assert.equal(leaves.filter(item => item.path === '/support/messages').length, 1)
+    assert.ok(!JSON.stringify(result.sidebar).includes('会话列表'))
+    if (menus.length === 2) assert.equal(result.sidebar[0].children[0].path, '/appuser/feedback')
+  }
 })
