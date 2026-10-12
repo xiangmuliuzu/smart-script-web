@@ -31,14 +31,6 @@ export function removeUserToken() {
   localStorage.removeItem(USER_TOKEN_KEY)
 }
 
-export function getUserRefreshToken() {
-  return localStorage.getItem(USER_REFRESH_TOKEN_KEY) || ''
-}
-
-export function setUserRefreshToken(token) {
-  localStorage.setItem(USER_REFRESH_TOKEN_KEY, token)
-}
-
 export function removeUserRefreshToken() {
   localStorage.removeItem(USER_REFRESH_TOKEN_KEY)
 }
