@@ -5,7 +5,6 @@
       <h2 class="page-title">作品审核工作台</h2>
       <div class="header-actions">
         <el-button size="default" @click="handleExportReport">导出报告</el-button>
-        <el-button type="primary" size="default" class="black-button" @click="handleBatchAssign">批量分配</el-button>
       </div>
     </div>
 
@@ -46,7 +45,6 @@
             <el-option label="待审核" value="pending" />
             <el-option label="AI审核中" value="ai_reviewing" />
             <el-option label="待人工复核" value="manual_review" />
-            <el-option label="待人工审核" value="pending_review" />
             <el-option label="已通过" value="approved" />
             <el-option label="已驳回" value="rejected" />
           </el-select>
@@ -94,9 +92,7 @@
       <el-table
         :data="worksList"
         style="width: 100%"
-        @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50" />
         <el-table-column prop="reviewId" label="编号" width="100" />
         <el-table-column prop="workTitle" label="作品名称" min-width="180" />
         <el-table-column label="类型" width="120">
@@ -106,11 +102,6 @@
         </el-table-column>
         <el-table-column prop="genreName" label="题材" width="100" />
         <el-table-column prop="authorName" label="作者" width="120" />
-        <el-table-column label="审核员" width="100">
-          <template #default="{ row }">
-            {{ row.reviewerName || '待分配' }}
-          </template>
-        </el-table-column>
         <el-table-column prop="createTime" label="提交时间" width="160" />
         <el-table-column label="AI评分" width="100">
           <template #default="{ row }">
@@ -127,7 +118,7 @@
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button
-              v-if="row.status === 'pending' || row.status === 'manual_review' || row.status === 'pending_review'"
+              v-if="row.status === 'pending' || row.status === 'manual_review'"
               type="primary"
               size="small"
               link
@@ -227,35 +218,6 @@
       </template>
     </el-dialog>
 
-    <!-- 批量分配弹窗 -->
-    <el-dialog
-      v-model="assignDialogVisible"
-      title="批量分配审核任务"
-      width="500px"
-    >
-      <el-alert
-        v-if="selectedWorks.length === 0"
-        title="请先在列表中选择需要分配的作品（勾选左侧复选框）"
-        type="warning"
-        :closable="false"
-        show-icon
-        style="margin-bottom: 16px"
-      />
-      <el-form :model="assignForm" label-width="100px">
-        <el-form-item label="待分配数量">
-          <span>{{ selectedWorks.length }} 个作品</span>
-        </el-form-item>
-        <el-form-item label="分配审核人">
-          <el-select v-model="assignForm.reviewerId" placeholder="请选择审核人" style="width: 100%">
-              <el-option v-for="rv in reviewerOptions" :key="rv.userId" :label="rv.nickName" :value="rv.userId" />
-            </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="assignDialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="selectedWorks.length === 0" @click="handleSubmitAssign">确认分配</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -300,18 +262,6 @@ const getTypeText = (type) => {
 // 加载状态
 const loading = ref(false)
 
-// 选中的作品
-const selectedWorks = ref([])
-const reviewerOptions = ref([])
-// 加载可分配审核员
-const loadReviewers = async () => {
-  try {
-    const res = await adminFetch('/api/v1/admin/review/reviewers')
-    const data = await res.json()
-    if (data.code === 200) reviewerOptions.value = data.rows || []
-  } catch (e) { console.error('获取审核员失败:', e) }
-}
-
 // 统计数据
 const statistics = ref({
   pending: 12,
@@ -340,9 +290,6 @@ import adminFetch from '@/utils/adminFetch'
 
 onMounted(async () => {
   try {
-    // 获取可分配审核员
-    await loadReviewers()
-
     // 获取审核统计
     const statsRes = await adminFetch('/api/v1/admin/review/statistics')
     const statsData = await statsRes.json()
@@ -376,7 +323,6 @@ const getScoreClass = (score) => {
 const getStatusType = (status) => {
   const typeMap = {
     pending: 'warning',
-    pending_review: 'warning',
     manual_review: 'warning',
     ai_reviewing: 'info',
     approved: 'success',
@@ -389,7 +335,6 @@ const getStatusType = (status) => {
 const getStatusText = (status) => {
   const textMap = {
     pending: '待审核',
-    pending_review: '待人工审核',
     manual_review: '待人工复核',
     ai_reviewing: 'AI审核中',
     approved: '已通过',
@@ -446,11 +391,6 @@ const disabledEndDate = (date) => {
   return t > todayZeroMs()
 }
 
-// 处理选择变化
-const handleSelectionChange = (selection) => {
-  selectedWorks.value = selection
-}
-
 // 处理审核
 const handleReview = (row) => {
   currentReview.value = row
@@ -495,52 +435,6 @@ const currentDetail = ref({})
 const handleDetail = (row) => {
   currentDetail.value = row
   detailDialogVisible.value = true
-}
-
-// 批量分配弹窗
-const assignDialogVisible = ref(false)
-const assignForm = ref({
-  reviewerId: null
-})
-
-// 打开批量分配弹窗
-const handleBatchAssign = () => {
-  if (selectedWorks.value.length === 0) {
-    ElMessage.warning('请先勾选需要分配的作品')
-    return
-  }
-  assignForm.value.reviewerId = null
-  assignDialogVisible.value = true
-}
-
-// 提交批量分配
-const handleSubmitAssign = async () => {
-  if (!assignForm.value.reviewerId) {
-    ElMessage.warning('请选择审核人')
-    return
-  }
-  try {
-    const ids = selectedWorks.value.map(item => item.reviewId)
-    const res = await adminFetch('/api/v1/admin/review/batch-assign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reviewIds: ids,
-        reviewerId: assignForm.value.reviewerId
-      })
-    })
-    const data = await res.json()
-    if (data.code === 200) {
-      ElMessage.success('批量分配成功')
-      assignDialogVisible.value = false
-      // 刷新列表
-      await loadWorks()
-    } else {
-      ElMessage.error(data.msg || '批量分配失败')
-    }
-  } catch (e) {
-    ElMessage.error('批量分配失败，请检查后端服务')
-  }
 }
 
 // 导出审核报告
