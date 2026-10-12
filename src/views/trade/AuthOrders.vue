@@ -1,6 +1,6 @@
 <template>
   <PageContainer>
-    <PageHeader title="授权订单管理">
+    <PageHeader title="订单管理">
       <template #actions>
         <el-button @click="handleExport">导出订单</el-button>
       </template>

@@ -40,7 +40,12 @@
       <el-table-column prop="demandNo" label="征集编号" width="120" />
       <el-table-column prop="title" label="征集标题" min-width="160" />
       <el-table-column prop="client" label="发布方" width="120" />
-      <el-table-column prop="genre" label="题材" width="90" />
+      <el-table-column label="标签" min-width="140">
+        <template #default="{ row }">
+          <el-tag v-for="t in (row.tags || row.genre || '').split(',').filter(Boolean)" :key="t" size="small" style="margin-right:4px">{{ t }}</el-tag>
+          <span v-if="!(row.tags || row.genre)" class="text-muted">-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="预算" width="110">
         <template #default="{ row }">
           <span class="price-text">{{ row.budgetText }}</span>
@@ -66,15 +71,30 @@
         <el-form-item label="征集标题" prop="title">
           <el-input v-model="publishForm.title" placeholder="请输入征集标题" maxlength="100" show-word-limit />
         </el-form-item>
-        <el-form-item label="题材" prop="genreId">
-          <el-select v-model="publishForm.genreId" placeholder="请选择题材" style="width: 100%">
-            <el-option label="都市情感" :value="1" />
-            <el-option label="古装武侠" :value="2" />
-            <el-option label="悬疑推理" :value="3" />
-            <el-option label="科幻奇幻" :value="4" />
-            <el-option label="家庭伦理" :value="5" />
-            <el-option label="其他" :value="99" />
-          </el-select>
+        <el-form-item label="标签" prop="tags">
+          <div class="tag-input-area">
+            <el-tag
+              v-for="tag in publishForm.tags"
+              :key="tag"
+              closable
+              size="default"
+              @close="removeTag(tag)"
+              style="margin-right: 6px; margin-bottom: 6px;"
+            >
+              {{ tag }}
+            </el-tag>
+            <el-input
+              v-if="tagInputVisible"
+              ref="tagInputRef"
+              v-model="tagInputValue"
+              size="small"
+              style="width: 140px"
+              placeholder="输入后回车"
+              @keyup.enter="addTag"
+              @blur="addTag"
+            />
+            <el-button v-else size="small" @click="showTagInput">+ 添加标签</el-button>
+          </div>
         </el-form-item>
         <el-form-item label="预算(元)" prop="budget">
           <el-input-number v-model="publishForm.budget" :min="0" :precision="2" :step="10000" style="width: 100%" placeholder="设置征集预算" />
@@ -105,7 +125,10 @@
           </el-descriptions-item>
           <el-descriptions-item label="征集标题">{{ detail.title }}</el-descriptions-item>
           <el-descriptions-item label="发布方">{{ detail.client }}</el-descriptions-item>
-          <el-descriptions-item label="题材">{{ detail.genre }}</el-descriptions-item>
+          <el-descriptions-item label="标签" :span="2">
+            <el-tag v-for="t in (detail.tags || detail.genre || '').split(',').filter(Boolean)" :key="t" size="small" style="margin-right:4px">{{ t }}</el-tag>
+            <span v-if="!(detail.tags || detail.genre)">-</span>
+          </el-descriptions-item>
           <el-descriptions-item label="预算">
             <span class="price-text">{{ detail.budgetText }}</span>
           </el-descriptions-item>
@@ -141,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -170,7 +193,26 @@ const submissions = ref([])
 const publishVisible = ref(false)
 const publishing = ref(false)
 const publishFormRef = ref()
-const publishForm = ref({ title: '', genreId: null, budget: null, deadline: '', contactInfo: '', requirement: '' })
+const publishForm = ref({ title: '', tags: [], budget: null, deadline: '', contactInfo: '', requirement: '' })
+const tagInputVisible = ref(false)
+const tagInputValue = ref('')
+const tagInputRef = ref()
+
+function showTagInput() {
+  tagInputVisible.value = true
+  nextTick(() => { tagInputRef.value?.focus() })
+}
+function addTag() {
+  const val = tagInputValue.value.trim()
+  if (val && !publishForm.value.tags.includes(val)) {
+    publishForm.value.tags.push(val)
+  }
+  tagInputVisible.value = false
+  tagInputValue.value = ''
+}
+function removeTag(tag) {
+  publishForm.value.tags = publishForm.value.tags.filter(t => t !== tag)
+}
 // COLLECT_002：截止日期不得早于当前日期（与后端 TradeDemandService 一致，按天比较、当天允许）
 function todayStr() {
   const d = new Date()
@@ -199,7 +241,7 @@ const validateContactPhone = (rule, value, callback) => {
 }
 const publishRules = {
   title: [{ required: true, message: '请输入征集标题', trigger: 'blur' }],
-  genreId: [{ required: true, message: '请选择题材', trigger: 'change' }],
+  tags: [{ required: true, type: 'array', min: 1, message: '请至少添加一个标签', trigger: 'change' }],
   budget: [{ required: true, message: '请输入预算', trigger: 'blur' }],
   deadline: [
     { required: true, message: '请选择截止日期', trigger: 'change' },
@@ -252,7 +294,9 @@ async function handleViewSubmissions(row) {
 }
 
 function handlePublish() {
-  publishForm.value = { title: '', genreId: null, budget: null, deadline: '', contactInfo: '', requirement: '' }
+  publishForm.value = { title: '', tags: [], budget: null, deadline: '', contactInfo: '', requirement: '' }
+  tagInputVisible.value = false
+  tagInputValue.value = ''
   publishVisible.value = true
 }
 
@@ -262,7 +306,8 @@ async function handlePublishSubmit() {
     if (!valid) return
     publishing.value = true
     try {
-      await createDemand(publishForm.value)
+      const submitData = { ...publishForm.value, tags: publishForm.value.tags.join(',') }
+      await createDemand(submitData)
       ElMessage.success('征集令已发布')
       publishVisible.value = false
       loadList()
@@ -288,5 +333,17 @@ onMounted(loadList)
   font-size: 14px;
   font-weight: 600;
   color: #1f2329;
+}
+
+.tag-input-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.text-muted {
+  color: #909399;
+  font-size: 13px;
 }
 </style>
