@@ -556,8 +556,8 @@ const submitToThirdParty = async (application) => {
       }
     )
     
-    // 调用提交接口
-    await submitCopyrightApplicationToCenter(application.applyId)
+    // 调用提交到第三方API接口（只需要 applyId）
+    await submitApplicationToThirdParty(application.applyId)
     ElMessage.success('提交成功')
     
     // 重新加载申请列表
