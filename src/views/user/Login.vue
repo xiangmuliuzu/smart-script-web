@@ -202,48 +202,45 @@ onMounted(() => {
 
 const handleLogin = async () => {
   if (!formRef.value || loading.value || !captchaReady.value) return
-  await formRef.value.validate(async (valid) => {
+  loading.value = true
+  try {
+    const valid = await formRef.value.validate().catch(() => false)
     if (!valid) return
     if (captchaEnabled.value && !loginForm.code) {
       ElMessage.warning('请输入验证码')
       return
     }
-    loading.value = true
-    try {
-      // 清理旧管理员会话，再使用若依原生登录接口
-      userStore.resetSession()
-      const result = await login({
-        username: loginForm.username,
-        password: loginForm.password,
-        code: loginForm.code,
-        uuid: uuid.value
-      })
-      if (!result?.token) throw new Error('登录响应缺少令牌')
-      // 管理员：若依管理端令牌，维持原有动态路由初始化流程
-      userStore.adoptAdminToken(result.token)
-      await userStore.fetchUserInfo()
-      // 登录后先注册动态路由，再进入目标页，避免 /dashboard 未匹配
-      await permissionStore.generateRoutes({ force: true })
-      persistRememberedUsername()
-      ElMessage.success('登录成功')
-      const target = safeRedirectPath(route.query?.redirect)
-      await router.replace(target)
-      if (router.currentRoute.value.path === '/404' || router.currentRoute.value.path === '/login') {
-        const first = permissionStore.sidebarRoutes?.[0]
-        const firstLeaf = first?.children?.[0]?.path || first?.path || '/'
-        await router.replace(firstLeaf)
-      }
-      return
-
-    } catch (error) {
-      userStore.resetSession()
-      ElMessage.error(error?.message || '登录失败')
-      await refreshCaptcha()
-      loginForm.code = ''
-    } finally {
-      loading.value = false
+    // 清理旧管理员会话，再使用若依原生登录接口
+    userStore.resetSession()
+    const result = await login({
+      username: loginForm.username,
+      password: loginForm.password,
+      code: loginForm.code,
+      uuid: uuid.value
+    })
+    if (!result?.token) throw new Error('登录响应缺少令牌')
+    // 管理员：若依管理端令牌，维持原有动态路由初始化流程
+    userStore.adoptAdminToken(result.token)
+    await userStore.fetchUserInfo()
+    // 登录后先注册动态路由，再进入目标页，避免 /dashboard 未匹配
+    await permissionStore.generateRoutes({ force: true })
+    persistRememberedUsername()
+    ElMessage.success('登录成功')
+    const target = safeRedirectPath(route.query?.redirect)
+    await router.replace(target)
+    if (router.currentRoute.value.path === '/404' || router.currentRoute.value.path === '/login') {
+      const first = permissionStore.sidebarRoutes?.[0]
+      const firstLeaf = first?.children?.[0]?.path || first?.path || '/'
+      await router.replace(firstLeaf)
     }
-  })
+  } catch (error) {
+    userStore.resetSession()
+    ElMessage.error(error?.message || '登录失败')
+    await refreshCaptcha()
+    loginForm.code = ''
+  } finally {
+    loading.value = false
+  }
 }
 
 function persistRememberedUsername() {
