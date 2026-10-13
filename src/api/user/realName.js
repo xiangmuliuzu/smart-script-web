@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { adminV1Request as request } from '@/utils/request'
 
 /**
  * A4 实名审核 API（契约 §4 / §5.2）。

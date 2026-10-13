@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { adminV1Request as request } from '@/utils/request'
 
 /**
  * 管理端聊天（A3 用户沟通，若依 Token 域）。

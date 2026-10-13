@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { adminV1Request as request } from '@/utils/request'
 
 /**
  * A4 App 用户管理 API（契约 A4-PC-ADMIN-CONTRACT-v1 §4）。

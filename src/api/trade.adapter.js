@@ -181,12 +181,12 @@ export function adaptQuotes(res) {
 }
 
 /* ==================== 征集项目（缺口接口）==================== */
-/** SysDemand → Demand.vue：clientName→client, genreId→genre, budget→budgetText */
+/** SysDemand → Demand.vue：clientName→client, tags→tags, budget→budgetText */
 export function adaptDemands(res) {
   return mapRows(res, (d) => ({
     ...d,
     client: d.client ?? d.clientName,
-    genre: d.genre ?? GENRE_MAP[d.genreId] ?? (d.genreId != null ? String(d.genreId) : ''),
+    tags: d.tags || '',
     budgetText: d.budgetText || formatMoney(d.budget)
   }))
 }

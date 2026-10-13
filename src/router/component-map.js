@@ -27,11 +27,8 @@ import ExternalDramaChannel from '@/views/content/external-drama/channel/index.v
 import ExternalDramaContent from '@/views/content/external-drama/drama/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
-import Partners from '@/views/trade/Partners.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
 import Quote from '@/views/trade/Quote.vue'
-import DemandTags from '@/views/trade/DemandTags.vue'
-import FollowUp from '@/views/trade/FollowUp.vue'
 import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
@@ -41,6 +38,13 @@ import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
 import RiskManage from '@/views/risk/RiskManage.vue'
 import AiOperations from '@/views/system/AiOperations.vue'
+import SystemUser from '@/views/system/user/index.vue'
+import SystemRole from '@/views/system/role/index.vue'
+import SystemMenu from '@/views/system/menu/index.vue'
+import SystemDept from '@/views/system/dept/index.vue'
+import SystemPost from '@/views/system/post/index.vue'
+import SystemDict from '@/views/system/dict/index.vue'
+import SystemConfig from '@/views/system/config/index.vue'
 import WelfarePoints from '@/views/welfare/WelfarePoints.vue'
 import MonitorOperlog from '@/views/monitor/operlog/index.vue'
 import MonitorLogininfor from '@/views/monitor/logininfor/index.vue'
@@ -85,11 +89,8 @@ export const componentMap = {
   'content/external-drama/drama/index': ExternalDramaContent,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
-  'trade/Partners': Partners,
   'trade/Inquiry': Inquiry,
   'trade/Quote': Quote,
-  'trade/DemandTags': DemandTags,
-  'trade/FollowUp': FollowUp,
   'trade/Demand': Demand,
   'operation/AdConfig': AdConfig,
   'user/UserManage': UserManageProduct,
@@ -102,9 +103,13 @@ export const componentMap = {
   'system/AiOperations': AiOperations,
   'welfare/WelfarePoints': WelfarePoints,
 
-  // 系统管理下的用户/角色/菜单/岗位/字典/参数页面已不再需要（2026-10-09 菜单精简，
-  // 数据库菜单见 smartscript_full_init.sql 第 7 部分）：用户管理由用户中心覆盖，
-  // 其余为开发自管配置。页面与 api 文件已删除，此处不得再登记对应映射。
+  'system/user/index': SystemUser,
+  'system/role/index': SystemRole,
+  'system/menu/index': SystemMenu,
+  'system/dept/index': SystemDept,
+  'system/post/index': SystemPost,
+  'system/dict/index': SystemDict,
+  'system/config/index': SystemConfig,
 
   'monitor/operlog/index': MonitorOperlog,
   'monitor/logininfor/index': MonitorLogininfor,

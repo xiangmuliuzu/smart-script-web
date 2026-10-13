@@ -10,21 +10,21 @@
     <el-card class="filter-card">
       <el-form :inline="true" :model="filterForm" class="filter-form">
         <el-form-item>
-          <el-select v-model="filterForm.authorCapability" placeholder="全部作者能力" style="width: 150px" clearable>
+          <el-select v-model="filterForm.authorCapability" placeholder="全部作者能力" style="width: 150px" clearable @change="handleSearch">
             <el-option label="全部作者能力" value="" />
             <el-option label="已开通" :value="true" />
             <el-option label="未开通" :value="false" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-select v-model="filterForm.status" placeholder="全部状态" style="width: 140px" clearable>
+          <el-select v-model="filterForm.status" placeholder="全部状态" style="width: 140px" clearable @change="handleSearch">
             <el-option label="全部状态" value="" />
             <el-option label="正常" value="0" />
             <el-option label="停用" value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-select v-model="filterForm.realNameStatus" placeholder="全部实名状态" style="width: 150px" clearable>
+          <el-select v-model="filterForm.realNameStatus" placeholder="全部实名状态" style="width: 150px" clearable @change="handleSearch">
             <el-option label="全部实名状态" value="" />
             <el-option label="待审核" value="PENDING" />
             <el-option label="已通过" value="APPROVED" />
@@ -37,6 +37,8 @@
             placeholder="昵称/账号/手机号"
             style="width: 200px"
             clearable
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
           />
         </el-form-item>
         <el-form-item>
@@ -51,6 +53,13 @@
       <el-table :data="userList" style="width: 100%" v-loading="loading">
         <el-table-column prop="userId" label="ID" width="90" />
         <el-table-column prop="nickname" label="昵称" min-width="150" show-overflow-tooltip />
+        <el-table-column label="用户角色" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.authorCapability ? 'success' : 'info'" size="small">
+              {{ row.authorCapability ? '创作者' : '收购方' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="phoneMasked" label="手机号" width="130">
           <template #default="{ row }">{{ row.phoneMasked || '—' }}</template>
         </el-table-column>
@@ -62,22 +71,12 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="作者能力" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.authorCapability ? 'success' : 'info'" size="small">
-              {{ row.authorCapability ? '已开通' : '未开通' }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
               {{ row.status === '0' ? '正常' : '停用' }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="reason" label="变更原因" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.reason || '—' }}</template>
         </el-table-column>
         <el-table-column prop="operatorName" label="操作人" width="120">
           <template #default="{ row }">{{ row.operatorName || '—' }}</template>
@@ -135,6 +134,7 @@
       <el-descriptions v-if="detail" :column="1" border>
         <el-descriptions-item label="用户 ID">{{ detail.userId }}</el-descriptions-item>
         <el-descriptions-item label="昵称">{{ detail.nickname }}</el-descriptions-item>
+        <el-descriptions-item label="用户角色">{{ detail.authorCapability ? '创作者' : '收购方' }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ detail.phoneMasked || '—' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           {{ detail.status === '0' ? '正常' : '停用' }}
@@ -191,6 +191,7 @@ const userList = ref([])
 const total = ref(0)
 const errorText = ref('')
 const statusBusyId = ref(null)
+let loadRequestId = 0
 const query = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -238,6 +239,7 @@ function formatTime(value) {
 }
 
 async function loadUsers() {
+  const requestId = ++loadRequestId
   loading.value = true
   errorText.value = ''
   try {
@@ -249,19 +251,21 @@ async function loadUsers() {
       realNameStatus: query.realNameStatus || undefined,
       authorCapability: query.authorCapability === '' ? undefined : query.authorCapability
     })
+    if (requestId !== loadRequestId) return
     userList.value = res?.rows || []
     total.value = Number(res?.total || 0)
   } catch (e) {
+    if (requestId !== loadRequestId) return
     userList.value = []
     total.value = 0
     errorText.value = e?.message || '加载失败，请重试'
   } finally {
-    loading.value = false
+    if (requestId === loadRequestId) loading.value = false
   }
 }
 
 function handleSearch() {
-  query.keyword = filterForm.keyword
+  query.keyword = filterForm.keyword.trim()
   query.status = filterForm.status
   query.realNameStatus = filterForm.realNameStatus
   query.authorCapability = filterForm.authorCapability ?? ''
