@@ -250,7 +250,8 @@ export function changeBannerSort(data) {
 /**
  * 通用图片上传（若依通用上传 POST /common/upload，multipart/form-data）
  * 依据：ruoyi-admin CommonController#uploadFile，返回 { url, fileName, newFileName, originalFilename }
- * 落库至 ruoyi.profile（D:/ruoyi/uploadPath），通过 /profile/** 公开静态资源访问。
+ * url 为相对路径（/profile/upload/...），展示前需经 utils/request 的 resolveMediaUrl 按当前环境拼接。
+ * 文件落盘至 ruoyi.profile（仓库内 uploadPath/，服务器可用 RUOYI_PROFILE 指向绝对路径）。
  */
 export function uploadFile(file) {
   const formData = new FormData()
@@ -282,18 +283,14 @@ export function getDrama(dramaId) { return adminV1Request({ url: `${ADMIN_PREFIX
 export function addDrama(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/drama`, method: 'post', data }) }
 export function updateDrama(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/drama`, method: 'put', data }) }
 
-// ---------------- 外部视频-关联剧本 ----------------
-export function listDramaBind(query) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaBind/list`, method: 'get', params: query }) }
-export function getDramaBind(dramaId) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaBind/${dramaId}`, method: 'get' }) }
+// ---------------- 外部视频-关联剧本（并入视频内容管理详情） ----------------
 export function bindDrama(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaBind/bind`, method: 'put', data }) }
 export function unbindDrama(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaBind/unbind`, method: 'put', data }) }
 
-// ---------------- 外部视频-上下架管理 ----------------
-export function listDramaStatus(query) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStatus/list`, method: 'get', params: query }) }
+// ---------------- 外部视频-上下架/同步（并入视频内容管理列表） ----------------
 export function changeDramaStatus(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStatus/changeStatus`, method: 'put', data }) }
 export function syncDrama(data) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStatus/sync`, method: 'put', data }) }
 
-// ---------------- 外部视频-播放数据 ----------------
-export function listDramaStats(query) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStats/list`, method: 'get', params: query }) }
+// ---------------- 外部视频-播放数据（并入视频内容管理详情） ----------------
 export function getDramaStats(workId) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStats/${workId}`, method: 'get' }) }
 export function listDramaHistory(query) { return adminV1Request({ url: `${ADMIN_PREFIX}/dramaStats/history`, method: 'get', params: query }) }

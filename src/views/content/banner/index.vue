@@ -45,8 +45,8 @@
         <template #default="{ row }">
           <el-image
             v-if="row.imageUrl"
-            :src="row.imageUrl"
-            :preview-src-list="[row.imageUrl]"
+            :src="resolveMediaUrl(row.imageUrl)"
+            :preview-src-list="[resolveMediaUrl(row.imageUrl)]"
             fit="cover"
             style="width: 60px; height: 40px; border-radius: 4px"
             preview-teleported
@@ -130,7 +130,7 @@
             accept="image/*"
           >
             <div v-if="form.imageUrl" class="banner-uploader__preview">
-              <img :src="form.imageUrl" alt="封面图" />
+              <img :src="resolveMediaUrl(form.imageUrl)" alt="封面图" />
               <span class="banner-uploader__mask">点击更换</span>
             </div>
             <div v-else class="banner-uploader__placeholder" v-loading="uploading">
@@ -218,6 +218,7 @@ import {
   uploadFile
 } from '@/api/content'
 import { BANNER_POSITION, contentEnumLabel } from '@/constants/contentEnum'
+import { resolveMediaUrl } from '@/utils/request'
 
 defineOptions({ name: 'ContentBanner' })
 

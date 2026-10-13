@@ -25,9 +25,6 @@ import ContentBanner from '@/views/content/banner/index.vue'
 import ContentWorkfile from '@/views/content/workfile/index.vue'
 import ExternalDramaChannel from '@/views/content/external-drama/channel/index.vue'
 import ExternalDramaContent from '@/views/content/external-drama/drama/index.vue'
-import ExternalDramaBind from '@/views/content/external-drama/bind/index.vue'
-import ExternalDramaStatus from '@/views/content/external-drama/status/index.vue'
-import ExternalDramaStats from '@/views/content/external-drama/stats/index.vue'
 import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
@@ -90,9 +87,6 @@ export const componentMap = {
   'content/workfile/index': ContentWorkfile,
   'content/external-drama/channel/index': ExternalDramaChannel,
   'content/external-drama/drama/index': ExternalDramaContent,
-  'content/external-drama/bind/index': ExternalDramaBind,
-  'content/external-drama/status/index': ExternalDramaStatus,
-  'content/external-drama/stats/index': ExternalDramaStats,
   'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Inquiry': Inquiry,

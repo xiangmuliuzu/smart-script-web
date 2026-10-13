@@ -13,7 +13,7 @@
       <slot name="toolbar" />
     </div>
 
-    <el-table v-loading="loading" :data="data" style="width: 100%">
+    <el-table v-loading="loading" :data="data" style="width: 100%" @selection-change="onSelectionChange">
       <slot />
       <template #empty>
         <el-empty :description="emptyText" :image-size="emptyImage ? 120 : 72" :image="emptyImage || undefined" />
@@ -56,8 +56,11 @@ defineProps({
   emptyText: { type: String, default: '暂无数据' },
   emptyImage: { type: String, default: '' }
 })
-const emit = defineEmits(['update:page', 'update:pageSize', 'page-change', 'size-change'])
+const emit = defineEmits(['update:page', 'update:pageSize', 'page-change', 'size-change', 'selection-change'])
 
+function onSelectionChange(rows) {
+  emit('selection-change', rows)
+}
 function onPageChange(val) {
   emit('update:page', val)
   emit('page-change', val)
