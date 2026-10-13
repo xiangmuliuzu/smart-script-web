@@ -12,7 +12,7 @@
 
         <div class="login-head">
           <h1 class="login-title">欢迎回来</h1>
-          <p class="login-desc">智能剧本创作平台，请使用平台账号登录</p>
+          <p class="login-desc">智能剧本创作平台，请使用运维管理员账号登录</p>
         </div>
 
         <el-form
@@ -62,6 +62,7 @@
             </div>
           </el-form-item>
 
+          <el-button v-if="!captchaReady" text @click="refreshCaptcha">验证码加载失败，点击重试</el-button>
           <div class="form-options">
             <el-checkbox v-model="rememberUsername">记住账号</el-checkbox>
             <a class="forgot-link" @click.prevent="handleForgot">忘记密码？</a>
@@ -70,6 +71,7 @@
           <el-button
             type="primary"
             :loading="loading"
+            :disabled="!captchaReady"
             class="login-button"
             @click="handleLogin"
           >
@@ -106,10 +108,9 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { usePcUserStore } from '@/stores/pcUser'
 import { usePermissionStore } from '@/stores/permission'
-import { getCodeImg, unifiedLogin } from '@/api/login'
-import { isUserType, safePortalRedirect } from '@/utils/account'
+import { getCodeImg, login } from '@/api/login'
+import { safeRedirectPath } from '@/utils/ruoyi-response'
 import { ElMessage } from 'element-plus'
 import { Document, User, Lock } from '@element-plus/icons-vue'
 
@@ -118,11 +119,11 @@ const REMEMBER_KEY = 'login-remember-username'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const pcUserStore = usePcUserStore()
 const permissionStore = usePermissionStore()
 const formRef = ref(null)
 const loading = ref(false)
-const captchaEnabled = ref(false)
+const captchaEnabled = ref(true)
+const captchaReady = ref(false)
 const codeUrl = ref('')
 const uuid = ref('')
 const rememberUsername = ref(false)
@@ -146,15 +147,12 @@ const rules = {
   ]
 }
 
-function safeRedirectPath(accountType) {
-  // 统一分流规则：站内路径 + 不跨账号域（见 utils/account.js）
-  return safePortalRedirect(route.query?.redirect, accountType)
-}
 
 async function refreshCaptcha() {
   try {
     const data = await getCodeImg()
-    captchaEnabled.value = data?.captchaEnabled !== false && !!data?.img
+    captchaReady.value = data?.captchaEnabled === false || !!(data?.img && data?.uuid)
+    captchaEnabled.value = data?.captchaEnabled !== false
     uuid.value = data?.uuid || ''
     codeUrl.value = data?.img
       ? (data.img.startsWith('data:') ? data.img : `data:image/gif;base64,${data.img}`)
@@ -163,7 +161,7 @@ async function refreshCaptcha() {
       loginForm.code = ''
     }
   } catch (error) {
-    captchaEnabled.value = false
+    captchaReady.value = false
     codeUrl.value = ''
     uuid.value = ''
   }
@@ -203,61 +201,46 @@ onMounted(() => {
 })
 
 const handleLogin = async () => {
-  if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
+  if (!formRef.value || loading.value || !captchaReady.value) return
+  loading.value = true
+  try {
+    const valid = await formRef.value.validate().catch(() => false)
     if (!valid) return
     if (captchaEnabled.value && !loginForm.code) {
       ElMessage.warning('请输入验证码')
       return
     }
-    loading.value = true
-    try {
-      // 切换账号前全量清理旧会话（含另一账号域的令牌与动态路由）
-      userStore.resetSession()
-      pcUserStore.resetSession()
-      const result = await unifiedLogin({
-        username: loginForm.username,
-        password: loginForm.password,
-        code: loginForm.code,
-        uuid: uuid.value
-      })
-      const accountType = result?.accountType
-      if (isUserType(accountType)) {
-        // 01/02/03：App 凭证域令牌，进入 PC 用户门户
-        pcUserStore.setSession(result, accountType)
-        // 登录后读取 /auth/getInfo，确保角色和创作者能力字段就绪。
-        try { await pcUserStore.fetchMe() } catch (e) { /* 网络瞬断忽略，刷新后由路由守卫重试 */ }
-        persistRememberedUsername()
-        ElMessage.success('登录成功')
-        await router.replace(safeRedirectPath(accountType))
-        return
-      }
-      if (accountType === '00') {
-        // 管理员：若依管理端令牌，维持原有动态路由初始化流程
-        userStore.adoptAdminToken(result.token)
-        await userStore.fetchUserInfo()
-        // 登录后先注册动态路由，再进入目标页，避免 /dashboard 未匹配
-        await permissionStore.generateRoutes({ force: true })
-        persistRememberedUsername()
-        ElMessage.success('登录成功')
-        const target = safeRedirectPath(accountType)
-        await router.replace(target)
-        if (router.currentRoute.value.path === '/404' || router.currentRoute.value.path === '/login') {
-          const first = permissionStore.sidebarRoutes?.[0]
-          const firstLeaf = first?.children?.[0]?.path || first?.path || '/'
-          await router.replace(firstLeaf)
-        }
-        return
-      }
-      throw new Error('登录返回的账号类型无法识别')
-    } catch (error) {
-      ElMessage.error(error?.message || '登录失败')
-      await refreshCaptcha()
-      loginForm.code = ''
-    } finally {
-      loading.value = false
+    // 清理旧管理员会话，再使用若依原生登录接口
+    userStore.resetSession()
+    const result = await login({
+      username: loginForm.username,
+      password: loginForm.password,
+      code: loginForm.code,
+      uuid: uuid.value
+    })
+    if (!result?.token) throw new Error('登录响应缺少令牌')
+    // 管理员：若依管理端令牌，维持原有动态路由初始化流程
+    userStore.adoptAdminToken(result.token)
+    await userStore.fetchUserInfo()
+    // 登录后先注册动态路由，再进入目标页，避免 /dashboard 未匹配
+    await permissionStore.generateRoutes({ force: true })
+    persistRememberedUsername()
+    ElMessage.success('登录成功')
+    const target = safeRedirectPath(route.query?.redirect)
+    await router.replace(target)
+    if (router.currentRoute.value.path === '/404' || router.currentRoute.value.path === '/login') {
+      const first = permissionStore.sidebarRoutes?.[0]
+      const firstLeaf = first?.children?.[0]?.path || first?.path || '/'
+      await router.replace(firstLeaf)
     }
-  })
+  } catch (error) {
+    userStore.resetSession()
+    ElMessage.error(error?.message || '登录失败')
+    await refreshCaptcha()
+    loginForm.code = ''
+  } finally {
+    loading.value = false
+  }
 }
 
 function persistRememberedUsername() {
