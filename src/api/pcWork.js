@@ -11,6 +11,21 @@ export function listWorks(status = 'all') {
   return request({ url: `/api/v1/users/me/works`, method: 'get', params: { status } })
 }
 
+/**
+ * 我的作品分页列表（A1 工作台「我的作品」页）。
+ * params：{ status, keyword, workType, pageNum, pageSize }
+ *   - status 支持逗号多值，PC「待修改」传 'revision,rejected'
+ *   - 传 pageNum 时后端返回 { total, pageNum, pageSize, list }
+ */
+export function listWorksPage(params) {
+  return request({ url: '/api/v1/users/me/works', method: 'get', params })
+}
+
+/** 工作台作品统计（A1 工作台首页）：{ workTotal, draftCount, reviewingCount, revisionCount, publishedCount } */
+export function getWorkStatistics() {
+  return request({ url: '/api/v1/users/me/works/statistics', method: 'get' })
+}
+
 /** 作品详情（含章节目录、最近审核意见） */
 export function getWorkDetail(workId) {
   return request({ url: `/api/v1/users/me/works/${workId}`, method: 'get' })

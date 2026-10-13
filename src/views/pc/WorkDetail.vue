@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <div class="work-detail-page">
     <div class="page-heading">
       <h1>作品详情</h1>

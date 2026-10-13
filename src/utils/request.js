@@ -10,18 +10,30 @@ import { unwrapRuoYiResponse } from '@/utils/ruoyi-response'
  */
 const BASE_API = import.meta.env.VITE_APP_ADMIN_BASE_API || import.meta.env.VITE_APP_BASE_API || ''
 
+/** 后端公开静态资源前缀（ResourcesConfig 将 /profile/** 映射到 ruoyi.profile 目录） */
+const MEDIA_PATH_PREFIX = '/profile/'
+
 /**
- * 把后端下发的相对媒体地址（如 `/profile/upload/2026/10/12/xxx.jpg`）补上 API 前缀，
- * 交给 Vite / 网关代理到后端；绝对地址（旧数据、CDN）原样返回。
+ * 把后端下发的媒体地址归一为「当前环境可直接访问」的地址。
  *
- * 背景：App 上传接口（2.9.1）自改为下发相对路径，避免把上传者所在机器
- * （localhost / 模拟器 10.0.2.2 / 局域网 IP）写进共享库；PC 端展示前需经此转换。
+ * 处理两类值：
+ *  1. 相对路径（`/profile/upload/2026/10/12/xxx.jpg`）——补上 API 前缀，交给 Vite / 网关代理到后端；
+ *  2. 历史绝对地址（`http://localhost:8080/profile/...`、`http://<内网IP>:8080/profile/...`）——
+ *     截取 `/profile/` 之后的部分再按方案 1 拼接。
+ *
+ * 背景：早期通用上传接口（POST /common/upload）返回的是 `serverConfig.getUrl() + 文件名`，
+ * 会把「上传那一刻的 host」写进库；在共享库与服务器环境下这些地址必然不可达。
+ * 此处统一归一，使存量数据无需刷库即可恢复显示。
  */
 export function resolveMediaUrl(raw) {
   if (!raw) {
     return ''
   }
-  const url = String(raw)
+  let url = String(raw)
+  const mediaIndex = url.indexOf(MEDIA_PATH_PREFIX)
+  if (mediaIndex > 0) {
+    url = url.substring(mediaIndex)
+  }
   if (url.startsWith('/') && !url.startsWith('//')) {
     return `${BASE_API}${url}`
   }
