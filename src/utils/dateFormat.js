@@ -20,4 +20,3 @@ export function formatRegisteredTime(iso) {
   const get = (type) => parts.find((p) => p.type === type)?.value || ''
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`
 }
-

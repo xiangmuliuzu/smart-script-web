@@ -17,4 +17,3 @@ test('formatRegisteredTime renders — for missing or invalid values', () => {
   assert.equal(formatRegisteredTime('not-a-date'), '—')
   assert.equal(formatRegisteredTime('2026-13-40T99:00:00+08:00'), '—')
 })
-
