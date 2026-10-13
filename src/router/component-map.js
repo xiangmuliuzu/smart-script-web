@@ -25,7 +25,6 @@ import ContentBanner from '@/views/content/banner/index.vue'
 import ContentWorkfile from '@/views/content/workfile/index.vue'
 import ExternalDramaChannel from '@/views/content/external-drama/channel/index.vue'
 import ExternalDramaContent from '@/views/content/external-drama/drama/index.vue'
-import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
 import Quote from '@/views/trade/Quote.vue'
@@ -87,7 +86,6 @@ export const componentMap = {
   'content/workfile/index': ContentWorkfile,
   'content/external-drama/channel/index': ExternalDramaChannel,
   'content/external-drama/drama/index': ExternalDramaContent,
-  'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Inquiry': Inquiry,
   'trade/Quote': Quote,
