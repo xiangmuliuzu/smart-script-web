@@ -13,7 +13,6 @@ import ContractManage from '@/views/copyright/ContractManage.vue'
 import SettlementManage from '@/views/copyright/SettlementManage.vue'
 import FinanceAbnormal from '@/views/copyright/FinanceAbnormal.vue'
 import CopyrightCertManage from '@/views/copyright/CopyrightCertManage.vue'
-import SealManage from '@/views/copyright/SealManage.vue'
 import CopyrightApplicationManage from '@/views/copyright/CopyrightApplicationManage.vue'
 import CopyrightCenterConfig from '@/views/copyright/CopyrightCenterConfig.vue'
 import ContentCategory from '@/views/content/category/index.vue'
@@ -74,7 +73,6 @@ export const componentMap = {
   'copyright/SettlementManage': SettlementManage,
   'copyright/FinanceAbnormal': FinanceAbnormal,
   'copyright/CopyrightCertManage': CopyrightCertManage,
-  'copyright/SealManage': SealManage,
   'copyright/CopyrightApplicationManage': CopyrightApplicationManage,
   'copyright/CopyrightCenterConfig': CopyrightCenterConfig,
   'content/category/index': ContentCategory,
