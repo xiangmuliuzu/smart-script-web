@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { runInNewContext } from 'node:vm'
 const source = await readFile(new URL('../src/router/index.js', import.meta.url), 'utf8')
-const code = source.replace(/^import .*$/gm, '').replace('export default router', '')
+const code = source.replace(/^import .*$/gm, '').replace('import.meta.env.BASE_URL', "'/'").replace('export default router', '')
 function guard({ token = '', info = false, initialized = false, fail = false } = {}) {
   let beforeEach
   const calls = []
