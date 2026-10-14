@@ -13,6 +13,8 @@ npm run dev
 
 开发服务器默认使用 `http://localhost:3000`。联调时设置 `VITE_API_TARGET` 指向后端；后端数据库初始化及启动见 [后端 README](../smart-script-backend/README.md)。
 
+三端按服务器目录部署：管理员端 `/`（http://124.221.131.38/）、用户端 `/user/`、企业端 `/enterprise/`。本管理端 Vite 基础路径固定为 `/`，Router 使用 `import.meta.env.BASE_URL`；生产构建的 `dist` 内容部署到站点根目录。服务器须优先处理两个子应用及站点级 API，再将管理端 SPA 路由回退到根目录的 `index.html`。子应用的 `dist` 分别部署到各自目录，不能共用根目录的 SPA 回退。
+
 环境变量从 `.env.development` 读取，完整字段说明见 `.env.example`：
 
 | 变量 | 默认值 | 说明 |

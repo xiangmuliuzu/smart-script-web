@@ -4,7 +4,7 @@ import { getToken } from '@/utils/auth'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
 
-const router = createRouter({ history: createWebHistory(), routes: constantRoutes })
+const router = createRouter({ history: createWebHistory(import.meta.env.BASE_URL), routes: constantRoutes })
 router.beforeEach(async (to, from, next) => {
   const token = getToken()
   const userStore = useUserStore()
