@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const apiPrefix = env.VITE_APP_BASE_API || '/dev-api'
 
   return {
+    base: '/',
     plugins: [vue()],
     resolve: {
       alias: {

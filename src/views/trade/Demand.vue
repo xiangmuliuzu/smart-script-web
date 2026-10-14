@@ -72,29 +72,14 @@
           <el-input v-model="publishForm.title" placeholder="请输入征集标题" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="标签" prop="tags">
-          <div class="tag-input-area">
-            <el-tag
-              v-for="tag in publishForm.tags"
-              :key="tag"
-              closable
-              size="default"
-              @close="removeTag(tag)"
-              style="margin-right: 6px; margin-bottom: 6px;"
-            >
-              {{ tag }}
-            </el-tag>
-            <el-input
-              v-if="tagInputVisible"
-              ref="tagInputRef"
-              v-model="tagInputValue"
-              size="small"
-              style="width: 140px"
-              placeholder="输入后回车"
-              @keyup.enter="addTag"
-              @blur="addTag"
+          <el-select v-model="publishForm.tags" multiple filterable placeholder="请从标签库中选择" style="width: 100%">
+            <el-option
+              v-for="tag in availableTags"
+              :key="tag.tagId"
+              :label="tag.tagName"
+              :value="tag.tagName"
             />
-            <el-button v-else size="small" @click="showTagInput">+ 添加标签</el-button>
-          </div>
+          </el-select>
         </el-form-item>
         <el-form-item label="预算(元)" prop="budget">
           <el-input-number v-model="publishForm.budget" :min="0" :precision="2" :step="10000" style="width: 100%" placeholder="设置征集预算" />
@@ -164,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -174,6 +159,7 @@ import TableCard from '@/components/TableCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { enumOptions } from '@/constants/tradeEnum'
 import { getDemandList, getDemandSubmissions, createDemand } from '@/api/trade'
+import { listTag } from '@/api/content'
 
 defineOptions({ name: 'Demand' })
 
@@ -194,25 +180,7 @@ const publishVisible = ref(false)
 const publishing = ref(false)
 const publishFormRef = ref()
 const publishForm = ref({ title: '', tags: [], budget: null, deadline: '', contactInfo: '', requirement: '' })
-const tagInputVisible = ref(false)
-const tagInputValue = ref('')
-const tagInputRef = ref()
-
-function showTagInput() {
-  tagInputVisible.value = true
-  nextTick(() => { tagInputRef.value?.focus() })
-}
-function addTag() {
-  const val = tagInputValue.value.trim()
-  if (val && !publishForm.value.tags.includes(val)) {
-    publishForm.value.tags.push(val)
-  }
-  tagInputVisible.value = false
-  tagInputValue.value = ''
-}
-function removeTag(tag) {
-  publishForm.value.tags = publishForm.value.tags.filter(t => t !== tag)
-}
+const availableTags = ref([])
 // COLLECT_002：截止日期不得早于当前日期（与后端 TradeDemandService 一致，按天比较、当天允许）
 function todayStr() {
   const d = new Date()
@@ -295,8 +263,6 @@ async function handleViewSubmissions(row) {
 
 function handlePublish() {
   publishForm.value = { title: '', tags: [], budget: null, deadline: '', contactInfo: '', requirement: '' }
-  tagInputVisible.value = false
-  tagInputValue.value = ''
   publishVisible.value = true
 }
 
@@ -319,7 +285,16 @@ async function handlePublishSubmit() {
   })
 }
 
-onMounted(loadList)
+async function loadTags() {
+  try {
+    const res = await listTag({ pageNo: 1, pageSize: 200, status: 0 })
+    availableTags.value = res.rows || []
+  } catch {
+    availableTags.value = []
+  }
+}
+
+onMounted(() => { loadList(); loadTags() })
 </script>
 
 <style scoped>
@@ -333,13 +308,6 @@ onMounted(loadList)
   font-size: 14px;
   font-weight: 600;
   color: #1f2329;
-}
-
-.tag-input-area {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
 }
 
 .text-muted {

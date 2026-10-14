@@ -13,7 +13,6 @@ import ContractManage from '@/views/copyright/ContractManage.vue'
 import SettlementManage from '@/views/copyright/SettlementManage.vue'
 import FinanceAbnormal from '@/views/copyright/FinanceAbnormal.vue'
 import CopyrightCertManage from '@/views/copyright/CopyrightCertManage.vue'
-import SealManage from '@/views/copyright/SealManage.vue'
 import CopyrightApplicationManage from '@/views/copyright/CopyrightApplicationManage.vue'
 import CopyrightCenterConfig from '@/views/copyright/CopyrightCenterConfig.vue'
 import ContentCategory from '@/views/content/category/index.vue'
@@ -25,7 +24,6 @@ import ContentBanner from '@/views/content/banner/index.vue'
 import ContentWorkfile from '@/views/content/workfile/index.vue'
 import ExternalDramaChannel from '@/views/content/external-drama/channel/index.vue'
 import ExternalDramaContent from '@/views/content/external-drama/drama/index.vue'
-import TradeWorks from '@/views/trade/TradeWorks.vue'
 import AuthOrders from '@/views/trade/AuthOrders.vue'
 import Inquiry from '@/views/trade/Inquiry.vue'
 import Quote from '@/views/trade/Quote.vue'
@@ -75,7 +73,6 @@ export const componentMap = {
   'copyright/SettlementManage': SettlementManage,
   'copyright/FinanceAbnormal': FinanceAbnormal,
   'copyright/CopyrightCertManage': CopyrightCertManage,
-  'copyright/SealManage': SealManage,
   'copyright/CopyrightApplicationManage': CopyrightApplicationManage,
   'copyright/CopyrightCenterConfig': CopyrightCenterConfig,
   'content/category/index': ContentCategory,
@@ -87,7 +84,6 @@ export const componentMap = {
   'content/workfile/index': ContentWorkfile,
   'content/external-drama/channel/index': ExternalDramaChannel,
   'content/external-drama/drama/index': ExternalDramaContent,
-  'trade/TradeWorks': TradeWorks,
   'trade/AuthOrders': AuthOrders,
   'trade/Inquiry': Inquiry,
   'trade/Quote': Quote,

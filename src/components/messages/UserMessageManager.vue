@@ -46,7 +46,7 @@ import { useUserStore } from '@/stores/user'
 import { listNotifications, getNotification, createNotification } from '@/api/user/message'
 import { listAppUsers } from '@/api/user/appUser'
 import { notificationPayload, notificationError, notificationSubmission, mergeReceiverOptions } from '@/utils/notificationDraft'
-import { formatRegisteredTime as formatTime } from '@/utils/pcFormat'
+import { formatRegisteredTime as formatTime } from '@/utils/dateFormat'
 const userStore = useUserStore()
 const canSend = computed(() => userStore.hasPermission('user:message:add'))
 const canSelectUsers = computed(() => userStore.hasPermission('user:app:list'))
