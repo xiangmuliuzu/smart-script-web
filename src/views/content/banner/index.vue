@@ -100,13 +100,19 @@
       <el-table-column label="结束时间" width="170">
         <template #default="{ row }">{{ row.endTime || '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button
             v-permission="['content:banner:edit']"
             size="small"
             @click="openEdit(row)"
           >编辑</el-button>
+          <el-button
+            v-permission="['content:banner:edit']"
+            size="small"
+            type="danger"
+            @click="handleDelete(row)"
+          >删除</el-button>
         </template>
       </el-table-column>
     </TableCard>
@@ -169,7 +175,7 @@
           <el-date-picker
             v-model="form.startTime"
             type="datetime"
-            placeholder="选择开始时间（留空即不限制）"
+            placeholder="请选择开始时间"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
             @change="handleTimeChange"
@@ -179,7 +185,7 @@
           <el-date-picker
             v-model="form.endTime"
             type="datetime"
-            placeholder="选择结束时间（留空即不限制）"
+            placeholder="请选择结束时间"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
             @change="handleTimeChange"
@@ -215,6 +221,7 @@ import {
   updateBanner,
   changeBannerStatus,
   changeBannerSort,
+  deleteBanner,
   uploadFile
 } from '@/api/content'
 import { BANNER_POSITION, contentEnumLabel } from '@/constants/contentEnum'
@@ -346,8 +353,17 @@ const rules = {
   imageUrl: [
     { required: true, message: '请上传封面图', trigger: 'change' }
   ],
-  startTime: [{ validator: validateTimeWindow, trigger: 'change' }],
-  endTime: [{ validator: validateTimeWindow, trigger: 'change' }]
+  position: [
+    { required: true, message: '请选择展示位置', trigger: 'change' }
+  ],
+  startTime: [
+    { required: true, message: '请选择开始时间', trigger: 'change' },
+    { validator: validateTimeWindow, trigger: 'change' }
+  ],
+  endTime: [
+    { required: true, message: '请选择结束时间', trigger: 'change' },
+    { validator: validateTimeWindow, trigger: 'change' }
+  ]
 }
 
 /** 上传前置校验：仅图片、≤2MB */
@@ -504,6 +520,25 @@ async function handleSort(row) {
     await loadList()
   } finally {
     sortingId.value = null
+  }
+}
+
+async function handleDelete(row) {
+  try {
+    await ElMessageBox.confirm(`确认删除Banner「${row.title}」？删除后不可恢复。`, '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+  try {
+    await deleteBanner(row.bannerId)
+    ElMessage.success('删除成功')
+    loadList()
+  } catch {
+    // 错误信息已由 request 拦截器统一提示
   }
 }
 

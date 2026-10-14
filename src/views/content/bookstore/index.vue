@@ -278,9 +278,9 @@ function resetRecommendFields() {
   form.recommendExpireAt = ''
 }
 
-/** 推荐状态切换：联动展示位，"无推荐"清空所有字段 */
+/** 推荐状态切换：联动展示位，"无推荐"或清空（val 为空）时清空所有字段 */
 function handleRecommendChange(val) {
-  if (val === 'none') {
+  if (!val || val === 'none') {
     form.showScope = []
     form.recommendWeight = 0
     form.recommendExpireAt = ''

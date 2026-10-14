@@ -245,6 +245,13 @@ export function changeBannerSort(data) {
   })
 }
 
+/** 删除 Banner（物理删除） */
+export function deleteBanner(bannerId) {
+  return adminV1Request({ url: `${ADMIN_PREFIX}/banner/${bannerId}`,
+    method: 'delete'
+  })
+}
+
 // ---------------- 通用文件上传 ----------------
 
 /**
