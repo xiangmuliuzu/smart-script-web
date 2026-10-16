@@ -19,11 +19,6 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-select v-model="queryParams.tagType" placeholder="全部类型" style="width: 160px" clearable>
-          <el-option v-for="t in TAG_TYPE" :key="t.value" :label="t.label" :value="t.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
         <el-select v-model="queryParams.status" placeholder="全部状态" style="width: 140px" clearable>
           <el-option label="正常" value="0" />
           <el-option label="停用" value="1" />
@@ -144,7 +139,6 @@ const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   tagName: '',
-  tagType: '',
   status: ''
 })
 
@@ -198,7 +192,6 @@ function buildQuery() {
     pageNum: queryParams.pageNum,
     pageSize: queryParams.pageSize,
     tagName: queryParams.tagName || undefined,
-    tagType: queryParams.tagType || undefined,
     status: queryParams.status || undefined
   }
 }
@@ -226,7 +219,6 @@ function handleQuery() {
 
 function handleReset() {
   queryParams.tagName = ''
-  queryParams.tagType = ''
   queryParams.status = ''
   handleQuery()
 }

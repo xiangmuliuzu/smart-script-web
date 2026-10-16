@@ -7,7 +7,8 @@
  * - TRADE_TYPE（交易类型）：与若依字典 trade_license_type 对齐
  *   （exclusive 独家 / non_exclusive 非独家 / adaptation 改编）。
  *   依据 sql/smartscript_full_init.sql：negotiable「可议价」已退役为所有作品共有能力。
- * - CATEGORY_TYPE / TAG_TYPE：设计文档未定义枚举，采用内容侧约定的经典维度；
+ * - CATEGORY_TYPE / TAG_TYPE：分类即题材频道（不分风格/受众，男女频不做）；
+ *   标签为情节/卖点标签（受众类标签已下线清理）。
  *   App 端只按 parentId 取分类、不按类型筛选（见 content_providers.dart），故取值不影响 App。
  * - DRAMA_SOURCE_TYPE / DRAMA_AUTH_STATUS / DRAMA_SHELF_STATUS / BANNER_POSITION：
  *   取云端库 sys_external_drama / sys_banner 对应列实测值。
@@ -16,17 +17,14 @@
  *   迁移脚本 B_20261009_007__rename_ranking_type.sql 收敛为 view/favorite）。
  */
 
-/** 分类类型（sys_category.category_type） */
+/** 分类类型（sys_category.category_type）：分类即题材频道，不分风格/受众（男女频不做） */
 export const CATEGORY_TYPE = [
-  { value: 'theme', label: '题材' },
-  { value: 'style', label: '风格' },
-  { value: 'audience', label: '受众' }
+  { value: 'theme', label: '题材' }
 ]
 
-/** 标签类型（sys_tag.tag_type） */
+/** 标签类型（sys_tag.tag_type）：标签为情节/卖点标签，不挂受众维度 */
 export const TAG_TYPE = [
-  { value: 'theme', label: '题材' },
-  { value: 'audience', label: '受众' }
+  { value: 'theme', label: '情节标签' }
 ]
 
 /** 作品类型（sys_work.work_type）：库内实际值 */
