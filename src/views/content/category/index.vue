@@ -36,32 +36,9 @@
       @page-change="loadList"
       @size-change="loadList"
     >
-      <el-table-column prop="categoryId" label="分类ID" width="90" />
-      <el-table-column prop="categoryName" label="分类名称" min-width="160" show-overflow-tooltip />
-      <el-table-column label="分类类型" width="120">
-        <template #default="{ row }">{{ contentEnumLabel(CATEGORY_TYPE, row.categoryType) }}</template>
-      </el-table-column>
-      <el-table-column label="显示顺序" width="180">
-        <template #default="{ row }">
-          <el-input-number
-            v-model="row.sort"
-            :min="0"
-            :max="9999"
-            size="small"
-            controls-position="right"
-            style="width: 104px"
-          />
-          <el-button
-            v-permission="['content:category:edit']"
-            size="small"
-            link
-            type="primary"
-            :loading="sortingId === row.categoryId"
-            @click="handleSort(row)"
-          >保存</el-button>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="100">
+      <el-table-column prop="sort" label="位次" width="80" />
+      <el-table-column prop="categoryName" label="分类名称" min-width="180" show-overflow-tooltip />
+      <el-table-column label="状态" min-width="120">
         <template #default="{ row }">
           <el-switch
             v-permission="['content:category:edit']"
@@ -72,16 +49,22 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="170">
+      <el-table-column label="创建时间" min-width="160">
         <template #default="{ row }">{{ row.createTime || '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button
             v-permission="['content:category:edit']"
             size="small"
             @click="openEdit(row)"
           >编辑</el-button>
+          <el-button
+            v-permission="['content:category:remove']"
+            size="small"
+            type="danger"
+            @click="handleDelete(row)"
+          >删除</el-button>
         </template>
       </el-table-column>
     </TableCard>
@@ -96,13 +79,11 @@
         <el-form-item label="分类名称" prop="categoryName">
           <el-input v-model="form.categoryName" placeholder="请输入分类名称，不可重复" />
         </el-form-item>
-        <el-form-item label="分类类型" prop="categoryType">
-          <el-select v-model="form.categoryType" placeholder="请选择分类类型（选填）" style="width: 100%" clearable>
-            <el-option v-for="t in CATEGORY_TYPE" :key="t.value" :label="t.label" :value="t.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="显示顺序" prop="sort">
-          <el-input-number v-model="form.sort" :min="0" :max="9999" />
+        <el-form-item label="位次" prop="sort">
+          <el-input-number v-model="form.sort" :min="1" />
+          <div style="font-size: 12px; color: #909399; line-height: 1.5; margin-top: 4px;">
+            数字越小越靠前；留空则追加到末尾；改为已存在位次时，其他分类自动顺延
+          </div>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-switch
@@ -138,9 +119,8 @@ import {
   addCategory,
   updateCategory,
   changeCategoryStatus,
-  changeCategorySort
+  delCategory
 } from '@/api/content'
-import { CATEGORY_TYPE, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentCategory' })
 
@@ -153,8 +133,6 @@ const queryParams = reactive({
   categoryName: '',
   status: ''
 })
-
-const sortingId = ref(null)
 
 /** 分类名称下拉选项：从已有分类动态加载，供按名称筛选 */
 const nameOptions = ref([])
@@ -173,8 +151,7 @@ const formRef = ref()
 const defaultForm = () => ({
   categoryId: null,
   categoryName: '',
-  categoryType: '',
-  sort: 0,
+  sort: null,
   status: '0',
   remark: ''
 })
@@ -231,8 +208,7 @@ function openEdit(row) {
   Object.assign(form, {
     categoryId: row.categoryId,
     categoryName: row.categoryName || '',
-    categoryType: row.categoryType || '',
-    sort: row.sort ?? 0,
+    sort: row.sort ?? null,
     status: row.status || '0',
     remark: row.remark || ''
   })
@@ -251,7 +227,6 @@ async function handleSubmit() {
     submitting.value = true
     const payload = {
       categoryName: form.categoryName.trim(),
-      categoryType: form.categoryType?.trim() || '',
       sort: form.sort,
       status: form.status,
       remark: form.remark || ''
@@ -296,20 +271,23 @@ async function handleStatusChange(row) {
   }
 }
 
-async function handleSort(row) {
-  if (row.sort === null || row.sort === undefined) {
-    ElMessage.warning('请输入显示顺序')
+async function handleDelete(row) {
+  try {
+    await ElMessageBox.confirm(`确认删除分类「${row.categoryName}」吗？删除后不可恢复。`, '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
     return
   }
-  sortingId.value = row.categoryId
   try {
-    await changeCategorySort({ categoryId: row.categoryId, sort: row.sort })
-    ElMessage.success('排序已更新')
+    await delCategory(row.categoryId)
+    ElMessage.success('删除成功')
+    loadNameOptions()
+    loadList()
   } catch {
-    // 失败后重新拉取，回滚界面上的本地改动
-    await loadList()
-  } finally {
-    sortingId.value = null
+    // 被作品引用等错误信息已由 request 拦截器统一提示
   }
 }
 

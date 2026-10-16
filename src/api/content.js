@@ -57,6 +57,13 @@ export function changeCategorySort(data) {
   })
 }
 
+/** 删除分类（单个；被作品引用时后端拒绝） */
+export function delCategory(categoryId) {
+  return adminV1Request({ url: `${ADMIN_PREFIX}/category/${categoryId}`,
+    method: 'delete'
+  })
+}
+
 // ---------------- 标签 ----------------
 
 /** 标签分页列表（tagName 模糊、tagType/status 精确） */

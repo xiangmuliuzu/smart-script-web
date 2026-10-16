@@ -36,14 +36,15 @@
       @page-change="loadList"
       @size-change="loadList"
     >
-      <template #actions>
-        <el-button
-          v-permission="['content:tag:remove']"
-          type="danger"
-          plain
-          :disabled="checkedIds.length === 0"
-          @click="handleBatchRemove"
-        >批量删除</el-button>
+      <template #toolbar>
+        <div style="display: flex; justify-content: flex-end;">
+          <el-button
+            v-permission="['content:tag:remove']"
+            type="danger"
+            :disabled="checkedIds.length === 0"
+            @click="handleBatchRemove"
+          >批量删除{{ checkedIds.length ? `（已选 ${checkedIds.length} 项）` : '' }}</el-button>
+        </div>
       </template>
 
       <el-table-column label="选择" width="50">
@@ -58,21 +59,21 @@
           <el-checkbox v-model="checkedMap[row.tagId]" />
         </template>
       </el-table-column>
-      <el-table-column prop="tagId" label="标签ID" width="90" />
-      <el-table-column prop="tagName" label="标签名称" min-width="160" show-overflow-tooltip />
-      <el-table-column label="标签类型" width="120">
-        <template #default="{ row }">{{ contentEnumLabel(TAG_TYPE, row.tagType) }}</template>
-      </el-table-column>
-      <el-table-column prop="useCount" label="使用数量" width="100" />
-      <el-table-column prop="sort" label="显示顺序" width="90" />
-      <el-table-column label="状态" width="90">
+      <el-table-column prop="sort" label="位次" width="80" />
+      <el-table-column prop="tagName" label="标签名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="useCount" label="使用数量" min-width="120" />
+      <el-table-column label="状态" min-width="120">
         <template #default="{ row }">
-          <el-tag :type="row.status === '0' ? 'success' : 'danger'" size="small">
-            {{ row.status === '0' ? '正常' : '停用' }}
-          </el-tag>
+          <el-switch
+            v-permission="['content:tag:edit']"
+            v-model="row.status"
+            active-value="0"
+            inactive-value="1"
+            @change="() => handleStatusChange(row)"
+          />
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="170">
+      <el-table-column label="创建时间" min-width="160">
         <template #default="{ row }">{{ row.createTime || '—' }}</template>
       </el-table-column>
       <el-table-column label="操作" width="150" fixed="right">
@@ -102,10 +103,20 @@
         <el-form-item label="标签名称" prop="tagName">
           <el-input v-model="form.tagName" placeholder="请输入标签名称，不可重复" />
         </el-form-item>
-        <el-form-item label="标签类型" prop="tagType">
-          <el-select v-model="form.tagType" placeholder="请选择标签类型（选填）" style="width: 100%" clearable>
-            <el-option v-for="t in TAG_TYPE" :key="t.value" :label="t.label" :value="t.value" />
-          </el-select>
+        <el-form-item label="位次" prop="sort">
+          <el-input-number v-model="form.sort" :min="1" />
+          <div style="font-size: 12px; color: #909399; line-height: 1.5; margin-top: 4px;">
+            数字越小越靠前；留空则追加到末尾；改为已存在位次时，其他标签自动顺延
+          </div>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-switch
+            v-model="form.status"
+            active-value="0"
+            inactive-value="1"
+            active-text="正常"
+            inactive-text="停用"
+          />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注（选填）" />
@@ -128,7 +139,6 @@ import BlackButton from '@/components/BlackButton.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import TableCard from '@/components/TableCard.vue'
 import { listTag, addTag, updateTag, delTag } from '@/api/content'
-import { TAG_TYPE, contentEnumLabel } from '@/constants/contentEnum'
 
 defineOptions({ name: 'ContentTag' })
 
@@ -175,7 +185,8 @@ const formRef = ref()
 const defaultForm = () => ({
   tagId: null,
   tagName: '',
-  tagType: '',
+  sort: null,
+  status: '0',
   remark: ''
 })
 const form = reactive(defaultForm())
@@ -233,7 +244,8 @@ function openEdit(row) {
   Object.assign(form, {
     tagId: row.tagId,
     tagName: row.tagName || '',
-    tagType: row.tagType || '',
+    sort: row.sort ?? null,
+    status: row.status || '0',
     remark: row.remark || ''
   })
   dialog.mode = 'edit'
@@ -251,7 +263,8 @@ async function handleSubmit() {
     submitting.value = true
     const payload = {
       tagName: form.tagName.trim(),
-      tagType: form.tagType?.trim() || '',
+      sort: form.sort,
+      status: form.status,
       remark: form.remark || ''
     }
     try {
@@ -271,6 +284,27 @@ async function handleSubmit() {
       submitting.value = false
     }
   })
+}
+
+async function handleStatusChange(row) {
+  const targetStatus = row.status
+  const actionText = targetStatus === '0' ? '启用' : '停用'
+  try {
+    await ElMessageBox.confirm(`确认${actionText}标签「${row.tagName}」？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    row.status = targetStatus === '0' ? '1' : '0'
+    return
+  }
+  try {
+    await updateTag({ tagId: row.tagId, status: targetStatus })
+    ElMessage.success(`${actionText}成功`)
+  } catch {
+    row.status = targetStatus === '0' ? '1' : '0'
+  }
 }
 
 async function handleRemove(row) {
