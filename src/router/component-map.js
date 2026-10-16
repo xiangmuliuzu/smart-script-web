@@ -31,6 +31,7 @@ import Demand from '@/views/trade/Demand.vue'
 import AdConfig from '@/views/operation/AdConfig.vue'
 import UserManageProduct from '@/views/user/UserManage.vue'
 import UserRealName from '@/views/user/realname/index.vue'
+import UserCreatorApply from '@/views/user/creator-apply/index.vue'
 import MessagesAnnouncements from '@/views/support/MessagesAnnouncements.vue'
 import ReceivedAnnouncements from '@/views/support/ReceivedAnnouncements.vue'
 import UserFeedback from '@/views/user/feedback/index.vue'
@@ -91,6 +92,7 @@ export const componentMap = {
   'operation/AdConfig': AdConfig,
   'user/UserManage': UserManageProduct,
   'user/realname/index': UserRealName,
+  'user/creator-apply/index': UserCreatorApply,
   'user/message/index': MessagesAnnouncements,
   'support/MessagesAnnouncements': MessagesAnnouncements,
   'support/ReceivedAnnouncements': ReceivedAnnouncements,
